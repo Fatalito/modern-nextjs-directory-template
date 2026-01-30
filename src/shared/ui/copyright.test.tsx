@@ -62,7 +62,5 @@ describe("Copyright Component", () => {
     render(<Copyright author="TestAuthor" />);
 
     expect(screen.getByText(/© 2025 TestAuthor\./)).toBeInTheDocument();
-
-    vi.useRealTimers();
   });
 });
