@@ -106,7 +106,7 @@ const createUserService = (db: Database) => {
 - **Branching:** Create feature branches (e.g., `feat/blog-page`) and PRs.
 
 ## 6. General Guidelines
-- **Avoid Defaults:** Use named exports unless required by Next.js specific files (like `page.tsx`).
+- **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
 - **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
 - **License:** Apache 2.0.
 
