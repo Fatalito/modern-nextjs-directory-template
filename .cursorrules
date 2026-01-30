@@ -19,7 +19,7 @@ These rules must be followed in every response, code generation, and refactoring
     - `src/entities`: Business entities (e.g., user, post).
     - `src/features`: User interactions (e.g., login, like-post).
     - `src/widgets`: Compositional blocks (e.g., header, sidebar).
-    - `src/pages`: Composition of widgets for specific routes.
+    - `src/views`: Composition of widgets for specific routes.
     - `src/app`: App-wide settings, styles, and routing.
   - **Routing:** Multi-Zones strategy with Route Groups for isolation: `(listing)`, `(dashboard)`, `(blog)`, `(admin)`.
 
