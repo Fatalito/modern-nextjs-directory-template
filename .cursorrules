@@ -75,7 +75,7 @@ const createUserService = () => {
 // GOOD
 const createUserService = (db: Database) => {
   // ...
-}
+};
 ```
 
 ## 4. Naming Conventions
@@ -93,7 +93,7 @@ const createUserService = (db: Database) => {
 
 ### Files & Directories
 - **Kebab-case** for file names: `user-profile.tsx`, `auth-service.ts`.
-- **CamelCase** for exported constants/functions.
+- **camelCase** for exported constants/functions.
 - **PascalCase** for Types and React Components.
 
 ## 5. Development Workflow
