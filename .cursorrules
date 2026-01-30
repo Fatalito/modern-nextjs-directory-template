@@ -1,0 +1,122 @@
+# AI Instructions & Project Rules
+
+You are an expert AI assistant working on a scalable **Next.js** project.
+These rules must be followed in every response, code generation, and refactoring task.
+
+## 1. Project Stack & Architecture
+
+- **Framework:** Next.js 16+ (App Router, Server Components).
+- **Runtime:** Node.js v24 (verify via `.nvmrc`).
+- **Language:** TypeScript (Strict mode).
+- **Styling:** Tailwind CSS v4.
+- **Linting & Formatting:** Biome (Use `biome check` and `biome format`).
+- **Testing:**
+  - **Unit:** Vitest (React Testing Library).
+  - **E2E/Integration:** Playwright.
+- **Architecture:**
+  - **Structure:** Feature-Sliced Design (FSD).
+    - `src/shared`: Reusable low-level code (ui kit, libs, api).
+    - `src/entities`: Business entities (e.g., user, post).
+    - `src/features`: User interactions (e.g., login, like-post).
+    - `src/widgets`: Compositional blocks (e.g., header, sidebar).
+    - `src/views`: Composition of widgets for specific routes.
+    - `src/app`: App-wide settings, styles, and routing.
+  - **Routing:** Multi-Zones strategy with Route Groups for isolation: `(listing)`, `(dashboard)`, `(blog)`, `(admin)`.
+
+## 2. Coding Style: Strict Functional Programming
+
+- **NO Classes:** Do not use the `class` keyword. Inheritance is forbidden.
+- **Pure Functions:** Prefer pure functions. Side effects must be isolated.
+- **Arrow Functions:** Use `const func = () => { ... }` for everything.
+- **Factories over Classes:**
+  - Use **Factory Functions** to create objects or service instances.
+  - Use **Closures** within factories to hold private state.
+- **Explicit Interfaces:** Always define return types for factory functions.
+
+### Example: Factory Pattern
+```typescript
+type CounterService = {
+  increment: () => void;
+  getCount: () => number;
+};
+
+const createCounterService = (initialValue: number = 0): CounterService => {
+  // Private state via closure
+  let count = initialValue;
+
+  const increment = () => {
+    count += 1;
+  };
+
+  const getCount = () => count;
+
+  return { increment, getCount };
+};
+```
+
+## 3. SOLID Principles (Functional Adaptation)
+
+- **SRP (Single Responsibility):** Each module/factory does one thing.
+- **OCP (Open/Closed):** Extend behavior via composition, not modification.
+- **LSP (Liskov Substitution):** Interfaces must be interchangeably implemented.
+- **ISP (Interface Segregation):** Return small, focused interfaces.
+- **DIP (Dependency Inversion):**
+  - **Inject dependencies** as arguments to factory functions.
+  - **Never** instantiate dependencies inside the factory.
+
+### Dependency Injection Example
+```typescript
+// BAD
+const createUserService = () => {
+  const db = createDatabase(); // Internal coupling
+  // ...
+};
+
+// GOOD
+const createUserService = (db: Database) => {
+  // ...
+};
+```
+
+## 4. Naming Conventions
+
+### Factory Functions
+1.  **`create...` (Control/Factory)**
+    - Returns an interface/object the caller **must** use to control behavior.
+    - Used for: Complex creation logic, creating mockable services, UI component encapsulation.
+    - Example: `createKeepAliveManager()` -> `{ start, stop }`
+
+2.  **`start...` (Fire-and-Forget)**
+    - Initiates a process running in the background.
+    - Caller does not need to interact with the result constantly.
+    - Example: `startHealthServer()`
+
+### Files & Directories
+- **Kebab-case** for file names: `user-profile.tsx`, `auth-service.ts`.
+- **camelCase** for exported constants/functions.
+- **PascalCase** for Types and React Components.
+
+## 5. Development Workflow
+
+- **TDD (Test Driven Development):**
+  1.  Write a failing test (Vitest/Playwright).
+  2.  Implement the minimal code to pass.
+  3.  Refactor while keeping green.
+- **Atomic Commits:** Small, descriptive commits focused on a single feature or fix.
+- **Branching:** Create feature branches (e.g., `feat/blog-page`) and PRs.
+
+## 6. General Guidelines
+- **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
+- **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
+- **License:** Apache 2.0.
+
+## 7. AI Behavior & Critical Thinking
+
+- **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
+- **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.
+  - Explicitly specify casing (e.g., `camelCase`, `PascalCase`) rather than colloquialisms.
+  - Disambiguate overloaded terms (e.g., "defaults" vs. "default exports").
+- **Code Consistency:** Ensure all generated code and examples adhere strictly to the defined style guide, including minor syntactic details like semicolons and spacing.
+- **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
+
+Remember: Quality, Consistency, and Maintainability are paramount.
