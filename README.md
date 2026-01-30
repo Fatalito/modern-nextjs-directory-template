@@ -9,6 +9,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS v4 & Shadcn UI
 - **Linting & Formatting:** Biome
+- **Pre-commit Hooks:** Lefthook
 - **Testing:** Vitest (Unit), Playwright (Integration/E2E)
 - **Internationalization:** Supported (i18n)
 - **Architecture:** Multi-Zones - Listing, Dashboard, Blog
