@@ -30,6 +30,23 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## ⚙️ Site Configuration
+The project uses a centralized configuration pattern located in src/shared/config/site-config.ts. 
+This file serves as the Single Source of Truth for SEO, metadata, and global constants.
+
+- Metadata: Automatically synced with Next.js Metadata API in the root layout.
+- Dynamic URLs: The site URL adapts based on the environment to ensure valid Canonical tags and OpenGraph previews.
+
+## 🔐 Environment Variables
+Copy the example file to get started:
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Description | Default | 
+|-|-|-|
+| NEXT_PUBLIC_APP_URL | The base URL of the deployment (required for SEO/OG images) | http://localhost:3000 |
+
 ## License
 
 Apache 2.0

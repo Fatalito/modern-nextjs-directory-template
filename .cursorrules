@@ -27,7 +27,7 @@ These rules must be followed in every response, code generation, and refactoring
 
 - **NO Classes:** Do not use the `class` keyword. Inheritance is forbidden.
 - **Pure Functions:** Prefer pure functions. Side effects must be isolated.
-- **Arrow Functions:** Use `const func = () => { ... }` for everything.
+- **Function Declarations for Components:** Use export function ComponentName() { ... } for React components. Use Arrow Functions for logic, utilities, and internal helper functions.
 - **Factories over Classes:**
   - Use **Factory Functions** to create objects or service instances.
   - Use **Closures** within factories to hold private state.
@@ -105,6 +105,7 @@ const createUserService = (db: Database) => {
   3.  Refactor while keeping green.
 - **Atomic Commits:** Small, descriptive commits focused on a single feature or fix.
 - **Branching:** Create feature branches (e.g., `feat/blog-page`) and PRs.
+- **Be DRY:** Avoid repetition in code, explanations, and documentation. Refactor or abstract repeated logic, and prefer concise, non-redundant responses.
 
 ## 6. General Guidelines
 - **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
@@ -118,6 +119,7 @@ const createUserService = (db: Database) => {
 - **Named Imports:** Always use named imports (e.g., `import { useState, useEffect } from 'react'`).
 - **Minimal React Import:** Only import `React` if accessing types like `React.ReactNode` or `React.ComponentProps`.
 - **RSC Default:** Prefer React Server Components (RSC). Only use `'use client'` when hooks or interactivity are strictly required.
+- **Typography**: Use text-balance for headings (h1-h3) and text-pretty for long-form body text to prevent orphans.
 
 ### Implementation Rules
 1.  **Component Structure:**
@@ -143,6 +145,12 @@ const createUserService = (db: Database) => {
 
 ## 8. AI Behavior & Critical Thinking
 
+
+## 9. FSD Public APIs & Structure:
+- **Public APIs**: Every folder in shared/ui must be exported via an index.ts (Gatekeeper pattern) to allow clean imports like import { Button } from "@/shared/ui".
+- **Metadata**: Never hardcode strings in layout.tsx or page.tsx metadata. Always pull from @/shared/config/site-config.
+- **Semantic HTML**: Always wrap the main content in <main> and footer content in <footer>.
+
 - **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
 - **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.
   - Explicitly specify casing (e.g., `camelCase`, `PascalCase`) rather than colloquialisms.
@@ -150,4 +158,7 @@ const createUserService = (db: Database) => {
 - **Code Consistency:** Ensure all generated code and examples adhere strictly to the defined style guide, including minor syntactic details like semicolons and spacing.
 - **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
 
+
+
 Remember: Quality, Consistency, and Maintainability are paramount.
+
