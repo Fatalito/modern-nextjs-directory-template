@@ -8,7 +8,7 @@ These rules must be followed in every response, code generation, and refactoring
 - **Framework:** Next.js 16+ (App Router, Server Components).
 - **Runtime:** Node.js v24 (verify via `.nvmrc`).
 - **Language:** TypeScript (Strict mode).
-- **Styling:** Tailwind CSS v4.
+- **Styling:** Tailwind CSS v4 & Shadcn UI.
 - **Linting & Formatting:** Biome (Use `biome check` and `biome format`).
 - **Testing:**
   - **Unit:** Vitest (React Testing Library).
@@ -32,6 +32,7 @@ These rules must be followed in every response, code generation, and refactoring
   - Use **Factory Functions** to create objects or service instances.
   - Use **Closures** within factories to hold private state.
 - **Explicit Interfaces:** Always define return types for factory functions.
+- **React Usage:** Use named imports (e.g., `import { useState } from "react"`). Avoid namespace imports (`import * as React`). Do not import `React` for JSX (automatic transform).
 
 ### Example: Factory Pattern
 ```typescript
@@ -108,9 +109,39 @@ const createUserService = (db: Database) => {
 ## 6. General Guidelines
 - **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
 - **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
+- **Code Consistency & Formatting:** Ensure all generated code is Biome-compliant. **Always** organize imports and format code (simulating `biome check --apply`) before presenting it.
 - **License:** Apache 2.0.
 
-## 7. AI Behavior & Critical Thinking
+## 7. React Patterns & Implementation Rules
+### React Patterns
+- **No Namespace Imports:** `import * as React from 'react'` is **forbidden**.
+- **Named Imports:** Always use named imports (e.g., `import { useState, useEffect } from 'react'`).
+- **Minimal React Import:** Only import `React` if accessing types like `React.ReactNode` or `React.ComponentProps`.
+- **RSC Default:** Prefer React Server Components (RSC). Only use `'use client'` when hooks or interactivity are strictly required.
+
+### Implementation Rules
+1.  **Component Structure:**
+    - Use **Named Function Exports** for components.
+    - **No `forwardRef`:** Use React 19's `ref` prop directly.
+    - **Shadcn/UI:** Use standard Shadcn components but refactor them to match Biome formatting and named imports.
+
+2.  **Imports:**
+    - **Absolute Aliases:** Always use `@/...` (e.g., `@/shared/ui/button`).
+    - **Organization:**
+      1.  React/Next.js imports.
+      2.  External libraries.
+      3.  Internal layers (`@/...`).
+      4.  Styles.
+
+3.  **State Management:**
+    - **URL State:** Prefer `searchParams` over global client state for shareable UI state.
+    - **Server Actions:** Use Server Actions for all data mutations.
+
+4.  **Internationalization (i18n):**
+    - All user-facing strings **must** use the `next-intl` translation hook/dictionary.
+    - Hardcoded strings in UI are forbidden.
+
+## 8. AI Behavior & Critical Thinking
 
 - **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
 - **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.

@@ -7,7 +7,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 - **Framework:** Next.js (App Router, Server Components)
 - **Runtime:** Node.js v24 (managed via `.nvmrc`)
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS v4
+- **Styling:** Tailwind CSS v4 & Shadcn UI
 - **Linting & Formatting:** Biome
 - **Testing:** Vitest (Unit), Playwright (Integration/E2E)
 - **Internationalization:** Supported (i18n)
