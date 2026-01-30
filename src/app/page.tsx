@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { siteConfig } from "@/shared/config/site-config";
+import { siteConfig } from "@/shared/config";
 import { Button, Copyright } from "@/shared/ui";
 
 const { name, description, author, license } = siteConfig;

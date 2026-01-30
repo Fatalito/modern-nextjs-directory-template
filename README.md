@@ -43,9 +43,10 @@ Copy the example file to get started:
 cp .env.example .env.local
 ```
 
-| Variable | Description | Default | 
-|-|-|-|
-| NEXT_PUBLIC_APP_URL | The base URL of the deployment (required for SEO/OG images) | http://localhost:3000 |
+| Variable | Description | Default |  
+| --- | --- | --- |  
+| NEXT_PUBLIC_APP_URL | The base URL of the deployment (required for SEO/OG images) | `http://localhost:3000` |  
+
 
 ## License
 

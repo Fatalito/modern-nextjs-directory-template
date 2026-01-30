@@ -25,13 +25,14 @@ These rules must be followed in every response, code generation, and refactoring
 
 ## 2. Coding Style: Strict Functional Programming
 
-- **NO Classes:** Do not use the `class` keyword. Inheritance is forbidden.
 - **Pure Functions:** Prefer pure functions. Side effects must be isolated.
-- **Function Declarations for Components:** Use export function ComponentName() { ... } for React components. Use Arrow Functions for logic, utilities, and internal helper functions.
-- **Factories over Classes:**
-  - Use **Factory Functions** to create objects or service instances.
-  - Use **Closures** within factories to hold private state.
-- **Explicit Interfaces:** Always define return types for factory functions.
+- **Function Declarations for UI**: Use export function ComponentName() { ... } for all React components. This ensures better stack traces, automatic displayName in DevTools, and alignment with React 19 ref patterns.
+- **Arrow Functions for Logic**: Use const logicName = () => { ... } for utilities, event handlers, hooks, and internal logic.
+- **NO Classes**: Do not use the class keyword. Inheritance is forbidden. Use Composition and Functional Mixins instead.
+- **Factories over Classes**:
+  - Use **Factory Functions** (e.g., createService) to generate stateful or complex objects.
+  - Use **Closures** within factories to maintain private state.
+- **Explicit Interfaces**: Always define return types for factory functions to maintain the "Contract."
 - **React Usage:** Use named imports (e.g., `import { useState } from "react"`). Avoid namespace imports (`import * as React`). Do not import `React` for JSX (automatic transform).
 
 ### Example: Factory Pattern
@@ -85,7 +86,7 @@ const createUserService = (db: Database) => {
 1.  **`create...` (Control/Factory)**
     - Returns an interface/object the caller **must** use to control behavior.
     - Used for: Complex creation logic, creating mockable services, UI component encapsulation.
-    - Example: `createKeepAliveManager()` -> `{ start, stop }`
+    - Example: `createService()` -> `{ start, stop }`
 
 2.  **`start...` (Fire-and-Forget)**
     - Initiates a process running in the background.
@@ -116,14 +117,15 @@ const createUserService = (db: Database) => {
 ## 7. React Patterns & Implementation Rules
 ### React Patterns
 - **No Namespace Imports:** `import * as React from 'react'` is **forbidden**.
+- **React Compiler**: The compiler is Enabled. Do not manually use useMemo, useCallback, or React.memo unless stable identity is strictly required for external library compatibility.
 - **Named Imports:** Always use named imports (e.g., `import { useState, useEffect } from 'react'`).
 - **Minimal React Import:** Only import `React` if accessing types like `React.ReactNode` or `React.ComponentProps`.
-- **RSC Default:** Prefer React Server Components (RSC). Only use `'use client'` when hooks or interactivity are strictly required.
+- **RSC Default:** All components are Server Components unless 'use client' is explicitly required for hooks or DOM events.
 - **Typography**: Use text-balance for headings (h1-h3) and text-pretty for long-form body text to prevent orphans.
 
 ### Implementation Rules
 1.  **Component Structure:**
-    - Use **Named Function Exports** for components.
+    - Use **Named Function Exports** for components.  `export function BusinessCard({ name }: BusinessCardProps) { ... }`
     - **No `forwardRef`:** Use React 19's `ref` prop directly.
     - **Shadcn/UI:** Use standard Shadcn components but refactor them to match Biome formatting and named imports.
 
@@ -142,14 +144,9 @@ const createUserService = (db: Database) => {
 4.  **Internationalization (i18n):**
     - All user-facing strings **must** use the `next-intl` translation hook/dictionary.
     - Hardcoded strings in UI are forbidden.
+    - i18n: Ensure the [locale] layout wraps children in the necessary next-intl provider for Client Components.
 
 ## 8. AI Behavior & Critical Thinking
-
-
-## 9. FSD Public APIs & Structure:
-- **Public APIs**: Every folder in shared/ui must be exported via an index.ts (Gatekeeper pattern) to allow clean imports like import { Button } from "@/shared/ui".
-- **Metadata**: Never hardcode strings in layout.tsx or page.tsx metadata. Always pull from @/shared/config/site-config.
-- **Semantic HTML**: Always wrap the main content in <main> and footer content in <footer>.
 
 - **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
 - **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.
@@ -158,6 +155,10 @@ const createUserService = (db: Database) => {
 - **Code Consistency:** Ensure all generated code and examples adhere strictly to the defined style guide, including minor syntactic details like semicolons and spacing.
 - **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
 
+## 9. FSD Public APIs & Structure:
+- **Public APIs**: Every folder in shared/ui must be exported via an index.ts (Gatekeeper pattern) to allow clean imports like import { Button } from "@/shared/ui".
+- **Metadata**: Never hardcode strings in layout.tsx or page.tsx metadata. Always pull from @/shared/config.
+- **Semantic HTML**: Ensure a clear hierarchy using <header>, <main>, and <footer>.
 
 
 Remember: Quality, Consistency, and Maintainability are paramount.
