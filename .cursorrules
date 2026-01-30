@@ -25,7 +25,7 @@ These rules must be followed in every response, code generation, and refactoring
 
 ## 2. Coding Style: Strict Functional Programming
 
-- **NO Classes:** Do not use the `class` keyword. Inheritence is forbidden.
+- **NO Classes:** Do not use the `class` keyword. Inheritance is forbidden.
 - **Pure Functions:** Prefer pure functions. Side effects must be isolated.
 - **Arrow Functions:** Use `const func = () => { ... }` for everything.
 - **Factories over Classes:**
@@ -107,7 +107,7 @@ const createUserService = (db: Database) => {
 
 ## 6. General Guidelines
 - **Avoid Defaults:** Use named exports unless required by Next.js specific files (like `page.tsx`).
-- **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. reserve `try/catch` for boundary layers or async calls that throw.
+- **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
 - **License:** Apache 2.0.
 
 Remember: Quality, Consistency, and Maintainability are paramount.
