@@ -110,4 +110,13 @@ const createUserService = (db: Database) => {
 - **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
 - **License:** Apache 2.0.
 
+## 7. AI Behavior & Critical Thinking
+
+- **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
+- **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.
+  - Explicitly specify casing (e.g., `camelCase`, `PascalCase`) rather than colloquialisms.
+  - Disambiguate overloaded terms (e.g., "defaults" vs. "default exports").
+- **Code Consistency:** Ensure all generated code and examples adhere strictly to the defined style guide, including minor syntactic details like semicolons and spacing.
+- **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
+
 Remember: Quality, Consistency, and Maintainability are paramount.
