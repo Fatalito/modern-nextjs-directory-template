@@ -24,20 +24,23 @@ jobs:
       SKIP_ENV_VALIDATION: "true"
     steps:
       - name: Checkout Code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Extract Node Version
         id: nvmrc
         run: echo "version=$(cat .nvmrc)" >> $GITHUB_OUTPUT  
 
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version: ${{ steps.nvmrc.outputs.version }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Prune and Fix dependencies
+        run: npm prune
 
       - name: OWASP Dependency Audit
         run: npm run security:audit
@@ -56,7 +59,7 @@ jobs:
         run: npm run test:run
       
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4.2.2
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -71,7 +74,7 @@ jobs:
         run: npm run security:sbom
       
       - name: Upload SBOM Artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.0
         with:
           name: cyclonedx-sbom
           path: build/reports/bom.json
