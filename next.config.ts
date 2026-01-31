@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env.js";
 
+const connectSrc = ["'self'"]; // Add external APIs
 const isProd = env.NODE_ENV === "production";
+if (!isProd) {
+  connectSrc.push("ws://localhost:3000");
+}
 const styleSrc = isProd
   ? "'self' 'unsafe-inline'" // Required for Tailwind 4 Runtime styles
   : "'self' 'unsafe-inline' 'unsafe-eval'"; // Lax for HMR in dev
@@ -11,7 +15,7 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()", // 'interest-cohort' blocks Google's FLoC tracking
+    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()", // Disables legacy Google's FLoC tracking
   },
   {
     key: "Content-Security-Policy",
@@ -19,10 +23,10 @@ const securityHeaders = [
       "default-src 'self'",
       "font-src 'self' data:",
       "img-src 'self' data: https:",
-      "connect-src 'self' ws://localhost:3000 https://swapi.dev", // Only add external APIs here
+      `connect-src ${connectSrc.join(" ")}`,
       // Logic: Use unsafe-eval ONLY in development
       `script-src 'self' ${isProd ? "" : "'unsafe-inline' 'unsafe-eval'"}`,
-      `style-src 'self' ${styleSrc}`,
+      `style-src ${styleSrc}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
