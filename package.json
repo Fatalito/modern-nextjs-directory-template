@@ -1,31 +1,38 @@
 {
   "name": "modern-nextjs-directory-template",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "security:audit": "npm audit --audit-level=high",
+    "security:sbom": "mkdir -p build/reports && cyclonedx-npm --ignore-npm-errors --output-format JSON --output-file build/reports/bom.json",
+    "infra:check": "npm run lint && npm run security:audit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run",
+    "test:run": "vitest run --coverage",
     "postinstall": "lefthook install"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
+    "@t3-oss/env-nextjs": "^0.13.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",
+    "@cyclonedx/cyclonedx-npm": "^4.1.2",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
