@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env.js";
 
 const isProd = env.NODE_ENV === "production";
+const styleSrc = isProd
+  ? "'self' 'unsafe-inline'" // Required for Tailwind 4 Runtime styles
+  : "'self' 'unsafe-inline' 'unsafe-eval'"; // Lax for HMR in dev
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -19,7 +22,7 @@ const securityHeaders = [
       "connect-src 'self' ws://localhost:3000 https://swapi.dev", // Only add external APIs here
       // Logic: Use unsafe-eval ONLY in development
       `script-src 'self' ${isProd ? "" : "'unsafe-inline' 'unsafe-eval'"}`,
-      `style-src 'self' 'unsafe-inline'`, // Tailwind 4 needs unsafe-inline for its runtime styles
+      `style-src 'self' ${styleSrc}`,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
