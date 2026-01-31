@@ -9,7 +9,7 @@ export const env = createEnv({
     ENABLE_HSTS: z
       .string()
       .default("false")
-      .transform((v) => v === "true"),
+      .transform((v) => v.trim().toLowerCase() === "true"),
   },
   client: {},
   runtimeEnv: {

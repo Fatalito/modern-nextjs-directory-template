@@ -39,7 +39,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   async headers() {
-    const headers = securityHeaders;
+    const headers = [...securityHeaders];
 
     if (env.ENABLE_HSTS) {
       headers.push({

@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     coverage: {
-      reporter: ["text", "json", "json-summary", "clover"],
+      reporter: ["text", "json", "json-summary", "clover", "lcov"],
       thresholds: {
         lines: 80,
         branches: 80,
