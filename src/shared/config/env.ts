@@ -8,8 +8,8 @@ export const env = createEnv({
       .default("development"),
     ENABLE_HSTS: z
       .string()
-      .transform((v) => v === "true")
-      .default(false),
+      .default("false")
+      .transform((v) => v === "true"),
   },
   client: {},
   runtimeEnv: {

@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import "./src/shared/config/env.js";
 import { env } from "./src/shared/config/env.js";
 
 const isProd = env.NODE_ENV === "production";
