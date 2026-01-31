@@ -7,8 +7,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
+    "lint": "biome check .",
+    "lint:fix": "biome format --write .",
+    "security:audit": "npm audit --audit-level=high",
+    "security:sbom": "cyclonedx-npm --output-format JSON --output-file build/reports/bom.json",
+    "infra:check": "npm run lint && npm run security:audit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -16,16 +19,19 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",
+    "@t3-oss/env-nextjs": "^0.13.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.13",
+    "@cyclonedx/cyclonedx-npm": "^2.1.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -43,5 +49,12 @@
     "tw-animate-css": "^1.4.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "@cyclonedx/cyclonedx-npm": {
+      "js-yaml": "^4.1.0",
+      "libxmljs2": "^0.36.0",
+      "tar": "^7.5.7"
+    }
   }
 }
