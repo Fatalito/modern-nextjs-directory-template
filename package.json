@@ -1,6 +1,7 @@
 {
   "name": "modern-nextjs-directory-template",
   "version": "0.1.0",
+  "license": "Apache-2.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -52,8 +53,8 @@
   },
   "overrides": {
     "@cyclonedx/cyclonedx-npm": {
-      "js-yaml": "^4.1.0",
-      "libxmljs2": "^0.36.0",
+      "js-yaml": "^4.1.1",
+      "libxmljs2": "^0.37.0",
       "tar": "^7.5.7"
     }
   }
