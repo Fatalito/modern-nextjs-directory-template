@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { env } from "./src/shared/config/env.js";
+import { env } from "./src/shared/config/env";
 
 const connectSrc = ["'self'"]; // Add external APIs
 const isProd = env.NODE_ENV === "production";
@@ -33,7 +33,7 @@ const securityHeaders = [
       "frame-ancestors 'none'",
     ]
       .join("; ")
-      .replace(/\s{2,}/g, " "),
+      .replace(/\s{2,}/g, " "), // NOSONAR - clean up multiple spaces
   },
 ];
 
