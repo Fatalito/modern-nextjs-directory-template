@@ -18,7 +18,9 @@ describe("Copyright Component", () => {
     render(<Copyright author="TestAuthor" license="MIT" />);
 
     expect(
-      screen.getByText(new RegExp(`© ${currentYear} TestAuthor MIT\\.`)),
+      screen.getByText(
+        new RegExp(String.raw`© ${currentYear} TestAuthor MIT\.`),
+      ),
     ).toBeInTheDocument();
   });
 

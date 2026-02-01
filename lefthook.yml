@@ -5,3 +5,8 @@ pre-commit:
     biome-check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
       run: npx @biomejs/biome check --write --no-errors-on-unmatched {staged_files} && git add {staged_files}
+
+pre-push:
+  commands:
+    tests:
+      run: npm run test:run

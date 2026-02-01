@@ -1,10 +1,10 @@
 import { cn } from "@/shared/lib/utils";
 
 interface CopyrightProps {
-  author?: string;
-  year?: number | string;
-  license?: string;
-  className?: string;
+  readonly author?: string;
+  readonly year?: number | string;
+  readonly license?: string;
+  readonly className?: string;
 }
 
 export function Copyright({

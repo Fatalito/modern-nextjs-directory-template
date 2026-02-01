@@ -95,8 +95,10 @@ const createUserService = (db: Database) => {
 
 ### Files & Directories
 - **Kebab-case** for file names: `user-profile.tsx`, `auth-service.ts`.
-- **camelCase** for exported constants/functions.
-- **PascalCase** for Types and React Components.
+- **camelCase** for exported functions and runtime constants.
+- **SCREAMING_SNAKE_CASE** for compile-time patterns: Regex (`PHONE_NUMBER_REGEX`), config literals.
+- **PascalCase** for Types, React Components, and Zod Schemas.
+  - Zod schemas are type definitions: `export const ContactSchema = z.object({ ... }); export type Contact = z.infer<typeof ContactSchema>;`
 
 ## 5. Development Workflow
 
@@ -112,6 +114,12 @@ const createUserService = (db: Database) => {
 - **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
 - **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
 - **Code Consistency & Formatting:** Ensure all generated code is Biome-compliant. **Always** organize imports and format code (simulating `biome check --apply`) before presenting it.
+- **Expressive Naming Over Comments:**
+  - Use descriptive variable and function names instead of inline comments.
+  - Test display names (first parameter of `it.each`) should describe the scenario clearly (e.g., "Exact match", "Channel priority").
+  - Extract magic values to named constants when they represent business concepts.
+  - Avoid numbered comments (// 1., // 2.) - use expressive variable names instead.
+  - Keep comments only for non-obvious business logic or complex algorithms.
 - **License:** Apache 2.0.
 
 ## 7. React Patterns & Implementation Rules
@@ -130,7 +138,14 @@ const createUserService = (db: Database) => {
     - **Shadcn/UI:** Use standard Shadcn components but refactor them to match Biome formatting and named imports.
 
 2.  **Imports:**
-    - **Absolute Aliases:** Always use `@/...` (e.g., `@/shared/ui/button`).
+    - **Absolute Aliases (@/):** Use for cross-boundary imports (different entities, layers, or shared modules).
+      - ✅ Cross-entity: `import { Contact } from "@/entities/contact"`
+      - ✅ Features → Entities: `import { User } from "@/entities/user"`
+      - ✅ Shared utilities: `import { cn } from "@/shared/lib/utils"`
+    - **Relative Imports:** Use for same-directory siblings or nearby files within the same layer.
+      - ✅ Same folder: `import type { Contact } from "./schema"`
+      - ✅ Index re-exports: `export * from "./model/schema"`
+      - ❌ Never use for cross-entity imports
     - **Organization:**
       1.  React/Next.js imports.
       2.  External libraries.
@@ -156,7 +171,18 @@ const createUserService = (db: Database) => {
 - **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
 
 ## 9. FSD Public APIs & Structure:
-- **Public APIs**: Every folder in shared/ui must be exported via an index.ts (Gatekeeper pattern) to allow clean imports like import { Button } from "@/shared/ui".
+- **Public APIs (Gatekeeper Pattern)**: Every FSD layer folder MUST export its public API via an `index.ts` file.
+  - All imports from other layers MUST use the public API: `@/entities/user`, `@/shared/ui`, etc.
+  - **FORBIDDEN**: Direct imports to internal structure like `@/entities/user/model/schema` or `../../entity/model/`.
+  - **REQUIRED**: Use `@/entities/user` (imports from the entity's `index.ts`).
+  - Within the same entity, UI layer MUST import through public API: `import { selectUser } from "@/entities/user"` not `"../model/selectors"`.
+  - **Exception**: The `index.ts` file itself uses relative imports (`./model/schema`) to re-export its own modules. Do NOT use `@/entities/[name]` inside its own `index.ts`.
+- **Entity Public APIs**: Each entity's `index.ts` must export:
+  - Types and schemas from `./model/schema`
+  - Selectors from `./model/selectors` (if they exist)
+  - Validation functions from `./model/validation` (if they exist)
+  - UI components from `./ui/` (if they exist)
+- **Shared Public APIs**: Each shared module folder must export via `index.ts` to allow clean imports like `import { Button } from "@/shared/ui"`.
 - **Metadata**: Never hardcode strings in layout.tsx or page.tsx metadata. Always pull from @/shared/config.
 - **Semantic HTML**: Ensure a clear hierarchy using <header>, <main>, and <footer>.
 
