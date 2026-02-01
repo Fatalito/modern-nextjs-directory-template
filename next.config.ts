@@ -50,6 +50,15 @@ const nextConfig: NextConfig = {
 
     return [{ source: "/(.*)", headers }];
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+    ],
+  },
   reactCompiler: true,
 };
 

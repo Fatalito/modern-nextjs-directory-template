@@ -41,6 +41,7 @@ export const createMockBusiness = (
     contacts: [
       { channel: "phone", locale: "en", value: "1234567890", label: "Office" },
     ],
+    images: ["https://images.unsplash.com/photo-1560179707-f14e90ef3623"],
     category: "services",
     locationId: crypto.randomUUID(),
     serviceIds: [],
