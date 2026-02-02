@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import Image from "next/image";
 import type { Business } from "@/entities/business";
 
@@ -26,7 +27,7 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
           <span className="rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-slate-900">
             {business.category}
           </span>
-          <h3 className="text-white font-bold text-base line-clamp-2">
+          <h3 className="text-white font-bold text-base line-clamp-2 text-balance">
             {business.name}
           </h3>
         </div>
@@ -34,7 +35,9 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
 
       <div className="p-3 space-y-2">
         {locationName && (
-          <p className="text-xs text-slate-500">📍 {locationName}</p>
+          <p className="text-xs flex items-center gap-1 text-slate-500">
+            <MapPin className="h-3 w-3" /> {locationName}
+          </p>
         )}
       </div>
     </div>
