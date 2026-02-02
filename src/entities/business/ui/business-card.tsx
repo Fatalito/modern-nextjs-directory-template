@@ -7,6 +7,12 @@ interface BusinessCardProps {
   readonly priority?: boolean;
 }
 
+/**
+ * Get business location name for display.
+ * Safe to access business.location directly because BusinessSchema requires it.
+ */
+const getLocationName = (business: Business): string => business.location.name;
+
 export function BusinessCard({
   business,
   priority = false,
@@ -40,7 +46,7 @@ export function BusinessCard({
 
       <div className="p-3 space-y-2">
         <p className="text-xs flex items-center gap-1 text-slate-500">
-          <MapPin className="h-3 w-3" /> {business.location.name}
+          <MapPin className="h-3 w-3" /> {getLocationName(business)}
         </p>
       </div>
     </div>
