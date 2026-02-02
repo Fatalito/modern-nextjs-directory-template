@@ -29,6 +29,7 @@ describe("BusinessSchema Validation", () => {
       directoryName: "test-biz-dir",
       email: "test@example.com",
       contacts: [{ channel: "phone", locale: "en", value: "1234567890" }],
+      images: ["https://example.com/test.jpg"],
       category: "tech",
       locationId: crypto.randomUUID(),
       serviceIds: [],

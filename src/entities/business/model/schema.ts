@@ -22,6 +22,8 @@ export const BusinessSchema = z.object({
     .string()
     .regex(/^[a-z0-9]([a-z0-9-]{1,61}[a-z0-9])?$/, "Invalid folder name"),
 
+  images: z.array(z.url()).min(1, "At least one image is required"),
+
   category: z.enum(["retail", "services", "hospitality", "tech", "health"]),
   locationId: z.uuid(),
   serviceIds: z.array(z.uuid()),
