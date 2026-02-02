@@ -43,7 +43,11 @@ export const createMockBusiness = (
     ],
     images: ["https://images.unsplash.com/photo-1560179707-f14e90ef3623"],
     category: "services",
-    locationId: crypto.randomUUID(),
+    location: {
+      id: crypto.randomUUID(),
+      name: "Test City",
+      slug: "test-city",
+    },
     serviceIds: [],
     languages: ["en"],
     createdAt: mockDate,

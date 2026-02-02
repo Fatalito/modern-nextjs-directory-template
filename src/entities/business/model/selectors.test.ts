@@ -54,9 +54,18 @@ describe("Business Selectors", () => {
     const location = createMockLocation({});
 
     const list = [
-      createMockBusiness({ serviceIds: [service.id], locationId: location.id }), // Both match
-      createMockBusiness({ serviceIds: [service.id], locationId: "other" }), // Service only
-      createMockBusiness({ serviceIds: ["other"], locationId: location.id }), // Location only
+      createMockBusiness({
+        serviceIds: [service.id],
+        location: { id: location.id, name: location.name, slug: location.slug },
+      }),
+      createMockBusiness({
+        serviceIds: [service.id],
+        location: { id: "other", name: "Other City", slug: "other-city" },
+      }),
+      createMockBusiness({
+        serviceIds: ["other"],
+        location: { id: location.id, name: location.name, slug: location.slug },
+      }),
     ];
 
     it("should handle all filter combinations", () => {

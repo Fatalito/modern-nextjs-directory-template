@@ -4,10 +4,13 @@ import type { Business } from "@/entities/business";
 
 interface BusinessCardProps {
   readonly business: Business;
-  readonly locationName: string;
+  readonly priority?: boolean;
 }
 
-export function BusinessCard({ business, locationName }: BusinessCardProps) {
+export function BusinessCard({
+  business,
+  priority = false,
+}: BusinessCardProps) {
   const primaryImage = business.images[0];
 
   return (
@@ -20,6 +23,8 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 220px"
+            priority={priority}
+            quality={80}
           />
         </div>
 
@@ -34,11 +39,9 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
       </div>
 
       <div className="p-3 space-y-2">
-        {locationName && (
-          <p className="text-xs flex items-center gap-1 text-slate-500">
-            <MapPin className="h-3 w-3" /> {locationName}
-          </p>
-        )}
+        <p className="text-xs flex items-center gap-1 text-slate-500">
+          <MapPin className="h-3 w-3" /> {business.location.name}
+        </p>
       </div>
     </div>
   );

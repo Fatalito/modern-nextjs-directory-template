@@ -57,7 +57,7 @@ export const selectBusinessesByCriteria = (
       ? b.serviceIds.includes(filters.serviceId)
       : true;
     const matchesLocation = filters.locationId
-      ? b.locationId === filters.locationId
+      ? b.location.id === filters.locationId
       : true;
 
     return matchesService && matchesLocation;

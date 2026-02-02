@@ -31,7 +31,11 @@ describe("BusinessSchema Validation", () => {
       contacts: [{ channel: "phone", locale: "en", value: "1234567890" }],
       images: ["https://example.com/test.jpg"],
       category: "tech",
-      locationId: crypto.randomUUID(),
+      location: {
+        id: crypto.randomUUID(),
+        name: "Test City",
+        slug: "test-city",
+      },
       serviceIds: [],
       languages: ["en"],
     };

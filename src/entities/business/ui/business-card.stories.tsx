@@ -17,6 +17,5 @@ export const Default: StoryObj<typeof BusinessCard> = {
         "https://images.unsplash.com/photo-1511920170033-f8396924c348?w=800",
       ],
     }),
-    locationName: "New York, NY",
   },
 };

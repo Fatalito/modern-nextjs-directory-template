@@ -10,5 +10,5 @@ export const isBusinessLocationValid = (
   location: Location | undefined,
 ): boolean => {
   if (!location) return false;
-  return location.type === "city" && location.id === business.locationId;
+  return location.type === "city" && location.id === business.location.id;
 };

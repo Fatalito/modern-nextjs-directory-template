@@ -25,7 +25,11 @@ export const BusinessSchema = z.object({
   images: z.array(z.url()).min(1, "At least one image is required"),
 
   category: z.enum(["retail", "services", "hospitality", "tech", "health"]),
-  locationId: z.uuid(),
+  location: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    slug: z.string(),
+  }),
   serviceIds: z.array(z.uuid()),
   languages: z.array(z.string().length(2)),
 

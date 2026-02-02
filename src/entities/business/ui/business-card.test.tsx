@@ -14,17 +14,22 @@ describe("BusinessCard", () => {
     const business = createMockBusiness({
       name: "Acme Corp",
       category: "tech",
+      location: {
+        id: "test-location-1",
+        name: "New York",
+        slug: "new-york",
+      },
       images: [
         "https://example.com/first.jpg",
         "https://example.com/second.jpg",
       ],
     });
 
-    render(<BusinessCard business={business} locationName="New York, NY" />);
+    render(<BusinessCard business={business} />);
 
     expect(screen.getByText("Acme Corp")).toBeInTheDocument();
     expect(screen.getByText("tech")).toBeInTheDocument();
-    expect(screen.getByText(/New York, NY/)).toBeInTheDocument();
+    expect(screen.getByText(/New York/)).toBeInTheDocument();
 
     const image = screen.getByRole("img");
     expect(image).toHaveAttribute("aria-label", "Acme Corp");
