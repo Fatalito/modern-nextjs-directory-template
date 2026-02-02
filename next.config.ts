@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env";
+import { imageHosts } from "./src/shared/config/site-config";
 
 const connectSrc = ["'self'"]; // Add external APIs
 const isProd = env.NODE_ENV === "production";
@@ -51,13 +52,11 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers }];
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
-    ],
+    remotePatterns: imageHosts.map((hostname) => ({
+      protocol: "https",
+      hostname,
+      pathname: "/**",
+    })),
   },
   reactCompiler: true,
 };
