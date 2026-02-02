@@ -10,6 +10,7 @@ import {
   getCityBySlug,
   getCountryBySlug,
   getLocations,
+  getServices,
 } from "@/shared/lib/data/mock-repository";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
@@ -62,6 +63,8 @@ export default async function LocationPage({ params }: PageProps) {
   }
 
   const businesses = getBusinesses();
+  const locations = getLocations();
+  const services = getServices();
   const filteredBusinesses = selectBusinessesByCriteria(businesses, {
     locationId: city.id,
   });
@@ -71,7 +74,12 @@ export default async function LocationPage({ params }: PageProps) {
       title={`${city.name}, ${country.name}`}
       description={`Discover local businesses in ${city.name}`}
       filters={
-        <BusinessListFilters countrySlug={countrySlug} citySlug={citySlug} />
+        <BusinessListFilters
+          locations={locations}
+          services={services}
+          countrySlug={countrySlug}
+          citySlug={citySlug}
+        />
       }
     >
       <BusinessList businesses={filteredBusinesses} cityName={city.name} />

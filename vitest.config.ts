@@ -9,6 +9,7 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [react()],
   test: {
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       reporter: ["text", "json", "json-summary", "clover", "lcov"],
       thresholds: {

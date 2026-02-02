@@ -30,7 +30,7 @@ export function BusinessCard({
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 220px"
             priority={priority}
-            quality={80}
+            quality={75}
           />
         </div>
 
