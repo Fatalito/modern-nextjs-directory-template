@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { slugSchema } from "@/shared/lib/validation/slug";
+import { SlugSchema } from "@/shared/lib/validation/slug";
 
 export const ServiceSchema = z.object({
   id: z.uuid(),
@@ -7,7 +7,7 @@ export const ServiceSchema = z.object({
   parentId: z.uuid().nullable(),
 
   name: z.string().min(2),
-  slug: slugSchema,
+  slug: SlugSchema,
 
   icon: z.string().optional(),
 

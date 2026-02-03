@@ -61,7 +61,7 @@ test.describe("Directory Listings", () => {
     ).toBeVisible();
   });
 
-  test("navigate to city with service filter ", async ({ page }) => {
+  test("navigate to city with service filter", async ({ page }) => {
     await page.goto(`/${city1.country.slug}/${city1.slug}`);
     await expect(page).toHaveURL(new RegExp(`/${country1.slug}/${city1.slug}`));
     await page.getByRole("link", { name: service1.name }).click();

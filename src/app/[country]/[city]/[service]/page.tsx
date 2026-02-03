@@ -15,7 +15,7 @@ import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
 interface PageProps {
-  params: Promise<{ country: string; city: string; service: string }>;
+  readonly params: Promise<{ country: string; city: string; service: string }>;
 }
 
 /**

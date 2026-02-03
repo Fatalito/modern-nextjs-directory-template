@@ -30,7 +30,14 @@ if (metricFiles.length === 0) {
 
 const records = metricFiles.flatMap((file) => {
   const lines = fs.readFileSync(file, "utf8").split("\n").filter(Boolean);
-  return lines.map((line) => JSON.parse(line));
+  return lines.flatMap((line) => {
+    try {
+      return [JSON.parse(line)];
+    } catch {
+      console.warn(`Skipping malformed JSON in ${file}: ${line}`);
+      return [];
+    }
+  });
 });
 
 const aggregate = records.reduce((acc, record) => {
@@ -79,6 +86,9 @@ for (const [testName, baselineMetrics] of Object.entries(baseline)) {
     // Skip non-positive or null baselines to avoid Infinity/NaN deltas
     if (!baseValue || baseValue <= 0) continue;
     const currentValue = currentMetrics[metric];
+    // Skip invalid current values to avoid NaN deltas
+    if (!currentValue || currentValue <= 0 || Number.isNaN(currentValue))
+      continue;
     const delta = (currentValue - baseValue) / baseValue;
     if (delta > threshold) {
       regressions.push(
