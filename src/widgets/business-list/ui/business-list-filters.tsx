@@ -1,9 +1,6 @@
 import Link from "next/link";
 import type { Location } from "@/entities/location";
-import {
-  selectAllCountries,
-  selectCitiesByCountry,
-} from "@/entities/location/model/selectors";
+import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import type { Service } from "@/entities/service";
 import { Button } from "@/shared/ui/button";
 
@@ -15,6 +12,17 @@ interface BusinessListFiltersProps {
   readonly serviceSlug?: string;
 }
 
+/**
+ * BusinessListFilters provides interactive location and service filtering for business listings.
+ * Displays country/city selection buttons and service filter chips with active state indicators.
+ *
+ * @param locations - Array of all available locations (countries and cities)
+ * @param services - Array of all available services
+ * @param countrySlug - Currently selected country slug (optional)
+ * @param citySlug - Currently selected city slug (optional)
+ * @param serviceSlug - Currently selected service slug (optional)
+ * @returns Filter UI with location and service selection buttons
+ */
 export function BusinessListFilters({
   locations,
   services,

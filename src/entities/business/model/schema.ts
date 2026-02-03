@@ -1,14 +1,12 @@
 import { z } from "zod";
 import { ContactSchema } from "@/entities/contact";
+import { slugSchema } from "@/shared/lib/validation/slug";
 
 export const BusinessSchema = z.object({
   id: z.uuid(),
   managerId: z.uuid(),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  slug: z
-    .string()
-    .min(2)
-    .regex(/^[a-z0-9-]+$/, "Slug must be URL-friendly"),
+  slug: slugSchema,
   description: z.string().max(500).optional(),
   website: z.union([z.literal(""), z.url()]).optional(),
 
@@ -28,7 +26,7 @@ export const BusinessSchema = z.object({
   location: z.object({
     id: z.uuid(),
     name: z.string(),
-    slug: z.string(),
+    slug: slugSchema,
   }),
   serviceIds: z.array(z.uuid()),
   languages: z.array(z.string().length(2)),

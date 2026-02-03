@@ -7,6 +7,11 @@ const baselinePath = path.join(repoRoot, "perf-baseline.json");
 const threshold = Number(process.env.PERF_REGRESSION_THRESHOLD ?? 0.2);
 const updateBaseline = process.env.UPDATE_PERF_BASELINE === "1";
 
+/**
+ * Recursively finds all perf-metrics.jsonl files in a directory tree.
+ * @param {string} dir - Root directory to search
+ * @returns {string[]} Array of absolute file paths to perf-metrics.jsonl files
+ */
 const findMetricFiles = (dir) => {
   if (!fs.existsSync(dir)) return [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -71,7 +76,8 @@ for (const [testName, baselineMetrics] of Object.entries(baseline)) {
 
   for (const metric of ["domReady", "loadTime"]) {
     const baseValue = baselineMetrics[metric];
-    if (baseValue === null || baseValue === undefined) continue;
+    // Skip non-positive or null baselines to avoid Infinity/NaN deltas
+    if (!baseValue || baseValue <= 0) continue;
     const currentValue = currentMetrics[metric];
     const delta = (currentValue - baseValue) / baseValue;
     if (delta > threshold) {

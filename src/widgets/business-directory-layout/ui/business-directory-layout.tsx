@@ -11,6 +11,16 @@ interface BusinessDirectoryLayoutProps {
   readonly children: ReactNode;
 }
 
+/**
+ * BusinessDirectoryLayout provides a consistent page structure for all directory pages.
+ * Includes header with title/description, filter controls, main content area, and footer.
+ *
+ * @param title - Page heading displayed at the top
+ * @param description - Subtitle text describing the page content
+ * @param filters - Filter component to display in the header (e.g., BusinessListFilters)
+ * @param children - Main content area (typically BusinessList)
+ * @returns Full page layout with header, content, and footer
+ */
 export function BusinessDirectoryLayout({
   title,
   description,

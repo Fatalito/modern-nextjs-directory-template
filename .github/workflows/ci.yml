@@ -72,7 +72,12 @@ jobs:
         run: npx playwright install --with-deps
       
       - name: Run Playwright E2E Tests
-        run: npm run test:e2e 2>&1 | tee playwright-output.txt
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee playwright-output.txt
 
       - name: Compare Performance Metrics
         run: npm run perf:compare

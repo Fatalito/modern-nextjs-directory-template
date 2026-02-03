@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { selectBusinessesByCriteria } from "@/entities/business";
-import {
-  selectAllCountries,
-  selectCitiesByCountry,
-} from "@/entities/location/model/selectors";
+import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
+import { pageContent } from "@/shared/config";
 import {
   getBusinesses,
   getCityBySlug,
@@ -17,9 +15,13 @@ import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
 interface PageProps {
-  params: { country: string; city: string; service: string };
+  params: Promise<{ country: string; city: string; service: string }>;
 }
 
+/**
+ * Generates static paths for all country/city/service combinations at build time.
+ * @returns Array of param objects for static page generation
+ */
 export async function generateStaticParams() {
   const locations = getLocations();
   const services = getServices();
@@ -55,12 +57,13 @@ export async function generateMetadata({
   const city = country ? getCityBySlug(country.id, citySlug) : undefined;
   const service = getServiceBySlug(serviceSlug);
 
-  if (!country || !city || !service) return { title: "Location Not Found" };
+  if (!country || !city || !service) return pageContent.notFound.location;
 
-  return {
-    title: `${service.name} in ${city.name}, ${country.name}`,
-    description: `Discover ${service.name.toLowerCase()} services in ${city.name}, ${country.name}`,
-  };
+  return pageContent.cityServicePage.metadata(
+    service.name,
+    city.name,
+    country.name,
+  );
 }
 
 export default async function LocationServicePage({ params }: PageProps) {
@@ -87,8 +90,15 @@ export default async function LocationServicePage({ params }: PageProps) {
 
   return (
     <BusinessDirectoryLayout
-      title={`${service.name} in ${city.name}, ${country.name}`}
-      description={`Discover ${service.name.toLowerCase()} services in ${city.name}`}
+      title={pageContent.cityServicePage.pageTitle(
+        service.name,
+        city.name,
+        country.name,
+      )}
+      description={pageContent.cityServicePage.pageDescription(
+        service.name,
+        city.name,
+      )}
       filters={
         <BusinessListFilters
           locations={locations}

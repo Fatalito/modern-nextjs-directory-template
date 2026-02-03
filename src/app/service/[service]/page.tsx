@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { selectBusinessesByCriteria } from "@/entities/business";
+import { pageContent } from "@/shared/config";
 import {
   getBusinesses,
   getLocations,
@@ -11,9 +12,13 @@ import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
 interface PageProps {
-  params: { service: string };
+  params: Promise<{ service: string }>;
 }
 
+/**
+ * Generates static paths for all service pages at build time.
+ * @returns Array of param objects for static page generation
+ */
 export async function generateStaticParams() {
   const services = getServices();
   return services.map((service) => ({ service: service.slug }));
@@ -25,12 +30,9 @@ export async function generateMetadata({
   const { service: serviceSlug } = await params;
   const service = getServiceBySlug(serviceSlug);
 
-  if (!service) return { title: "Service Not Found" };
+  if (!service) return pageContent.notFound.service;
 
-  return {
-    title: `${service.name} Services`,
-    description: `Discover ${service.name.toLowerCase()} services across all locations`,
-  };
+  return pageContent.servicePage.metadata(service.name);
 }
 
 export default async function ServicePage({ params }: PageProps) {
@@ -50,8 +52,8 @@ export default async function ServicePage({ params }: PageProps) {
 
   return (
     <BusinessDirectoryLayout
-      title={`${service.name} Services`}
-      description={`Discover ${service.name.toLowerCase()} services across all locations`}
+      title={pageContent.servicePage.pageTitle(service.name)}
+      description={pageContent.servicePage.pageDescription(service.name)}
       filters={
         <BusinessListFilters
           locations={locations}

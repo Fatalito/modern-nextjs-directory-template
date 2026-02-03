@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { siteConfig } from "@/shared/config";
 import { createMockBusiness } from "@/shared/lib/mock-data/factories";
 import { BusinessList } from "./business-list";
 
@@ -38,7 +39,7 @@ describe("BusinessList", () => {
       [
         "service only",
         { serviceName: "Plumbing" },
-        "No Plumbing services on Directory yet!",
+        `No Plumbing services on ${siteConfig.name} yet!`,
       ],
       ["city only", { cityName: "London" }, "No businesses in London yet!"],
       ["no filters", {}, "No businesses match your selection."],

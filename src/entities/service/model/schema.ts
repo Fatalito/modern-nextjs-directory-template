@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugSchema } from "@/shared/lib/validation/slug";
 
 export const ServiceSchema = z.object({
   id: z.uuid(),
@@ -6,10 +7,7 @@ export const ServiceSchema = z.object({
   parentId: z.uuid().nullable(),
 
   name: z.string().min(2),
-  slug: z
-    .string()
-    .min(2)
-    .regex(/^[a-z0-9-]+$/),
+  slug: slugSchema,
 
   icon: z.string().optional(),
 

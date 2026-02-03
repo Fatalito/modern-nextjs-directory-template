@@ -10,11 +10,15 @@ export const env = createEnv({
       .string()
       .default("false")
       .transform((v) => v.trim().toLowerCase() === "true"),
+    NEXT_OUTPUT_MODE: z
+      .enum(["serverless", "static", "standalone"])
+      .default("serverless"),
   },
   client: {},
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     ENABLE_HSTS: process.env.ENABLE_HSTS,
+    NEXT_OUTPUT_MODE: process.env.NEXT_OUTPUT_MODE,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

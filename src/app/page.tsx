@@ -10,6 +10,10 @@ import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
 const { name, description } = siteConfig;
 
+/**
+ * Home page displaying all businesses with location and service filters.
+ * @returns Home page component with full business directory
+ */
 export default function Home() {
   const businesses = getBusinesses();
   const locations = getLocations();

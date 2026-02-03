@@ -1,6 +1,6 @@
 import type { Business } from "@/entities/business";
 import { BusinessCard } from "@/entities/business";
-import { siteConfig } from "@/shared/config";
+import { pageContent, siteConfig } from "@/shared/config";
 
 interface BusinessListProps {
   readonly businesses: Business[];
@@ -8,6 +8,15 @@ interface BusinessListProps {
   readonly serviceName?: string;
 }
 
+/**
+ * BusinessList displays a grid of business cards with contextual empty states.
+ * Shows business count in header and adapts empty message based on active filters.
+ *
+ * @param businesses - Array of businesses to display
+ * @param cityName - Name of filtered city for contextual messaging (optional)
+ * @param serviceName - Name of filtered service for contextual messaging (optional)
+ * @returns Business card grid or contextual empty state
+ */
 export function BusinessList({
   businesses,
   cityName,
@@ -15,21 +24,27 @@ export function BusinessList({
 }: BusinessListProps) {
   const getEmptyMessage = () => {
     if (serviceName && cityName) {
-      return `No ${serviceName} services in ${cityName} yet!`;
+      return pageContent.businessList.emptyState.cityAndService(
+        serviceName,
+        cityName,
+      );
     }
     if (serviceName) {
-      return `No ${serviceName} services on ${siteConfig.name} yet!`;
+      return pageContent.businessList.emptyState.serviceOnly(
+        serviceName,
+        siteConfig.name,
+      );
     }
     if (cityName) {
-      return `No businesses in ${cityName} yet!`;
+      return pageContent.businessList.emptyState.cityOnly(cityName);
     }
-    return "No businesses match your selection.";
+    return pageContent.businessList.emptyState.noFilters();
   };
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h2 className="text-2xl font-bold tracking-tight text-balance">
-          Discovery ({businesses.length})
+          {pageContent.businessList.discoveryHeading(businesses.length)}
         </h2>
       </header>
 

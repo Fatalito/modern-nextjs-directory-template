@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { selectBusinessesByCriteria } from "@/entities/business";
-import {
-  selectAllCountries,
-  selectCitiesByCountry,
-} from "@/entities/location/model/selectors";
+import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
+import { pageContent } from "@/shared/config";
 import {
   getBusinesses,
   getCityBySlug,
@@ -16,9 +14,13 @@ import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
 interface PageProps {
-  params: { country: string; city: string };
+  params: Promise<{ country: string; city: string }>;
 }
 
+/**
+ * Generates static paths for all country/city combinations at build time.
+ * @returns Array of param objects for static page generation
+ */
 export async function generateStaticParams() {
   const locations = getLocations();
   const countries = selectAllCountries(locations);
@@ -45,12 +47,9 @@ export async function generateMetadata({
   const country = getCountryBySlug(countrySlug);
   const city = country ? getCityBySlug(country.id, citySlug) : undefined;
 
-  if (!city || !country) return { title: "Location Not Found" };
+  if (!city || !country) return pageContent.notFound.location;
 
-  return {
-    title: `Businesses in ${city.name}, ${country.name}`,
-    description: `Discover local businesses in ${city.name}, ${country.name}`,
-  };
+  return pageContent.cityPage.metadata(city.name, country.name);
 }
 
 export default async function LocationPage({ params }: PageProps) {
@@ -71,8 +70,8 @@ export default async function LocationPage({ params }: PageProps) {
 
   return (
     <BusinessDirectoryLayout
-      title={`${city.name}, ${country.name}`}
-      description={`Discover local businesses in ${city.name}`}
+      title={pageContent.cityPage.pageTitle(city.name, country.name)}
+      description={pageContent.cityPage.pageDescription(city.name)}
       filters={
         <BusinessListFilters
           locations={locations}

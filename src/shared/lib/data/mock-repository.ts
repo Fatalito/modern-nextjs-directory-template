@@ -7,17 +7,40 @@ import {
   MOCK_SERVICES,
 } from "@/shared/lib/mock-data/seed";
 
-export const getBusinesses = (): Business[] => MOCK_BUSINESSES;
+/**
+ * Retrieves all businesses from the mock data store.
+ * @returns Array of all business entities
+ */
+export const getBusinesses = (): Business[] => [...MOCK_BUSINESSES];
 
-export const getLocations = (): Location[] => MOCK_LOCATIONS;
+/**
+ * Retrieves all locations (countries and cities) from the mock data store.
+ * @returns Array of all location entities
+ */
+export const getLocations = (): Location[] => [...MOCK_LOCATIONS];
 
-export const getServices = (): Service[] => MOCK_SERVICES;
+/**
+ * Retrieves all services from the mock data store.
+ * @returns Array of all service entities
+ */
+export const getServices = (): Service[] => [...MOCK_SERVICES];
 
+/**
+ * Finds a country by its URL slug.
+ * @param slug - URL-friendly country identifier (e.g., "france")
+ * @returns Country location if found, undefined otherwise
+ */
 export const getCountryBySlug = (slug: string): Location | undefined =>
   MOCK_LOCATIONS.find(
     (location) => location.type === "country" && location.slug === slug,
   );
 
+/**
+ * Finds a city within a specific country by their slugs.
+ * @param countryId - UUID of the parent country
+ * @param citySlug - URL-friendly city identifier (e.g., "paris")
+ * @returns City location if found, undefined otherwise
+ */
 export const getCityBySlug = (
   countryId: string,
   citySlug: string,
@@ -29,5 +52,10 @@ export const getCityBySlug = (
       location.slug === citySlug,
   );
 
+/**
+ * Finds a service by its URL slug.
+ * @param slug - URL-friendly service identifier (e.g., "web-design")
+ * @returns Service if found, undefined otherwise
+ */
 export const getServiceBySlug = (slug: string): Service | undefined =>
   MOCK_SERVICES.find((service) => service.slug === slug);

@@ -17,10 +17,8 @@ const captureMetrics = async (
       "navigation",
     )[0] as PerformanceNavigationTiming;
     return {
-      domReady: Math.round(
-        nav.domContentLoadedEventEnd - nav.domContentLoadedEventStart,
-      ),
-      loadTime: Math.round(nav.loadEventEnd - nav.loadEventStart),
+      domReady: Math.round(nav.domContentLoadedEventEnd),
+      loadTime: Math.round(nav.loadEventEnd),
     };
   });
   console.log(
@@ -49,28 +47,24 @@ test.describe("Directory Listings", () => {
     await captureMetrics(page, "home-page", testInfo);
     await expect(page).toHaveTitle(/Directory/);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: new RegExp(city1.name, "i") }),
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: city1.name })).toBeVisible();
   });
 
   test("navigate to city view", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: new RegExp(city1.name, "i") }).click();
+    await page.getByRole("link", { name: city1.name }).click();
     await expect(page).toHaveURL(
       new RegExp(`/${city1.country.slug}/${city1.slug}`),
     );
     await expect(
-      page.getByRole("link", { name: new RegExp(`✓ ${city1.name}`, "i") }),
+      page.getByRole("link", { name: `✓ ${city1.name}` }),
     ).toBeVisible();
   });
 
   test("navigate to city with service filter ", async ({ page }) => {
     await page.goto(`/${city1.country.slug}/${city1.slug}`);
     await expect(page).toHaveURL(new RegExp(`/${country1.slug}/${city1.slug}`));
-    await page
-      .getByRole("link", { name: new RegExp(service1.name, "i") })
-      .click();
+    await page.getByRole("link", { name: service1.name }).click();
     await expect(page).toHaveURL(
       new RegExp(`/${country1.slug}/${city1.slug}/${service1.slug}`),
     );
@@ -78,7 +72,7 @@ test.describe("Directory Listings", () => {
 
   test("preserve service filter when switching cities", async ({ page }) => {
     await page.goto(`/${city1.country.slug}/${city1.slug}/${service1.slug}`);
-    await page.getByRole("link", { name: new RegExp(city2.name, "i") }).click();
+    await page.getByRole("link", { name: city2.name }).click();
     await expect(page).toHaveURL(
       new RegExp(`/${city2.country.slug}/${city2.slug}/${service1.slug}`),
     );
@@ -86,11 +80,7 @@ test.describe("Directory Listings", () => {
 
   test("service-only page shows all locations", async ({ page }) => {
     await page.goto(`/service/${service1.slug}`);
-    await expect(
-      page.getByRole("link", { name: new RegExp(city1.name, "i") }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: new RegExp(city2.name, "i") }),
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: city1.name })).toBeVisible();
+    await expect(page.getByRole("link", { name: city2.name })).toBeVisible();
   });
 });
