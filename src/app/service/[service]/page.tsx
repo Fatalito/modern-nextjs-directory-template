@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { selectBusinessesByCriteria } from "@/entities/business";
-import { pageContent } from "@/shared/config";
+import { pageContent, siteConfig } from "@/shared/config";
 import {
   getBusinesses,
   getLocations,
@@ -54,6 +54,8 @@ export default async function ServicePage({ params }: PageProps) {
     <BusinessDirectoryLayout
       title={pageContent.servicePage.pageTitle(service.name)}
       description={pageContent.servicePage.pageDescription(service.name)}
+      author={siteConfig.author}
+      license={siteConfig.license}
       filters={
         <BusinessListFilters
           locations={locations}

@@ -1,3 +1,5 @@
+import { siteConfig } from "./site-config";
+
 /**
  * Content templates for page metadata and UI text.
  * Centralizes all user-facing text to prepare for i18n.
@@ -6,6 +8,10 @@ export const pageContent = {
   notFound: {
     location: { title: "Location Not Found" },
     service: { title: "Service Not Found" },
+  },
+  homePage: {
+    pageTitle: siteConfig.name,
+    pageDescription: siteConfig.description,
   },
   cityPage: {
     metadata: (city: string, country: string) => ({

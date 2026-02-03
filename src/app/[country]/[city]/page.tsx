@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { selectBusinessesByCriteria } from "@/entities/business";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
-import { pageContent } from "@/shared/config";
+import { pageContent, siteConfig } from "@/shared/config";
 import {
   getBusinesses,
   getCityBySlug,
@@ -72,6 +72,8 @@ export default async function LocationPage({ params }: PageProps) {
     <BusinessDirectoryLayout
       title={pageContent.cityPage.pageTitle(city.name, country.name)}
       description={pageContent.cityPage.pageDescription(city.name)}
+      author={siteConfig.author}
+      license={siteConfig.license}
       filters={
         <BusinessListFilters
           locations={locations}

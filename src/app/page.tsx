@@ -1,10 +1,8 @@
 import { selectBusinessesByCriteria } from "@/entities/business";
-import { siteConfig } from "@/shared/config";
+import { pageContent, siteConfig } from "@/shared/config";
 import { getBusinesses, getLocations, getServices } from "@/shared/lib";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
-
-const { name, description } = siteConfig;
 
 /**
  * Home page displaying all businesses with location and service filters.
@@ -18,8 +16,10 @@ export default function Home() {
 
   return (
     <BusinessDirectoryLayout
-      title={name}
-      description={description}
+      title={pageContent.homePage.pageTitle}
+      description={pageContent.homePage.pageDescription}
+      author={siteConfig.author}
+      license={siteConfig.license}
       filters={
         <BusinessListFilters locations={locations} services={services} />
       }
