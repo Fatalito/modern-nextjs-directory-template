@@ -3,6 +3,17 @@
 You are an expert AI assistant working on a scalable **Next.js** project.
 These rules must be followed in every response, code generation, and refactoring task.
 
+## ⚠️ Critical Checklist (Most Overlooked)
+
+Before generating code, verify:
+1. **Write test first**: Write failing test → minimal pass → refactor green
+2. **FSD Public APIs**: Import only via public API; no internal paths; UI uses public API
+3. **Be DRY**: Refactor repeated logic; keep responses concise
+4. **Type Reuse**: Export types from schemas (no duplicate type definitions)
+5. **Single Responsibility**: Each module/factory does one thing
+6. **Schema Compliance**: Embedded schemas match constraints; mock/seed data uses valid UUIDs
+7. **Biome Compliance**: Format and organize imports before presenting code
+
 ## 1. Project Stack & Architecture
 
 - **Framework:** Next.js 16+ (App Router, Server Components).
@@ -26,14 +37,13 @@ These rules must be followed in every response, code generation, and refactoring
 ## 2. Coding Style: Strict Functional Programming
 
 - **Pure Functions:** Prefer pure functions. Side effects must be isolated.
-- **Function Declarations for UI**: Use export function ComponentName() { ... } for all React components. This ensures better stack traces, automatic displayName in DevTools, and alignment with React 19 ref patterns.
-- **Arrow Functions for Logic**: Use const logicName = () => { ... } for utilities, event handlers, hooks, and internal logic.
-- **NO Classes**: Do not use the class keyword. Inheritance is forbidden. Use Composition and Functional Mixins instead.
+- **Function Declarations for UI**: `export function ComponentName() { ... }` for React components (better stack traces, automatic displayName).
+- **Arrow Functions for Logic**: `const logicName = () => { ... }` for utilities, event handlers, hooks, internal logic.
+- **NO Classes**: Forbidden. Use Composition and Functional Mixins instead.
 - **Factories over Classes**:
-  - Use **Factory Functions** (e.g., createService) to generate stateful or complex objects.
+  - Use **Factory Functions** (e.g., `createService`) to generate stateful/complex objects.
   - Use **Closures** within factories to maintain private state.
-- **Explicit Interfaces**: Always define return types for factory functions to maintain the "Contract."
-- **React Usage:** Use named imports (e.g., `import { useState } from "react"`). Avoid namespace imports (`import * as React`). Do not import `React` for JSX (automatic transform).
+  - Always define explicit return types for the "Contract."
 
 ### Example: Factory Pattern
 ```typescript
@@ -43,38 +53,29 @@ type CounterService = {
 };
 
 const createCounterService = (initialValue: number = 0): CounterService => {
-  // Private state via closure
-  let count = initialValue;
+  let count = initialValue; // Private state via closure
 
-  const increment = () => {
-    count += 1;
+  return {
+    increment: () => { count += 1; },
+    getCount: () => count,
   };
-
-  const getCount = () => count;
-
-  return { increment, getCount };
 };
 ```
 
 ## 3. SOLID Principles (Functional Adaptation)
 
-- **SRP (Single Responsibility):** Each module/factory does one thing.
-- **OCP (Open/Closed):** Extend behavior via composition, not modification.
-- **LSP (Liskov Substitution):** Interfaces must be interchangeably implemented.
-- **ISP (Interface Segregation):** Return small, focused interfaces.
-- **DIP (Dependency Inversion):**
-  - **Inject dependencies** as arguments to factory functions.
-  - **Never** instantiate dependencies inside the factory.
+- **OCP:** Extend via composition, not modification.
+- **LSP:** Interfaces must be interchangeably implemented.
+- **ISP:** Return small, focused interfaces.
+- **DIP:** **Inject dependencies** as arguments. **Never** instantiate inside factory.
 
-### Dependency Injection Example
 ```typescript
-// BAD
+// ❌ BAD - Internal coupling
 const createUserService = () => {
-  const db = createDatabase(); // Internal coupling
-  // ...
+  const db = createDatabase();
 };
 
-// GOOD
+// ✅ GOOD - Dependency injection
 const createUserService = (db: Database) => {
   // ...
 };
@@ -83,109 +84,73 @@ const createUserService = (db: Database) => {
 ## 4. Naming Conventions
 
 ### Factory Functions
-1.  **`create...` (Control/Factory)**
-    - Returns an interface/object the caller **must** use to control behavior.
-    - Used for: Complex creation logic, creating mockable services, UI component encapsulation.
-    - Example: `createService()` -> `{ start, stop }`
+- **`create...`**: Returns interface caller uses to control behavior. Example: `createService()` → `{ start, stop }`
+- **`start...`**: Fire-and-forget background process. Example: `startHealthServer()`
 
-2.  **`start...` (Fire-and-Forget)**
-    - Initiates a process running in the background.
-    - Caller does not need to interact with the result constantly.
-    - Example: `startHealthServer()`
-
-### Files & Directories
-- **Kebab-case** for file names: `user-profile.tsx`, `auth-service.ts`.
-- **camelCase** for exported functions and runtime constants.
-- **SCREAMING_SNAKE_CASE** for compile-time patterns: Regex (`PHONE_NUMBER_REGEX`), config literals.
-- **PascalCase** for Types, React Components, and Zod Schemas.
-  - Zod schemas are type definitions: `export const ContactSchema = z.object({ ... }); export type Contact = z.infer<typeof ContactSchema>;`
+### Files & Identifiers
+- **kebab-case**: Files (`user-profile.tsx`, `auth-service.ts`)
+- **camelCase**: Functions, runtime constants
+- **SCREAMING_SNAKE_CASE**: Compile-time patterns (regex, config literals)
+- **PascalCase**: Types, Components, Zod Schemas
 
 ## 5. Development Workflow
 
-- **TDD (Test Driven Development):**
-  1.  Write a failing test (Vitest/Playwright).
-  2.  Implement the minimal code to pass.
-  3.  Refactor while keeping green.
-- **Atomic Commits:** Small, descriptive commits focused on a single feature or fix.
-- **Branching:** Create feature branches (e.g., `feat/blog-page`) and PRs.
-- **Be DRY:** Avoid repetition in code, explanations, and documentation. Refactor or abstract repeated logic, and prefer concise, non-redundant responses.
+- **Atomic Commits:** Small, focused on single feature/fix.
 
-## 6. General Guidelines
-- **Avoid Default Exports:** Use named exports consistently. Only use default exports when strictly required by frameworks (e.g., Next.js `page.tsx`, `layout.tsx`).
-- **Error Handling:** Prefer returning `Result` types (success/failure objects) over `throw` for logic errors. Reserve `try/catch` for boundary layers or async calls that throw.
-- **Code Consistency & Formatting:** Ensure all generated code is Biome-compliant. **Always** organize imports and format code (simulating `biome check --apply`) before presenting it.
-- **Expressive Naming Over Comments:**
-  - Use descriptive variable and function names instead of inline comments.
-  - Test display names (first parameter of `it.each`) should describe the scenario clearly (e.g., "Exact match", "Channel priority").
-  - Extract magic values to named constants when they represent business concepts.
-  - Avoid numbered comments (// 1., // 2.) - use expressive variable names instead.
-  - Keep comments only for non-obvious business logic or complex algorithms.
-- **License:** Apache 2.0.
+## 6. Code Quality
 
-## 7. React Patterns & Implementation Rules
-### React Patterns
-- **No Namespace Imports:** `import * as React from 'react'` is **forbidden**.
-- **React Compiler**: The compiler is Enabled. Do not manually use useMemo, useCallback, or React.memo unless stable identity is strictly required for external library compatibility.
-- **Named Imports:** Always use named imports (e.g., `import { useState, useEffect } from 'react'`).
-- **Minimal React Import:** Only import `React` if accessing types like `React.ReactNode` or `React.ComponentProps`.
-- **RSC Default:** All components are Server Components unless 'use client' is explicitly required for hooks or DOM events.
-- **Typography**: Use text-balance for headings (h1-h3) and text-pretty for long-form body text to prevent orphans.
+- **Naming Over Comments**: Use expressive names, extract magic values to constants, avoid numbered comments
+- **Avoid Default Exports**: Only use when framework requires (Next.js `page.tsx`, `layout.tsx`)
+- **Decouple Tests**: Use explicit test data, not shared config imports
+- **License**: Apache 2.0
 
-### Implementation Rules
-1.  **Component Structure:**
-    - Use **Named Function Exports** for components.  `export function BusinessCard({ name }: BusinessCardProps) { ... }`
-    - **No `forwardRef`:** Use React 19's `ref` prop directly.
-    - **Shadcn/UI:** Use standard Shadcn components but refactor them to match Biome formatting and named imports.
+## 7. React Patterns
 
-2.  **Imports:**
-    - **Absolute Aliases (@/):** Use for cross-boundary imports (different entities, layers, or shared modules).
-      - ✅ Cross-entity: `import { Contact } from "@/entities/contact"`
-      - ✅ Features → Entities: `import { User } from "@/entities/user"`
-      - ✅ Shared utilities: `import { cn } from "@/shared/lib/utils"`
-    - **Relative Imports:** Use for same-directory siblings or nearby files within the same layer.
-      - ✅ Same folder: `import type { Contact } from "./schema"`
-      - ✅ Index re-exports: `export * from "./model/schema"`
-      - ❌ Never use for cross-entity imports
-    - **Organization:**
-      1.  React/Next.js imports.
-      2.  External libraries.
-      3.  Internal layers (`@/...`).
-      4.  Styles.
+- **No React Import for JSX**: Automatic transform enabled
+- **React Compiler Enabled**: Don't use `useMemo`/`useCallback`/`React.memo` unless external library requires stable identity
+- **Server Components Default**: Use `'use client'` only for hooks/DOM events
+- **Typography**: `text-balance` for headings (h1-h3), `text-pretty` for body text
 
-3.  **State Management:**
-    - **URL State:** Prefer `searchParams` over global client state for shareable UI state.
-    - **Server Actions:** Use Server Actions for all data mutations.
+### Component Structure
+- **Named Function Exports**: `export function BusinessCard({ name }: Props) { ... }`
+- **No forwardRef**: Use React 19's `ref` prop directly
+- **Shadcn/UI**: Refactor to match Biome formatting
 
-4.  **Internationalization (i18n):**
-    - All user-facing strings **must** use the `next-intl` translation hook/dictionary.
-    - Hardcoded strings in UI are forbidden.
-    - i18n: Ensure the [locale] layout wraps children in the necessary next-intl provider for Client Components.
+**Import Rules:**
+- **Absolute (`@/`)**: Cross-boundary (different entities/layers/shared)
+  - ✅ `import { Contact } from "@/entities/contact"`
+  - ✅ `import { cn } from "@/shared/lib/utils"`
+- **Relative**: Same-directory siblings within same layer
+  - ✅ `import type { Contact } from "./schema"`
+  - ❌ Never for cross-entity imports
 
-## 8. AI Behavior & Critical Thinking
+### State & Data
+- **URL State**: Prefer `searchParams` over global client state
+- **Mutations**: Use Server Actions
+- **i18n**: All user-facing strings via `next-intl`, hardcoded strings forbidden
 
-- **Context Awareness:** Always analyze the intersection of selected technologies (e.g., Framework definitions vs. Architecture patterns). Identify and resolve potential conflicts proactively.
-- **Precision in Terminology:** Use precise, technical terms to avoid ambiguity.
-  - Explicitly specify casing (e.g., `camelCase`, `PascalCase`) rather than colloquialisms.
-  - Disambiguate overloaded terms (e.g., "defaults" vs. "default exports").
-- **Code Consistency:** Ensure all generated code and examples adhere strictly to the defined style guide, including minor syntactic details like semicolons and spacing.
-- **Proactive Adaptation:** If a standard pattern or rule conflicts with the specific project configuration, propose a safer adaptation heavily optimized for the current environment.
+## 8. FSD Public APIs (Gatekeeper Pattern)
 
-## 9. FSD Public APIs & Structure:
-- **Public APIs (Gatekeeper Pattern)**: Every FSD layer folder MUST export its public API via an `index.ts` file.
-  - All imports from other layers MUST use the public API: `@/entities/user`, `@/shared/ui`, etc.
-  - **FORBIDDEN**: Direct imports to internal structure like `@/entities/user/model/schema` or `../../entity/model/`.
-  - **REQUIRED**: Use `@/entities/user` (imports from the entity's `index.ts`).
-  - Within the same entity, UI layer MUST import through public API: `import { selectUser } from "@/entities/user"` not `"../model/selectors"`.
-  - **Exception**: The `index.ts` file itself uses relative imports (`./model/schema`) to re-export its own modules. Do NOT use `@/entities/[name]` inside its own `index.ts`.
-- **Entity Public APIs**: Each entity's `index.ts` must export:
-  - Types and schemas from `./model/schema`
-  - Selectors from `./model/selectors` (if they exist)
-  - Validation functions from `./model/validation` (if they exist)
-  - UI components from `./ui/` (if they exist)
-- **Shared Public APIs**: Each shared module folder must export via `index.ts` to allow clean imports like `import { Button } from "@/shared/ui"`.
-- **Metadata**: Never hardcode strings in layout.tsx or page.tsx metadata. Always pull from @/shared/config.
-- **Semantic HTML**: Ensure a clear hierarchy using <header>, <main>, and <footer>.
+**⚠️ Every FSD layer MUST export via `index.ts`**
 
+### Entity Public API Must Export:
+- Types and schemas from `./model/schema`
+- Selectors from `./model/selectors` (if exist)
+- Validation from `./model/validation` (if exist)
+- UI components from `./ui/` (if exist)
 
-Remember: Quality, Consistency, and Maintainability are paramount.
+### Additional FSD Rules:
+- **Metadata**: Never hardcode in `layout.tsx`/`page.tsx` - pull from `@/shared/config`
+- **Semantic HTML**: Clear hierarchy with `<header>`, `<main>`, `<footer>`
+
+## 9. AI Behavior
+
+- **Context Awareness**: Analyze tech stack intersections, identify conflicts proactively
+- **Precision**: Use exact technical terms (`camelCase` not "camel case"), disambiguate overloaded terms
+- **Code Consistency**: Adhere strictly to style guide including semicolons, spacing
+- **Proactive Adaptation**: If pattern conflicts with config, propose safer adaptation for this environment
+
+---
+
+**Remember: Quality, Consistency, and Maintainability are paramount.**
 

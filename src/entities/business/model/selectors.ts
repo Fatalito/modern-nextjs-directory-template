@@ -46,6 +46,15 @@ export const selectBusinessContact = (
 };
 
 /**
+ * Check if business matches location filter.
+ * Safe to access business.location directly because BusinessSchema requires it.
+ */
+const matchesLocationFilter = (
+  business: Business,
+  locationIdFilter?: string,
+): boolean => !locationIdFilter || business.location.id === locationIdFilter;
+
+/**
  * Find businesses by both service and location
  */
 export const selectBusinessesByCriteria = (
@@ -56,9 +65,7 @@ export const selectBusinessesByCriteria = (
     const matchesService = filters.serviceId
       ? b.serviceIds.includes(filters.serviceId)
       : true;
-    const matchesLocation = filters.locationId
-      ? b.locationId === filters.locationId
-      : true;
+    const matchesLocation = matchesLocationFilter(b, filters.locationId);
 
     return matchesService && matchesLocation;
   });

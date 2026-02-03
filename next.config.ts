@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env";
+import { imageHosts } from "./src/shared/config/site-config";
 
 const connectSrc = ["'self'"]; // Add external APIs
 const isProd = env.NODE_ENV === "production";
+
+// Map NEXT_OUTPUT_MODE to Next.js output format (see README Deployment Configuration section)
+// For development, output is always undefined (Node.js server mode with HMR)
+const outputMap = {
+  serverless: undefined,
+  static: "export",
+  standalone: "standalone",
+} as const;
+const nextOutput = outputMap[env.NEXT_OUTPUT_MODE];
 if (!isProd) {
   connectSrc.push("ws://localhost:3000");
 }
@@ -38,6 +48,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // React 19 compiler for auto-memoization and state management optimizations
+  reactCompiler: true,
+
+  // Output mode based on deployment target
+  output: isProd ? nextOutput : undefined,
+
+  // Security and caching headers
   async headers() {
     const headers = [...securityHeaders];
 
@@ -50,16 +67,15 @@ const nextConfig: NextConfig = {
 
     return [{ source: "/(.*)", headers }];
   },
+
+  // Image optimization for external sources
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
-    ],
+    remotePatterns: imageHosts.map((hostname) => ({
+      protocol: "https",
+      hostname,
+      pathname: "/**",
+    })),
   },
-  reactCompiler: true,
 };
 
 export default nextConfig;

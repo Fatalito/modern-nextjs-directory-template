@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMockBusiness } from "@/shared/lib/mock-data/factories";
+import { createMockBusiness } from "@/shared/lib";
 import { BusinessSchema } from "./schema";
 
 describe("BusinessSchema Validation", () => {
@@ -31,7 +31,11 @@ describe("BusinessSchema Validation", () => {
       contacts: [{ channel: "phone", locale: "en", value: "1234567890" }],
       images: ["https://example.com/test.jpg"],
       category: "tech",
-      locationId: crypto.randomUUID(),
+      location: {
+        id: crypto.randomUUID(),
+        name: "Test City",
+        slug: "test-city",
+      },
       serviceIds: [],
       languages: ["en"],
     };

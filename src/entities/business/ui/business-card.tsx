@@ -4,10 +4,27 @@ import type { Business } from "@/entities/business";
 
 interface BusinessCardProps {
   readonly business: Business;
-  readonly locationName: string;
+  readonly priority?: boolean;
 }
 
-export function BusinessCard({ business, locationName }: BusinessCardProps) {
+/**
+ * Get business location name for display.
+ * Safe to access business.location directly because BusinessSchema requires it.
+ */
+const getLocationName = (business: Business): string => business.location.name;
+
+/**
+ * BusinessCard displays a single business with image, name, and location.
+ * Optimized for LCP with priority loading on first card.
+ *
+ * @param business - Business entity to display
+ * @param priority - Whether to prioritize image loading (default: false)
+ * @returns Card component with business information
+ */
+export function BusinessCard({
+  business,
+  priority = false,
+}: BusinessCardProps) {
   const primaryImage = business.images[0];
 
   return (
@@ -20,6 +37,8 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 220px"
+            priority={priority}
+            quality={75}
           />
         </div>
 
@@ -34,11 +53,9 @@ export function BusinessCard({ business, locationName }: BusinessCardProps) {
       </div>
 
       <div className="p-3 space-y-2">
-        {locationName && (
-          <p className="text-xs flex items-center gap-1 text-slate-500">
-            <MapPin className="h-3 w-3" /> {locationName}
-          </p>
-        )}
+        <p className="text-xs flex items-center gap-1 text-slate-500">
+          <MapPin className="h-3 w-3" /> {getLocationName(business)}
+        </p>
       </div>
     </div>
   );

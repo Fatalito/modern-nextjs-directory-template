@@ -9,8 +9,10 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [react()],
   test: {
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       reporter: ["text", "json", "json-summary", "clover", "lcov"],
+      exclude: ["src/shared/lib/data/mock-repository.ts"],
       thresholds: {
         lines: 80,
         branches: 80,

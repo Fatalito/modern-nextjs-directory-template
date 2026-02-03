@@ -1,14 +1,12 @@
 import { z } from "zod";
 import { ContactSchema } from "@/entities/contact";
+import { SlugSchema } from "@/shared/lib";
 
 export const BusinessSchema = z.object({
   id: z.uuid(),
   managerId: z.uuid(),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  slug: z
-    .string()
-    .min(2)
-    .regex(/^[a-z0-9-]+$/, "Slug must be URL-friendly"),
+  slug: SlugSchema,
   description: z.string().max(500).optional(),
   website: z.union([z.literal(""), z.url()]).optional(),
 
@@ -25,7 +23,11 @@ export const BusinessSchema = z.object({
   images: z.array(z.url()).min(1, "At least one image is required"),
 
   category: z.enum(["retail", "services", "hospitality", "tech", "health"]),
-  locationId: z.uuid(),
+  location: z.object({
+    id: z.uuid(),
+    name: z.string().min(2),
+    slug: SlugSchema,
+  }),
   serviceIds: z.array(z.uuid()),
   languages: z.array(z.string().length(2)),
 
@@ -35,3 +37,4 @@ export const BusinessSchema = z.object({
 });
 
 export type Business = z.infer<typeof BusinessSchema>;
+export type LocationRef = Business["location"];

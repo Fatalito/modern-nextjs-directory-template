@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { siteConfig } from "@/shared/config";
+import { imageHosts, siteConfig } from "@/shared/config";
 
 import "./globals.css";
 
@@ -48,6 +48,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {imageHosts.map((host) => (
+          <link key={host} rel="preconnect" href={`https://${host}`} />
+        ))}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
