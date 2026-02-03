@@ -12,6 +12,12 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       reporter: ["text", "json", "json-summary", "clover", "lcov"],
+      // Exclude test-only helpers and generated files from coverage reporting
+      exclude: [
+        "**/test/**",
+        "**/e2e/**",
+        "src/shared/lib/data/mock-repository.ts",
+      ],
       thresholds: {
         lines: 80,
         branches: 80,
