@@ -1,10 +1,6 @@
 import { selectBusinessesByCriteria } from "@/entities/business";
 import { siteConfig } from "@/shared/config";
-import {
-  getBusinesses,
-  getLocations,
-  getServices,
-} from "@/shared/lib/data/mock-repository";
+import { getBusinesses, getLocations, getServices } from "@/shared/lib";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 

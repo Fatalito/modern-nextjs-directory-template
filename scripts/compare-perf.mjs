@@ -4,7 +4,8 @@ import path from "node:path";
 const repoRoot = process.cwd();
 const resultsRoot = path.join(repoRoot, "test-results");
 const baselinePath = path.join(repoRoot, "perf-baseline.json");
-const threshold = Number(process.env.PERF_REGRESSION_THRESHOLD ?? 0.2);
+const rawThreshold = Number(process.env.PERF_REGRESSION_THRESHOLD ?? 0.2);
+const threshold = Number.isFinite(rawThreshold) ? rawThreshold : 0.2;
 const updateBaseline = process.env.UPDATE_PERF_BASELINE === "1";
 
 /**

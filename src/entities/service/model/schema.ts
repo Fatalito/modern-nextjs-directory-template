@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SlugSchema } from "@/shared/lib/validation/slug";
+import { SlugSchema } from "@/shared/lib";
 
 export const ServiceSchema = z.object({
   id: z.uuid(),

@@ -1,9 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  createMockLocation,
-  createMockService,
-} from "@/shared/lib/mock-data/factories";
+import { createMockLocation, createMockService } from "@/shared/lib";
 import { BusinessListFilters } from "./business-list-filters";
 
 const mockLocations = [

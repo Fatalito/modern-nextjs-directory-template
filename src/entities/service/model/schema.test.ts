@@ -72,7 +72,7 @@ describe("ServiceSchema", () => {
   it("rejects name that is too short", () => {
     const service = createService({
       name: "A",
-      slug: "a",
+      slug: "valid-slug",
     });
 
     expect(() => ServiceSchema.parse(service)).toThrow();

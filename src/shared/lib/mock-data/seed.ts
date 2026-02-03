@@ -1,4 +1,4 @@
-import type { Business } from "@/entities/business";
+import type { Business, LocationRef } from "@/entities/business";
 import type { Contact } from "@/entities/contact";
 import {
   createMockBusiness,
@@ -9,9 +9,7 @@ import {
 
 const seedDate = new Date("2024-01-01T00:00:00.000Z").toISOString();
 
-const AGENT_ID = "agent-1";
-
-type LocationRef = { id: string; name: string; slug: string };
+const AGENT_ID = "a0000000-0000-0000-0000-000000000001";
 type BusinessSeed = {
   id: string;
   name: string;

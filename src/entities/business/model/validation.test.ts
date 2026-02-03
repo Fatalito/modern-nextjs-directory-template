@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  createMockBusiness,
-  createMockLocation,
-} from "@/shared/lib/mock-data/factories";
+import { createMockBusiness, createMockLocation } from "@/shared/lib";
 import { isBusinessLocationValid } from "./validation";
 
 describe("isBusinessLocationValid", () => {

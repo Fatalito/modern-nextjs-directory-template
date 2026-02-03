@@ -13,9 +13,12 @@ const captureMetrics = async (
   testInfo: TestInfo,
 ) => {
   const metrics = await page.evaluate(() => {
-    const nav = performance.getEntriesByType(
-      "navigation",
-    )[0] as PerformanceNavigationTiming;
+    const nav = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
+    if (!nav) {
+      return { domReady: 0, loadTime: 0 };
+    }
     return {
       domReady: Math.round(nav.domContentLoadedEventEnd),
       loadTime: Math.round(nav.loadEventEnd),

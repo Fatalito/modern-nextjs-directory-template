@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
-import { siteConfig } from "@/shared/config";
 import { Copyright } from "@/shared/ui";
-
-const { author, license } = siteConfig;
 
 interface BusinessDirectoryLayoutProps {
   readonly title: string;
   readonly description: string;
   readonly filters: ReactNode;
   readonly children: ReactNode;
+  readonly author: string;
+  readonly license: string;
 }
 
 /**
@@ -26,6 +25,8 @@ export function BusinessDirectoryLayout({
   description,
   filters,
   children,
+  author,
+  license,
 }: BusinessDirectoryLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background p-8 font-sans">

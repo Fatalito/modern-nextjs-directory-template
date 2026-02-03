@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMockBusiness } from "@/shared/lib/mock-data/factories";
+import { createMockBusiness } from "@/shared/lib";
 import { BusinessCard } from "./business-card";
 
 const meta: Meta<typeof BusinessCard> = {

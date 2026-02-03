@@ -5,7 +5,7 @@ import {
   MOCK_BUSINESSES,
   MOCK_LOCATIONS,
   MOCK_SERVICES,
-} from "@/shared/lib/mock-data/seed";
+} from "../mock-data/seed";
 
 /**
  * Retrieves all businesses from the mock data store.

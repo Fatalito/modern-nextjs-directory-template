@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ContactSchema } from "@/entities/contact";
-import { SlugSchema } from "@/shared/lib/validation/slug";
+import { SlugSchema } from "@/shared/lib";
 
 export const BusinessSchema = z.object({
   id: z.uuid(),
@@ -25,7 +25,7 @@ export const BusinessSchema = z.object({
   category: z.enum(["retail", "services", "hospitality", "tech", "health"]),
   location: z.object({
     id: z.uuid(),
-    name: z.string(),
+    name: z.string().min(2),
     slug: SlugSchema,
   }),
   serviceIds: z.array(z.uuid()),
@@ -37,3 +37,4 @@ export const BusinessSchema = z.object({
 });
 
 export type Business = z.infer<typeof BusinessSchema>;
+export type LocationRef = Business["location"];

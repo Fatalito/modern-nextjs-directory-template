@@ -67,7 +67,8 @@ describe("UserSchema", () => {
     ],
     ["empty password", createUser({ passwordHash: "" })],
   ])("rejects %s", (_, user) => {
-    expect(() => UserSchema.parse(user)).toThrow();
+    const result = UserSchema.safeParse(user);
+    expect(result.success).toBe(false);
   });
 });
 
