@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cn } from "./utils";
 
 describe("cn (Class Name Merger)", () => {
-  it("merges tailwind classes correctly and prioritize the last 'p-4'", () => {
+  it("merges tailwind classes correctly and prioritises the last 'p-4'", () => {
     const result = cn("px-2 py-2", "p-4");
     expect(result).toBe("p-4");
   });

@@ -75,9 +75,12 @@ jobs:
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
-        run: |
-          set -o pipefail
-          npm run test:e2e 2>&1 | tee playwright-output.txt
+        run: npm run test:e2e
+
+      - name: Check Performance Regressions
+        env:
+          NODE_ENV: production
+        run: npm run perf:e2e
 
       - name: Compare Performance Metrics
         run: npm run perf:compare
@@ -88,6 +91,14 @@ jobs:
         with:
           name: perf-metrics
           path: test-results/**/perf-metrics.jsonl
+          retention-days: 30
+
+      - name: Upload Performance Summary (JSON)
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: perf-summary
+          path: test-results/perf-summary.json
           retention-days: 30
       
       - name: Upload Playwright Report

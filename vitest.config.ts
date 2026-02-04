@@ -12,7 +12,7 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
       reporter: ["text", "json", "json-summary", "clover", "lcov"],
-      exclude: ["src/shared/lib/data/mock-repository.ts"],
+      exclude: ["src/shared/lib/data/mock-repository.ts", "scripts/**"],
       thresholds: {
         lines: 80,
         branches: 80,
