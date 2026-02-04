@@ -10,11 +10,6 @@ name: Update Performance Baseline
 
 on:
   workflow_dispatch:
-    inputs:
-      run_count:
-        description: 'Number of test runs to average'
-        type: number
-        default: 3
 
 permissions:
   contents: write
@@ -30,7 +25,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -58,12 +53,7 @@ jobs:
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
-        run: |
-          set -e
-          for i in $(seq 1 ${{ inputs.run_count }}); do
-            echo "Run $i of ${{ inputs.run_count }}"
-            npm run test:e2e
-          done
+        run: npm run perf:e2e
 
       - name: Update baseline
         run: npm run perf:baseline
@@ -80,9 +70,9 @@ jobs:
 
             Updated baseline metrics from CI environment.
             
-            - Runs: ${{ inputs.run_count }}
+            - Runs: 3 iterations per test
             - Environment: ubuntu-latest
-            - Node: 20
+            - Node: 24
             
             **Review checklist:**
             - [ ] Values look reasonable for CI environment

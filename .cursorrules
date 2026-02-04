@@ -12,7 +12,7 @@ Before generating code, verify:
 4. **Type Reuse**: Export types from schemas (no duplicate type definitions)
 5. **Single Responsibility**: Each module/factory does one thing
 6. **Schema Compliance**: Embedded schemas match constraints; mock/seed data uses valid UUIDs
-7. **Biome Compliance**: Format and organize imports before presenting code
+7. **Biome Compliance**: Format and organise imports before presenting code
 
 ## 1. Project Stack & Architecture
 
@@ -145,7 +145,7 @@ const createUserService = (db: Database) => {
 
 ## 9. AI Behavior
 
-- **Context Awareness**: Analyze tech stack intersections, identify conflicts proactively
+- **Context Awareness**: Analyse tech stack intersections, identify conflicts proactively
 - **Precision**: Use exact technical terms (`camelCase` not "camel case"), disambiguate overloaded terms
 - **Code Consistency**: Adhere strictly to style guide including semicolons, spacing
 - **Proactive Adaptation**: If pattern conflicts with config, propose safer adaptation for this environment

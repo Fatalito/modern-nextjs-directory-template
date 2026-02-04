@@ -48,7 +48,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // React 19 compiler for auto-memoization and state management optimizations
+  // React 19 compiler for auto-memoisation and state management optimisations
   reactCompiler: true,
 
   // Output mode based on deployment target
@@ -68,7 +68,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers }];
   },
 
-  // Image optimization for external sources
+  // Image optimisation for external sources
   images: {
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https",

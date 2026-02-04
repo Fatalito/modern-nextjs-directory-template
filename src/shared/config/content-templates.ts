@@ -2,7 +2,7 @@ import { siteConfig } from "./site-config";
 
 /**
  * Content templates for page metadata and UI text.
- * Centralizes all user-facing text to prepare for i18n.
+ * Centralises all user-facing text to prepare for i18n.
  */
 export const pageContent = {
   notFound: {

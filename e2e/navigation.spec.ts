@@ -12,7 +12,14 @@ const captureMetrics = async (
   testName: string,
   testInfo: TestInfo,
 ) => {
-  const metrics = await page.evaluate(() => {
+  const metrics = await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      if (document.readyState === "complete") {
+        resolve();
+      } else {
+        window.addEventListener("load", () => resolve(), { once: true });
+      }
+    });
     const nav = performance.getEntriesByType("navigation")[0] as
       | PerformanceNavigationTiming
       | undefined;
@@ -35,7 +42,7 @@ const captureMetrics = async (
     outputPath,
     `${JSON.stringify({
       testName,
-      project: testInfo.project.name,
+      platform: testInfo.project.name,
       domReady: metrics.domReady,
       loadTime: metrics.loadTime,
     })}\n`,
@@ -43,7 +50,7 @@ const captureMetrics = async (
 };
 
 test.describe("Directory Listings", () => {
-  test("home page loads with filters and businesses", async ({
+  test("home page loads with filters and businesses @perf", async ({
     page,
   }, testInfo) => {
     await page.goto("/");
@@ -51,6 +58,14 @@ test.describe("Directory Listings", () => {
     await expect(page).toHaveTitle(/Directory/);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: city1.name })).toBeVisible();
+  });
+
+  test("city view direct load @perf", async ({ page }, testInfo) => {
+    await page.goto(`/${city1.country.slug}/${city1.slug}`);
+    await captureMetrics(page, "city-view", testInfo);
+    await expect(
+      page.getByRole("link", { name: `✓ ${city1.name}` }),
+    ).toBeVisible();
   });
 
   test("navigate to city view", async ({ page }) => {

@@ -15,10 +15,10 @@ const getLocationName = (business: Business): string => business.location.name;
 
 /**
  * BusinessCard displays a single business with image, name, and location.
- * Optimized for LCP with priority loading on first card.
+ * Optimised for LCP with priority loading on first card.
  *
  * @param business - Business entity to display
- * @param priority - Whether to prioritize image loading (default: false)
+ * @param priority - Whether to prioritise image loading (default: false)
  * @returns Card component with business information
  */
 export function BusinessCard({

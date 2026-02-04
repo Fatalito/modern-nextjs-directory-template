@@ -56,7 +56,7 @@ describe("ContactSchema Validation", () => {
       ["uppercase username", "MyHandle", "myhandle"],
       ["mixed case username", "MyUsername123", "myusername123"],
       ["all caps username", "USERNAME", "username"],
-    ])("should normalize %s to lowercase", (_, input, expected) => {
+    ])("should normalise %s to lowercase", (_, input, expected) => {
       const result = ContactSchema.safeParse({
         channel: "telegram",
         locale: "en",
