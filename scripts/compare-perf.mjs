@@ -238,8 +238,10 @@ const generateMarkdownTable = (summaryJson) => {
   };
 };
 
-// --- Execution ---
-try {
+/**
+ * Main function to run performance comparison.
+ */
+const runPerformanceComparison = () => {
   const metricFiles = findMetricFiles(resultsRoot);
   if (metricFiles.length === 0) {
     logger.warn(
@@ -282,11 +284,20 @@ try {
     });
     process.exit(1);
   }
-
   logger.success(allImproved ? "All improved! 🚀" : "Pass.");
-} catch (err) {
-  logger.error(`Script failed: ${err.message}`);
-  process.exit(1);
+};
+
+// ✅ Only run this if the script is executed directly
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith("compare-perf.mjs")
+) {
+  try {
+    runPerformanceComparison();
+  } catch (err) {
+    logger.error(`Script failed: ${err.message}`);
+    process.exit(1);
+  }
 }
 
 export {
