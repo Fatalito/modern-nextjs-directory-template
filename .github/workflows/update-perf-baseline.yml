@@ -57,11 +57,6 @@ jobs:
 
       - name: Update baseline
         run: npm run perf:baseline
-      
-      - name: Debug Git Status
-        run: |
-          git status
-          git diff perf-baseline.json
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0

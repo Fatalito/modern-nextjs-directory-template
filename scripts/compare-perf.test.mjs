@@ -14,19 +14,29 @@ describe("Compare Performance Script ", () => {
       {
         base: 100,
         current: 110,
-        expected: { fraction: 0.1, percent: 10 },
+        expected: { fraction: 0.1, percent: 10, isSignificant: true },
         label: "standard increase",
       },
       {
         base: 100,
         current: 80,
-        expected: { fraction: -0.2, percent: -20 },
+        expected: { fraction: -0.2, percent: -20, isSignificant: true },
         label: "improvement",
+      },
+      {
+        base: 100,
+        current: 104,
+        expected: { fraction: 0.04, percent: 4, isSignificant: false },
+        label: "insignificant change",
       },
       {
         base: 0,
         current: 50,
-        expected: { fraction: Infinity, percent: Infinity },
+        expected: {
+          fraction: Infinity,
+          percent: Infinity,
+          isSignificant: true,
+        },
         label: "zero base",
       },
     ])("computeDelta: $label", ({ base, current, expected }) => {

@@ -50,4 +50,5 @@ storybook-static
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
-playwright-output.txt
+playwright-e2e.txt
+perf-report.md

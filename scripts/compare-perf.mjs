@@ -20,6 +20,7 @@ const config = {
   resultsRoot,
   baselinePath,
   improvementThreshold: -0.1,
+  minMsDelta: 10,
 };
 
 const logger = {
@@ -64,9 +65,11 @@ const readJsonlRecords = (file) =>
 
 const computeDelta = (base, current) => {
   if (base == null || current == null) return null;
-  const fraction = (current - base) / base;
+  const diff = current - base;
+  const fraction = diff / base;
   const percent = Math.round(fraction * 1000) / 10;
-  return { fraction, percent };
+  const isSignificant = Math.abs(diff) >= config.minMsDelta;
+  return { fraction, percent, isSignificant };
 };
 
 /**
@@ -141,13 +144,13 @@ const formatMetric = (base, current) => {
   const delta = computeDelta(base, current);
   const deltaDisplay = delta == null ? "N/A" : `${delta.percent}%`;
 
-  let icon = "❌";
+  let icon = "✅";
   if (delta == null) {
     icon = "➖";
-  } else if (delta?.percent <= config.improvementThreshold * 100) {
+  } else if (delta.percent <= config.improvementThreshold * 100) {
     icon = "🚀";
-  } else if (delta?.percent <= config.threshold * 100) {
-    icon = "✅";
+  } else if (delta.percent > config.threshold * 100 && delta.isSignificant) {
+    icon = "❌";
   }
 
   return { baselineDisplay, currentDisplay, deltaDisplay, icon, delta };
@@ -162,7 +165,8 @@ const compareMetrics = (baseline, current) => {
 
     for (const metric of config.metrics) {
       const delta = computeDelta(baselineValues[metric], currentValues[metric]);
-      const isRegression = delta && delta.fraction > config.threshold;
+      const isRegression =
+        delta && delta.fraction > config.threshold && delta.isSignificant;
 
       if (isRegression) {
         regressions.push(
@@ -206,7 +210,8 @@ const generateJsonSummary = (baseline, current) => {
 };
 
 const generateMarkdownTable = (summaryJson) => {
-  let table =
+  let md = "### 📊 Performance Comparison Report\n\n";
+  md +=
     "| Test Name | Metric | Baseline | Current | Delta | Status |\n| :--- | :--- | :---: | :---: | :---: | :---- |\n";
   let totalImprovement = 0,
     count = 0,
@@ -222,7 +227,7 @@ const generateMarkdownTable = (summaryJson) => {
         totalImprovement += delta.percent;
         count++;
       }
-      table += `| ${testName} | ${metricName} | ${baselineDisplay} | ${currentDisplay} | ${deltaDisplay} | ${icon} |\n`;
+      md += `| ${testName} | ${metricName} | ${baselineDisplay} | ${currentDisplay} | ${deltaDisplay} | ${icon} |\n`;
     }
   }
 
@@ -233,7 +238,7 @@ const generateMarkdownTable = (summaryJson) => {
       : `**Overall: Regression of ${avgDelta}%**`;
 
   return {
-    report: `${summaryText}\n\n${table}`,
+    report: `${summaryText}\n\n${md}`,
     allImproved: allImproved && count > 0,
   };
 };
@@ -271,20 +276,23 @@ const runPerformanceComparison = () => {
   );
   const { report, allImproved } = generateMarkdownTable(jsonSummary);
   logger.raw(report);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    fs.appendFileSync(
-      process.env.GITHUB_STEP_SUMMARY,
-      `\n## Perf Summary\n\n${report}\n`,
-    );
-  }
+
   if (regressions.length > 0) {
-    logger.error("Regressions detected!");
+    logger.errorRaw("\n### ❌ Regressions Detected");
+    logger.errorRaw("> [!CAUTION]");
+    logger.errorRaw(
+      "> The following metrics exceeded the defined thresholds and significance floor:",
+    );
     regressions.forEach((r) => {
-      logger.errorRaw(`  - ${r}`);
+      logger.errorRaw(`- ${r}`);
     });
     process.exit(1);
   }
-  logger.success(allImproved ? "All improved! 🚀" : "Pass.");
+  logger.raw("\n---\n");
+  const message = allImproved
+    ? "### All improved! 🚀"
+    : "### Performance Check Passed ✅";
+  logger.raw(message);
 };
 
 // ✅ Only run this if the script is executed directly
