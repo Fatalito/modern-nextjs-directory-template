@@ -142,7 +142,9 @@ const formatMetric = (base, current) => {
   const deltaDisplay = delta == null ? "N/A" : `${delta.percent}%`;
 
   let icon = "❌";
-  if (delta?.percent <= config.improvementThreshold * 100) {
+  if (delta == null) {
+    icon = "➖";
+  } else if (delta?.percent <= config.improvementThreshold * 100) {
     icon = "🚀";
   } else if (delta?.percent <= config.threshold * 100) {
     icon = "✅";

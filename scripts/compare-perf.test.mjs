@@ -47,7 +47,7 @@ describe("Compare Performance Script ", () => {
 
   describe("Reporting & CI Output", () => {
     it("formatMetric: correctly categorises performance shifts", () => {
-      // Logic: < -10% = 🚀, < 20% = ✅, > 20% = ❌, else = ❌
+      // Logic: < -10% = 🚀, < 20% = ✅, > 20% = ❌, else = ➖
       expect(formatMetric(100, 80).icon).toBe("🚀"); // -20%
       expect(formatMetric(100, 105).icon).toBe("✅"); // +5%
       expect(formatMetric(100, 120).icon).toBe("✅"); // +20% (on threshold)
@@ -55,7 +55,7 @@ describe("Compare Performance Script ", () => {
 
       const missing = formatMetric(null, 110);
       expect(missing.deltaDisplay).toBe("N/A");
-      expect(missing.icon).toBe("❌");
+      expect(missing.icon).toBe("➖");
     });
 
     it("compareMetrics: filters regressions and ignores noise", () => {

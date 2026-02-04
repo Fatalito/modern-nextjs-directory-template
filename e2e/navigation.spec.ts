@@ -13,9 +13,13 @@ const captureMetrics = async (
   testInfo: TestInfo,
 ) => {
   const metrics = await page.evaluate(async () => {
-    if (document.readyState !== "complete") {
-      await new Promise((resolve) => window.addEventListener("load", resolve));
-    }
+    await new Promise<void>((resolve) => {
+      if (document.readyState === "complete") {
+        resolve();
+      } else {
+        window.addEventListener("load", () => resolve(), { once: true });
+      }
+    });
     const nav = performance.getEntriesByType("navigation")[0] as
       | PerformanceNavigationTiming
       | undefined;

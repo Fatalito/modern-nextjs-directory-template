@@ -94,7 +94,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Performance Summary (JSON)
-        if: always()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: perf-summary
@@ -130,7 +130,7 @@ jobs:
           json-summary-path: ./coverage/coverage-summary.json
       
       - name: Comment Playwright Report on PR
-        if: github.event_name == 'pull_request' && always()
+        if: !cancelled() && github.event_name == 'pull_request'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
