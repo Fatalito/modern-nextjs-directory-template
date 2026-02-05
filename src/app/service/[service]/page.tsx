@@ -7,7 +7,7 @@ import {
   getLocations,
   getServiceBySlug,
   getServices,
-} from "@/shared/lib";
+} from "@/shared/lib/data";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 

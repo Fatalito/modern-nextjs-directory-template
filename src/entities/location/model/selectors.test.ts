@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMockLocation } from "@/shared/lib";
+import { createMockLocation } from "@/shared/lib/mock-data/factories";
 import {
   selectAllCountries,
   selectCitiesByCountry,

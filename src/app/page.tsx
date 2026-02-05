@@ -1,6 +1,6 @@
 import { selectBusinessesByCriteria } from "@/entities/business";
 import { pageContent, siteConfig } from "@/shared/config";
-import { getBusinesses, getLocations, getServices } from "@/shared/lib";
+import { getBusinesses, getLocations, getServices } from "@/shared/lib/data";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 

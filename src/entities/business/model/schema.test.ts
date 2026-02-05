@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMockBusiness } from "@/shared/lib";
+import { createMockBusiness } from "@/shared/lib/mock-data/factories";
 import { BusinessSchema } from "./schema";
 
 describe("BusinessSchema Validation", () => {

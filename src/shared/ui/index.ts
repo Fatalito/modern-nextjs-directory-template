@@ -1,2 +1,2 @@
-export * from "./button";
-export * from "./copyright";
+export { Button } from "./button";
+export { Copyright } from "./copyright";

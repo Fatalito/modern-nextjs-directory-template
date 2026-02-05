@@ -5,7 +5,7 @@ import {
   createMockLocation,
   createMockService,
   createMockUser,
-} from "@/shared/lib";
+} from "@/shared/lib/mock-data/factories";
 import {
   selectBusinessContact,
   selectBusinessesByCriteria,

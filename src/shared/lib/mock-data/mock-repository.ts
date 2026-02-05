@@ -1,11 +1,7 @@
 import type { Business } from "@/entities/business";
 import type { Location } from "@/entities/location";
 import type { Service } from "@/entities/service";
-import {
-  MOCK_BUSINESSES,
-  MOCK_LOCATIONS,
-  MOCK_SERVICES,
-} from "../mock-data/seed";
+import { MOCK_BUSINESSES, MOCK_LOCATIONS, MOCK_SERVICES } from "./seed";
 
 /**
  * Retrieves all businesses from the mock data store.

@@ -1,2 +1,2 @@
 export { pageContent } from "./content-templates";
-export * from "./site-config";
+export { imageHosts, type SiteConfig, siteConfig } from "./site-config";

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { siteConfig } from "@/shared/config";
-import { createMockBusiness } from "@/shared/lib";
+import { createMockBusiness } from "@/shared/lib/mock-data/factories";
 import { BusinessList } from "./business-list";
 
 describe("BusinessList", () => {
