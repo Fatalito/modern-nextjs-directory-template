@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env";
 import { imageHosts } from "./src/shared/config/site-config";
 
-const connectSrc = ["'self'"]; // Add external APIs
 const isProd = env.NODE_ENV === "production";
 
 // Map NEXT_OUTPUT_MODE to Next.js output format (see README Deployment Configuration section)
@@ -13,37 +12,13 @@ const outputMap = {
   standalone: "standalone",
 } as const;
 const nextOutput = outputMap[env.NEXT_OUTPUT_MODE];
-if (!isProd) {
-  connectSrc.push("ws://localhost:3000");
-}
-const styleSrc = isProd
-  ? "'self' 'unsafe-inline'" // Required for Tailwind 4 Runtime styles
-  : "'self' 'unsafe-inline' 'unsafe-eval'"; // Lax for HMR in dev
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()", // Disables legacy Google's FLoC tracking
-  },
-  {
-    key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "font-src 'self' data:",
-      "img-src 'self' data: https:",
-      `connect-src ${connectSrc.join(" ")}`,
-      // Logic: Use unsafe-eval ONLY in development
-      `script-src 'self' ${isProd ? "" : "'unsafe-inline' 'unsafe-eval'"}`,
-      `style-src ${styleSrc}`,
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-    ]
-      .join("; ")
-      .replace(/\s{2,}/g, " "), // NOSONAR - clean up multiple spaces
+    value: "camera=(), microphone=(), geolocation=()",
   },
 ];
 
@@ -70,6 +45,7 @@ const nextConfig: NextConfig = {
 
   // Image optimisation for external sources
   images: {
+    unoptimized: nextOutput === "export" || !isProd, // Disable optimisations in static export or development for faster builds
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https",
       hostname,

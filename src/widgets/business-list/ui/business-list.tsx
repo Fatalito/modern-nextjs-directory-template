@@ -54,7 +54,8 @@ export function BusinessList({
             <BusinessCard
               key={business.id}
               business={business}
-              priority={index === 0}
+              priority={index < 2}
+              fetchPriority={index < 2 ? "high" : "auto"}
             />
           ))}
         </div>

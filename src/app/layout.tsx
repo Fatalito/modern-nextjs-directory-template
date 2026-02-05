@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { imageHosts, siteConfig } from "@/shared/config";
+import { headers } from "next/headers";
+import { siteConfig } from "@/shared/config";
 
 import "./globals.css";
 
@@ -41,6 +42,11 @@ export const metadata: Metadata = {
   },
 };
 
+export async function CspNonce() {
+  const nonce = (await headers()).get("x-nonce") || "";
+  return <meta property="csp-nonce" content={nonce} />;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,9 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {imageHosts.map((host) => (
-          <link key={host} rel="preconnect" href={`https://${host}`} />
-        ))}
+        <CspNonce />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
