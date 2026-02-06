@@ -13,13 +13,19 @@ async function run() {
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
     });
 
+    const toPercent = (score) =>
+      typeof score === "number" ? Math.round(score * 100) : 0;
+
     // 1. Get Scores
     const cats = lhr.categories;
     const scores = [
-      { name: "Performance", score: cats.performance.score * 100 },
-      { name: "Accessibility", score: cats.accessibility.score * 100 },
-      { name: "Best Practices", score: cats["best-practices"].score * 100 },
-      { name: "SEO", score: cats.seo.score * 100 },
+      { name: "Performance", score: toPercent(cats.performance?.score) },
+      { name: "Accessibility", score: toPercent(cats.accessibility?.score) },
+      {
+        name: "Best Practices",
+        score: toPercent(cats["best-practices"]?.score),
+      },
+      { name: "SEO", score: toPercent(cats.seo?.score) },
     ];
 
     // 2. Get Top 3 Recommendations (Opportunities)

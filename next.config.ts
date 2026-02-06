@@ -21,6 +21,7 @@ const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=()",
   },
 ];
+const shouldDisableImageOptimization = nextOutput === "export" || !isProd;
 
 const nextConfig: NextConfig = {
   // React 19 compiler for auto-memoisation and state management optimisations
@@ -43,9 +44,8 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers }];
   },
 
-  // Image optimisation for external sources
   images: {
-    unoptimized: nextOutput === "export" || !isProd, // Disable optimisations in static export or development for faster builds
+    unoptimized: shouldDisableImageOptimization,
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https",
       hostname,

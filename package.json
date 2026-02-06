@@ -5,9 +5,12 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "clean": "rm -rf .next next-env.d.ts",
+    "clean:all": "npm run clean && rm -rf node_modules coverage playwright-report test-results tsconfig.tsbuildinfo",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:clean": "npm run clean && npm run build && npm run start",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

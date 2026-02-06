@@ -42,10 +42,10 @@ export const metadata: Metadata = {
   },
 };
 
-export async function CspNonce() {
+const CspNonce = async () => {
   const nonce = (await headers()).get("x-nonce") || "";
-  return <meta property="csp-nonce" content={nonce} />;
-}
+  return <meta name="csp-nonce" content={nonce} />;
+};
 
 export default function RootLayout({
   children,
