@@ -31,4 +31,12 @@ describe("getCacheControl", () => {
     });
     expect(getCacheControl(req)).toBe(PUBLIC);
   });
+
+  it("returns private for requests with session cookie", () => {
+    const req = new NextRequest("https://example.com", {
+      method: "GET",
+    });
+    req.cookies.set("session", "abc123");
+    expect(getCacheControl(req)).toBe(PRIVATE);
+  });
 });

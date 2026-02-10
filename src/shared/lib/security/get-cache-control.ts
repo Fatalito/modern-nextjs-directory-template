@@ -16,5 +16,6 @@ export const getCacheControl = (request: NextRequest): string => {
     request.method !== "GET" ||
     request.headers.has("Authorization") ||
     request.cookies.has("session");
+
   return isProtected ? CACHE_STRATEGIES.PRIVATE : CACHE_STRATEGIES.PUBLIC_SWR;
 };

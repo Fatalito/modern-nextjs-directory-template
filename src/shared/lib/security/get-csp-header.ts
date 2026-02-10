@@ -14,7 +14,7 @@ export const getCspHeader = (
   const secureImageSources = imageHosts
     .map((host) => `https://${host}`)
     .join(" ");
-  const connectSources = ["'self'", isDev ? "ws://localhost:3000" : ""]
+  const connectSources = ["'self'", isDev ? "ws://localhost:*" : ""]
     .filter(Boolean)
     .join(" ");
 
@@ -22,7 +22,7 @@ export const getCspHeader = (
     ...STATIC_CSP_DIRECTIVES,
     "img-src": `'self' blob: data: ${secureImageSources}`,
     "connect-src": connectSources,
-    "script-src": `'self' 'nonce-${nonce}' 'strict-dynamic' ${isDev ? "'unsafe-inline' 'unsafe-eval'" : ""}`,
+    "script-src": `'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ""}`,
     "style-src": "'self' 'unsafe-inline'",
   };
 

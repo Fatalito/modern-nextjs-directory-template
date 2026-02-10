@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBusiness, createLocation } from "@/shared/testing";
+import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { isBusinessLocationValid } from "./validation";
 
 describe("isBusinessLocationValid", () => {

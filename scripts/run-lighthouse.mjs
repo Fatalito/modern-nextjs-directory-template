@@ -1,9 +1,13 @@
 import lighthouse from "lighthouse";
 import { chromium } from "playwright";
 
+const DEFAULT_CHROME_PORT = 9222;
+const CHROME_DEBUG_PORT =
+  Number(process.env.CHROME_DEBUG_PORT) || DEFAULT_CHROME_PORT;
+
 async function run() {
   const browser = await chromium.launch({
-    args: ["--remote-debugging-port=9222"],
+    args: [`--remote-debugging-port=${CHROME_DEBUG_PORT}`],
   });
 
   try {
@@ -11,6 +15,7 @@ async function run() {
       port: 9222,
       output: "json",
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
+      maxWaitForLoad: 30000,
     });
 
     const toPercent = (score) =>
@@ -34,6 +39,7 @@ async function run() {
         (audit) =>
           audit.details &&
           audit.details.type === "opportunity" &&
+          typeof audit.score === "number" &&
           audit.score < 1,
       )
       .sort(

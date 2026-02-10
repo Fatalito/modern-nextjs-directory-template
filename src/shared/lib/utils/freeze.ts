@@ -21,11 +21,8 @@ export const deepFreeze = <T>(obj: T, seen = new WeakSet<object>()): T => {
   Object.getOwnPropertyNames(obj).forEach((prop) => {
     const val = (obj as Record<string, unknown>)[prop];
 
-    // Only recurse if the value is an object/function and not already frozen
-    if (
-      val !== null &&
-      (typeof val === "object" || typeof val === "function")
-    ) {
+    // Only recurse if the value is an object and not already frozen
+    if (val !== null && typeof val === "object") {
       deepFreeze(val, seen);
     }
   });

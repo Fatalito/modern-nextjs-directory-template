@@ -1,5 +1,4 @@
-import type { Location } from "@/entities/location";
-import { LocationSchema } from "@/entities/location/model/schema";
+import { type Location, LocationSchema } from "@/entities/location";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 
 const rawLocationFactory = (overrides: Partial<Location>): Location => ({

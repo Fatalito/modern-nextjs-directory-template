@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
-import { CACHE_STRATEGIES } from "@/shared/config";
 import { createSecureResponse } from "./create-secure-response";
 
 describe("createSecureResponse", () => {
@@ -9,7 +8,7 @@ describe("createSecureResponse", () => {
     const req = new NextRequest("https://example.com", {
       method: "GET",
       headers,
-    } as NextRequest);
+    });
 
     const res = createSecureResponse(req);
 
@@ -19,6 +18,6 @@ describe("createSecureResponse", () => {
 
     expect(injectedNonce).toMatch(/^[A-Za-z0-9+/=]+$/);
     expect(csp).toContain(`'nonce-${injectedNonce}'`);
-    expect(cache).toBe(CACHE_STRATEGIES.PUBLIC_SWR);
+    expect(cache).toBe("public, s-maxage=1, stale-while-revalidate=59");
   });
 });

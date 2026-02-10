@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getDirectoryPaths } from "@/app/lib/data-access";
 import {
   getLocationServicePageData,
-  getPageEntities,
+  getLocationServicePageEntities,
 } from "@/app/lib/data-loaders/location-service-page";
 import { pageContent, siteConfig } from "@/shared/config";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
@@ -30,7 +30,7 @@ export async function generateMetadata({
     service: serviceSlug,
   } = await params;
 
-  const { country, city, service } = await getPageEntities(
+  const { country, city, service } = await getLocationServicePageEntities(
     countrySlug,
     citySlug,
     serviceSlug,

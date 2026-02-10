@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { createBusiness, createLocation } from "@/shared/testing";
+import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { BusinessCard } from "./business-card";
 
 vi.mock("next/image", () => ({

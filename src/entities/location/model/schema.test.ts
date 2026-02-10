@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLocation } from "@/shared/testing";
+import { createLocation } from "@/shared/api/seed-factories";
 import { LocationSchema } from "./schema";
 
 describe("LocationSchema", () => {

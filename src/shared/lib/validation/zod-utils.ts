@@ -26,7 +26,7 @@ const reportValidationError = (
   error: z.ZodError,
   label: string,
   data: unknown,
-) => {
+): never => {
   const identity = getIdentity(data);
   console.error(`\n❌ Mock Validation Failed [${label}] » "${identity}"`);
   console.error(JSON.stringify(z.treeifyError(error), null, 2));

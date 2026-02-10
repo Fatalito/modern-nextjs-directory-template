@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ContactSchema } from "@/entities/contact";
-import { BaseEntitySchema } from "@/shared/lib/schema";
+import { BaseEntitySchema } from "@/shared/lib";
 
 export const UserRole = z.enum(["admin", "agent", "business_owner", "viewer"]);
 

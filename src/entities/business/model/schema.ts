@@ -5,6 +5,8 @@ import { ServiceRefSchema } from "@/entities/service";
 import { UserRefSchema } from "@/entities/user";
 import { PublishableEntitySchema, SlugSchema } from "@/shared/lib";
 
+const DIRECTORY_NAME_PATTERN = /^[a-z0-9]([a-z0-9-]{1,61}[a-z0-9])?$/;
+
 export const CategoryType = z.enum([
   "retail",
   "services",
@@ -29,7 +31,7 @@ export const BusinessSchema = PublishableEntitySchema.extend({
 
   directoryName: z
     .string()
-    .regex(/^[a-z0-9]([a-z0-9-]{1,61}[a-z0-9])?$/, "Invalid folder name"),
+    .regex(DIRECTORY_NAME_PATTERN, "Invalid folder name"),
 
   images: z.array(z.url()).min(1, "At least one image is required"),
 
@@ -41,4 +43,4 @@ export const BusinessSchema = PublishableEntitySchema.extend({
 }).describe("businesses");
 
 export type Business = z.infer<typeof BusinessSchema>;
-export type CategoryRef = z.infer<typeof CategoryType>;
+export type CategoryValue = z.infer<typeof CategoryType>;

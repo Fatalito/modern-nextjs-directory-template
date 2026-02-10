@@ -1,7 +1,7 @@
 import {
   type Business,
   BusinessSchema,
-  type CategoryRef,
+  type CategoryValue,
 } from "@/entities/business";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 
@@ -13,7 +13,7 @@ const getPublishableDefaults = () => ({
   publishedAt: null,
 });
 
-const MOCK_BUSINESS_IMAGES = {
+const MOCK_BUSINESS_IMAGES: Record<CategoryValue, string> = {
   retail:
     "https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?auto=format&fit=crop&w=800&q=80",
   services:
@@ -25,14 +25,16 @@ const MOCK_BUSINESS_IMAGES = {
     "https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80",
 };
 
-const getMockImage = (category: CategoryRef) => {
-  return MOCK_BUSINESS_IMAGES[category];
-};
+const getMockImage = (category: CategoryValue) =>
+  MOCK_BUSINESS_IMAGES[category];
 
 const rawBusinessFactory = (overrides: Partial<Business>): Business => {
   const base = getPublishableDefaults();
   const id = overrides.id ?? base.id;
-
+  console.log(
+    "Creating business with ID:",
+    getMockImage(overrides.category ?? "services"),
+  );
   return {
     ...base,
     id,

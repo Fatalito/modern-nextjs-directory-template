@@ -1,4 +1,4 @@
-import type { Business, CategoryRef } from "@/entities/business";
+import type { Business, CategoryValue } from "@/entities/business";
 import type { Contact } from "@/entities/contact";
 import type { Location, LocationRef } from "@/entities/location";
 import { deepFreeze } from "@/shared/lib";
@@ -7,8 +7,10 @@ import {
   createLocation,
   createService,
   createUser,
-} from "@/shared/testing";
+} from "./seed-factories";
 import type { IDatabase } from "./types";
+
+const SEED_DATE = "2026-02-10T00:00:00.000Z";
 
 const toRef = ({ id, name, slug }: Location): LocationRef => ({
   id,
@@ -21,7 +23,7 @@ type BusinessSeed = {
   slug: string;
   email: string;
   contacts: Contact[];
-  category: CategoryRef;
+  category: CategoryValue;
   location: LocationRef;
   serviceIds: string[];
   languages: string[];
@@ -66,9 +68,8 @@ export const createInMemoryDatabase = (): IDatabase => {
     createBusiness({
       ...seed,
       managerId: userAgent.id,
-      images: seed.images,
       directoryName: `${seed.slug}-01`,
-      publishedAt: new Date().toISOString(),
+      publishedAt: SEED_DATE,
     });
 
   const serviceWebDesign = createService({

@@ -4,9 +4,7 @@ import { getCspHeader } from "./get-csp-header";
 
 /**
  * Creates a NextResponse with an integrated security context.
- * 1. Generates a unique nonce.
- * 2. Injects the nonce into request headers for App Router consumption.
- * 3. Applies CSP (with nonce) and Cache-Control to the response.
+ * It generates a unique nonce, injects it into request headers for App Router consumption and applies CSP (with nonce) and Cache-Control to the response.
  * @param request - The incoming NextRequest object
  * @returns A NextResponse with security headers set
  * - Content-Security-Policy with nonce for inline script protection

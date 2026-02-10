@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createBusiness } from "@/shared/testing";
+import { createBusiness } from "@/shared/api/seed-factories";
 import { BusinessList } from "./business-list";
 
 const meta: Meta<typeof BusinessList> = {

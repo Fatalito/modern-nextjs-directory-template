@@ -15,7 +15,7 @@ import { selectBusinessesByCriteria } from "@/entities/business";
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the country, city, and service entities.
  */
-export const getPageEntities = cache(
+export const getLocationServicePageEntities = cache(
   async (countrySlug: string, citySlug: string, serviceSlug: string) => {
     const [country, city, service] = await Promise.all([
       getLocationBySlug(countrySlug),
@@ -41,7 +41,7 @@ export const getLocationServicePageData = async (
   citySlug: string,
   serviceSlug: string,
 ) => {
-  const { country, city, service } = await getPageEntities(
+  const { country, city, service } = await getLocationServicePageEntities(
     countrySlug,
     citySlug,
     serviceSlug,

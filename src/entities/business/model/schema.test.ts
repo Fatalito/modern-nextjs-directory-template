@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBusiness } from "@/shared/testing";
+import { createBusiness } from "@/shared/api/seed-factories";
 import { BusinessSchema } from "./schema";
 
 describe("BusinessSchema Validation", () => {

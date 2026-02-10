@@ -101,4 +101,11 @@ test.describe("Directory Listings", () => {
     await expect(page.getByRole("link", { name: city1.name })).toBeVisible();
     await expect(page.getByRole("link", { name: city2.name })).toBeVisible();
   });
+
+  test("should show 404 for an incompatible city-country combination", async ({
+    page,
+  }) => {
+    await page.goto(`/${city2.country.slug}/${city1.slug}`);
+    await expect(page.getByText(/404/)).toBeVisible();
+  });
 });

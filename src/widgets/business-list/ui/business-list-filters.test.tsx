@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { createLocation, createService } from "@/shared/testing";
+import { createLocation, createService } from "@/shared/api/seed-factories";
 import { BusinessListFilters } from "./business-list-filters";
 
 const france = createLocation({

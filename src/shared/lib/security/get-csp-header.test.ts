@@ -13,6 +13,6 @@ describe("getCspHeader", () => {
     const header = getCspHeader("n", "development");
     expect(header).toContain("nonce-n");
     expect(header).toContain("'unsafe-eval'");
-    expect(header).toContain("ws://localhost:3000");
+    expect(header).toContain("ws://localhost:*");
   });
 });

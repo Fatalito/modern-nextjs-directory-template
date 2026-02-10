@@ -19,7 +19,8 @@ export const getCityPageEntities = cache(
       getLocationBySlug(countrySlug),
       getLocationBySlug(citySlug),
     ]);
-    return { country, city };
+    const isCorrectParent = city?.parentId === country?.id;
+    return { country, city, isCorrectParent };
   },
 );
 
@@ -33,9 +34,12 @@ export const getCityPageData = async (
   countrySlug: string,
   citySlug: string,
 ) => {
-  const { country, city } = await getCityPageEntities(countrySlug, citySlug);
+  const { country, city, isCorrectParent } = await getCityPageEntities(
+    countrySlug,
+    citySlug,
+  );
 
-  if (!country || !city) {
+  if (!country || !city || !isCorrectParent) {
     return null;
   }
 

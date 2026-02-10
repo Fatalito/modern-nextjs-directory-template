@@ -13,7 +13,7 @@ import { selectBusinessesByCriteria } from "@/entities/business";
  * @returns An object containing the service entity.
  *          Returns null if the entity is not found.
  */
-export const getPageEntities = cache(async (serviceSlug: string) => {
+export const getServicePageEntities = cache(async (serviceSlug: string) => {
   const service = await getServiceBySlug(serviceSlug);
   return { service };
 });
@@ -25,7 +25,7 @@ export const getPageEntities = cache(async (serviceSlug: string) => {
  *          Returns null if the core entity is not found.
  */
 export const getServicePageData = async (serviceSlug: string) => {
-  const { service } = await getPageEntities(serviceSlug);
+  const { service } = await getServicePageEntities(serviceSlug);
 
   if (!service) {
     return null;
@@ -51,7 +51,7 @@ export const getServicePageData = async (serviceSlug: string) => {
 /**
  * Generates the static paths for all services.
  */
-export const getDirectoryPaths = async () => {
+export const getServicePageDirectoryPaths = async () => {
   const services = await getAllServices();
   return services.map((service) => ({
     service: service.slug,

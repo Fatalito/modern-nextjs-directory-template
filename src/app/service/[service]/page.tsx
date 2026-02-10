@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
-  getDirectoryPaths,
-  getPageEntities,
   getServicePageData,
+  getServicePageDirectoryPaths,
+  getServicePageEntities,
 } from "@/app/lib/data-loaders/service-page";
 import { pageContent, siteConfig } from "@/shared/config";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return getDirectoryPaths();
+  return getServicePageDirectoryPaths();
 }
 
 export async function generateMetadata({
@@ -22,9 +22,9 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { service: serviceSlug } = await params;
 
-  const { service } = await getPageEntities(serviceSlug);
+  const { service } = await getServicePageEntities(serviceSlug);
 
-  if (!service) return pageContent.notFound.location;
+  if (!service) return pageContent.notFound.service;
 
   return pageContent.servicePage.metadata(service.name);
 }

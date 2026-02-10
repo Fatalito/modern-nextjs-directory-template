@@ -1,7 +1,7 @@
 let seedClock = Date.now();
 
 /**
- * Utilises BaseEntitySchema to generate default identity fields.
+ * Generates default identity fields.
  */
 export const getBaseDefaults = () => {
   seedClock += 1000;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createService } from "@/shared/testing";
+import { createService } from "@/shared/api/seed-factories";
 import { ServiceSchema } from "./schema";
 
 describe("ServiceSchema", () => {

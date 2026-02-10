@@ -2,7 +2,6 @@ import { cache } from "react";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import {
   businessRepository,
-  db,
   locationRepository,
   serviceRepository,
   userRepository,
@@ -22,15 +21,17 @@ export const getBusinessBySlug = cache((slug: string) =>
  */
 export const searchBusinesses = cache(
   (params: { category?: string; locationId?: string }) => {
-    if (!params.category && !params.locationId) return [...db.businesses];
-    return db.businesses.filter((b) => {
-      const matchCategory = params.category
-        ? b.category.toLowerCase() === params.category.toLowerCase()
-        : true;
-      const matchLocation = params.locationId
-        ? b.location.id.toLowerCase() === params.locationId.toLowerCase()
-        : true;
-      return matchCategory && matchLocation;
+    return getAllBusinesses().then((businesses) => {
+      if (!params.category && !params.locationId) return businesses;
+      return businesses.filter((b) => {
+        const matchCategory = params.category
+          ? b.category.toLowerCase() === params.category.toLowerCase()
+          : true;
+        const matchLocation = params.locationId
+          ? b.location.id.toLowerCase() === params.locationId.toLowerCase()
+          : true;
+        return matchCategory && matchLocation;
+      });
     });
   },
 );

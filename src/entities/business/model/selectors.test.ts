@@ -5,7 +5,7 @@ import {
   createLocation,
   createService,
   createUser,
-} from "@/shared/testing";
+} from "@/shared/api/seed-factories";
 import {
   selectBusinessContact,
   selectBusinessesByCriteria,

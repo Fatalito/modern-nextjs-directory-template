@@ -27,11 +27,7 @@ describe("deepFreeze", () => {
 
       expect(() => {
         (obj as Record<string, unknown>).b = 2;
-      }).toThrow(
-        process.env.NODE_ENV === "production"
-          ? TypeError
-          : /Cannot add property|object is not extensible/,
-      );
+      }).toThrow(TypeError);
     });
 
     it("should prevent property modification", () => {
@@ -40,11 +36,7 @@ describe("deepFreeze", () => {
 
       expect(() => {
         (obj as Record<string, unknown>).a = 2;
-      }).toThrow(
-        process.env.NODE_ENV === "production"
-          ? TypeError
-          : /Cannot assign to read only property/,
-      );
+      }).toThrow(TypeError);
     });
   });
 
@@ -136,7 +128,7 @@ describe("deepFreeze", () => {
       expect(Object.isFrozen(deepFreeze([]))).toBe(true);
     });
 
-    it("should ignore non-enumerable properties", () => {
+    it("should handle non-enumerable properties", () => {
       const obj = {};
       Object.defineProperty(obj, "hidden", {
         value: { internal: "data" },

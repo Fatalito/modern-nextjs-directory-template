@@ -2,17 +2,17 @@ import type { NextConfig } from "next";
 import { env } from "./src/shared/config/env";
 import { imageHosts } from "./src/shared/config/site-config";
 
-const isProd = env.NODE_ENV === "production";
+const IS_PROD = env.NODE_ENV === "production";
 
 // Map NEXT_OUTPUT_MODE to Next.js output format (see README Deployment Configuration section)
 // For development, output is always undefined (Node.js server mode with HMR)
-const outputMap = {
+const OUTPUT_MAP = {
   serverless: undefined,
   static: "export",
   standalone: "standalone",
 } as const;
-const nextOutput = outputMap[env.NEXT_OUTPUT_MODE];
-const securityHeaders = [
+const NEXT_OUTPUT = OUTPUT_MAP[env.NEXT_OUTPUT_MODE];
+const SECURITY_HEADERS = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -21,18 +21,18 @@ const securityHeaders = [
     value: "camera=(), microphone=(), geolocation=()",
   },
 ];
-const shouldDisableImageOptimization = nextOutput === "export" || !isProd;
+const SHOULD_DISABLE_IMAGE_OPTIMIZATION = NEXT_OUTPUT === "export" || !IS_PROD;
 
 const nextConfig: NextConfig = {
   // React 19 compiler for auto-memoisation and state management optimisations
   reactCompiler: true,
 
   // Output mode based on deployment target
-  output: isProd ? nextOutput : undefined,
+  output: IS_PROD ? NEXT_OUTPUT : undefined,
 
   // Security and caching headers
   async headers() {
-    const headers = [...securityHeaders];
+    const headers = [...SECURITY_HEADERS];
 
     if (env.ENABLE_HSTS) {
       headers.push({
@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    unoptimized: shouldDisableImageOptimization,
+    unoptimized: SHOULD_DISABLE_IMAGE_OPTIMIZATION,
     remotePatterns: imageHosts.map((hostname) => ({
       protocol: "https",
       hostname,
