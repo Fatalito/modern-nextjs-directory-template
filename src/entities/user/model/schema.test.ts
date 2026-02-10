@@ -1,26 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createUser } from "@/shared/testing";
 import { UserRole, UserSchema } from "./schema";
-
-const USER_ID = "550e8400-e29b-41d4-a716-446655440000";
-
-const createUser = (
-  overrides: Partial<{
-    id: string;
-    name: string;
-    email: string;
-    passwordHash: string;
-    contacts?: unknown[];
-    role?: "admin" | "agent" | "business_owner" | "viewer";
-    createdAt?: string;
-    lastLogin?: string;
-  }>,
-) => ({
-  id: USER_ID,
-  name: "John Doe",
-  email: "john@example.com",
-  passwordHash: "hashed_password_123",
-  ...overrides,
-});
 
 describe("UserSchema", () => {
   it("validates a complete user", () => {
@@ -49,25 +29,16 @@ describe("UserSchema", () => {
   });
 
   it.each([
-    [
-      "invalid UUID",
-      createUser({ id: "not-a-uuid", passwordHash: "password" }),
-    ],
-    [
-      "invalid email",
-      createUser({ email: "not-an-email", passwordHash: "password" }),
-    ],
-    [
-      "name too short",
-      createUser({
-        name: "A",
-        email: "test@example.com",
-        passwordHash: "password",
-      }),
-    ],
-    ["empty password", createUser({ passwordHash: "" })],
+    ["invalid UUID", { id: "not-a-uuid" }],
+    ["invalid email", { email: "not-an-email" }],
+    ["name too short", { name: "A" }],
+    ["empty password", { passwordHash: "" }],
   ])("rejects %s", (_, user) => {
-    const result = UserSchema.safeParse(user);
+    const invalidUser = {
+      ...createUser({}),
+      ...user,
+    };
+    const result = UserSchema.safeParse(invalidUser);
     expect(result.success).toBe(false);
   });
 });

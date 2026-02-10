@@ -1,56 +1,47 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import {
-  createMockLocation,
-  createMockService,
-} from "@/shared/lib/mock-data/factories";
+import { createLocation, createService } from "@/shared/testing";
 import { BusinessListFilters } from "./business-list-filters";
 
-const mockLocations = [
-  createMockLocation({
-    id: "france",
-    name: "France",
-    slug: "france",
-    type: "country",
-  }),
-  createMockLocation({
-    id: "paris",
-    name: "Paris",
-    slug: "paris",
-    type: "city",
-    parentId: "france",
-  }),
-  createMockLocation({
-    id: "uk",
-    name: "United Kingdom",
-    slug: "uk",
-    type: "country",
-  }),
-  createMockLocation({
-    id: "london",
-    name: "London",
-    slug: "london",
-    type: "city",
-    parentId: "uk",
-  }),
-];
+const france = createLocation({
+  name: "France",
+  slug: "france",
+  type: "country",
+});
+const uk = createLocation({
+  name: "United Kingdom",
+  slug: "uk",
+  type: "country",
+});
+const lyon = createLocation({
+  name: "Lyon",
+  slug: "lyon",
+  type: "city",
+  parentId: france.id,
+});
+const london = createLocation({
+  name: "London",
+  slug: "london",
+  type: "city",
+  parentId: uk.id,
+});
 
-const mockServices = [
-  createMockService({ id: "s1", name: "Web Design", slug: "web-design" }),
-  createMockService({ id: "s2", name: "Plumbing", slug: "plumbing" }),
+const locations = [france, uk, lyon, london];
+
+const services = [
+  createService({ name: "Web Design", slug: "web-design" }),
+  createService({ name: "Plumbing", slug: "plumbing" }),
 ];
 
 describe("BusinessListFilters", () => {
   it("renders location and service filters", () => {
-    render(
-      <BusinessListFilters locations={mockLocations} services={mockServices} />,
-    );
+    render(<BusinessListFilters locations={locations} services={services} />);
 
     // Location filters
     expect(
       screen.getByRole("link", { name: /All Locations/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Paris/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Lyon/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /London/i })).toBeInTheDocument();
 
     // Service filters
@@ -67,16 +58,14 @@ describe("BusinessListFilters", () => {
     it("shows active indicator on current city", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           countrySlug="france"
-          citySlug="paris"
+          citySlug="lyon"
         />,
       );
 
-      expect(
-        screen.getByRole("link", { name: /✓ Paris/i }),
-      ).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /✓ Lyon/i })).toBeInTheDocument();
       expect(
         screen.queryByRole("link", { name: /✓ London/i }),
       ).not.toBeInTheDocument();
@@ -85,8 +74,8 @@ describe("BusinessListFilters", () => {
     it("shows active indicator on current service", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );
@@ -102,8 +91,8 @@ describe("BusinessListFilters", () => {
     it("shows All Locations as active when no city selected", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );
@@ -118,10 +107,10 @@ describe("BusinessListFilters", () => {
     it("shows All Services as active when no service selected", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           countrySlug="france"
-          citySlug="paris"
+          citySlug="lyon"
         />,
       );
 
@@ -137,21 +126,21 @@ describe("BusinessListFilters", () => {
     it("city links preserve service when active", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );
 
-      const parisLink = screen.getByRole("link", { name: /Paris/i });
-      expect(parisLink).toHaveAttribute("href", "/france/paris/web-design");
+      const parisLink = screen.getByRole("link", { name: /Lyon/i });
+      expect(parisLink).toHaveAttribute("href", "/france/lyon/web-design");
     });
 
     it("city links preserve service when not active", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );
@@ -163,8 +152,8 @@ describe("BusinessListFilters", () => {
     it("All Locations preserves service filter", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="plumbing"
         />,
       );
@@ -176,12 +165,7 @@ describe("BusinessListFilters", () => {
     });
 
     it("All Locations goes to home when no service filter", () => {
-      render(
-        <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
-        />,
-      );
+      render(<BusinessListFilters locations={locations} services={services} />);
 
       const allLocationsLink = screen.getByRole("link", {
         name: /All Locations/i,
@@ -192,23 +176,23 @@ describe("BusinessListFilters", () => {
     it("service links use location path when available", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           countrySlug="france"
-          citySlug="paris"
+          citySlug="lyon"
           serviceSlug="web-design"
         />,
       );
 
       const plumbingLink = screen.getByRole("link", { name: /Plumbing/i });
-      expect(plumbingLink).toHaveAttribute("href", "/france/paris/plumbing");
+      expect(plumbingLink).toHaveAttribute("href", "/france/lyon/plumbing");
     });
 
     it("service links go to service page when no location", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );
@@ -220,10 +204,10 @@ describe("BusinessListFilters", () => {
     it("All Services clears service from current location", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           countrySlug="france"
-          citySlug="paris"
+          citySlug="lyon"
           serviceSlug="web-design"
         />,
       );
@@ -231,14 +215,14 @@ describe("BusinessListFilters", () => {
       const allServicesLink = screen.getByRole("link", {
         name: /All Services/i,
       });
-      expect(allServicesLink).toHaveAttribute("href", "/france/paris");
+      expect(allServicesLink).toHaveAttribute("href", "/france/lyon");
     });
 
     it("All Services goes to home when no location", () => {
       render(
         <BusinessListFilters
-          locations={mockLocations}
-          services={mockServices}
+          locations={locations}
+          services={services}
           serviceSlug="web-design"
         />,
       );

@@ -6,7 +6,7 @@
 export const country1 = { name: "France", slug: "france" };
 export const country2 = { name: "United Kingdom", slug: "uk" };
 
-export const city1 = { name: "Paris", slug: "paris", country: country1 };
+export const city1 = { name: "Lyon", slug: "lyon", country: country1 };
 export const city2 = { name: "London", slug: "london", country: country2 };
 
 export const service1 = { name: "Web Design", slug: "web-design" };

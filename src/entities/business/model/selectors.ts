@@ -61,11 +61,11 @@ export const selectBusinessesByCriteria = (
   businesses: Business[],
   filters: { serviceId?: string; locationId?: string },
 ) => {
-  return businesses.filter((b) => {
+  return businesses.filter((business) => {
     const matchesService = filters.serviceId
-      ? b.serviceIds.includes(filters.serviceId)
+      ? business.serviceIds.includes(filters.serviceId)
       : true;
-    const matchesLocation = matchesLocationFilter(b, filters.locationId);
+    const matchesLocation = matchesLocationFilter(business, filters.locationId);
 
     return matchesService && matchesLocation;
   });

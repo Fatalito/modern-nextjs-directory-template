@@ -1,13 +1,4 @@
-import { STATIC_CSP_DIRECTIVES } from "@/shared/config";
-import { imageHosts } from "@/shared/config/site-config";
-
-const isDev = process.env.NODE_ENV === "development";
-const secureImageSources = imageHosts
-  .map((host) => `https://${host}`)
-  .join(" ");
-const connectSources = ["'self'", isDev ? "ws://localhost:3000" : ""]
-  .filter(Boolean)
-  .join(" ");
+import { imageHosts, STATIC_CSP_DIRECTIVES } from "@/shared/config";
 
 /**
  * Generates a Content Security Policy header value with dynamic nonce and image/connect sources.
@@ -15,7 +6,18 @@ const connectSources = ["'self'", isDev ? "ws://localhost:3000" : ""]
  * @param nonce - A unique nonce value to allow specific inline scripts while blocking others, enhancing security against XSS attacks.
  * @returns A Content Security Policy header string
  */
-export const getCspHeader = (nonce: string): string => {
+export const getCspHeader = (
+  nonce: string,
+  env = process.env.NODE_ENV,
+): string => {
+  const isDev = env === "development";
+  const secureImageSources = imageHosts
+    .map((host) => `https://${host}`)
+    .join(" ");
+  const connectSources = ["'self'", isDev ? "ws://localhost:3000" : ""]
+    .filter(Boolean)
+    .join(" ");
+
   const directives: Record<string, string> = {
     ...STATIC_CSP_DIRECTIVES,
     "img-src": `'self' blob: data: ${secureImageSources}`,

@@ -1,26 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createLocation } from "@/shared/testing";
 import { LocationSchema } from "./schema";
-
-const COUNTRY_ID = "550e8400-e29b-41d4-a716-446655440000";
-const CITY_ID = "660e8400-e29b-41d4-a716-446655440000";
-
-const createLocation = (
-  overrides: Partial<{
-    id: string;
-    name: string;
-    slug: string;
-    type: "country" | "city";
-    parentId: string | null;
-    isoCode?: string;
-  }>,
-) => ({
-  id: COUNTRY_ID,
-  name: "France",
-  slug: "france",
-  type: "country" as const,
-  parentId: null,
-  ...overrides,
-});
 
 describe("LocationSchema", () => {
   it("validates a complete country location", () => {
@@ -31,16 +11,20 @@ describe("LocationSchema", () => {
   });
 
   it("validates a complete city location", () => {
-    const location = createLocation({
-      id: CITY_ID,
-      name: "Paris",
-      slug: "paris",
+    const country = createLocation({
+      name: "France",
+      slug: "france",
+      type: "country",
+    });
+    const city = createLocation({
+      name: "Lyon",
+      slug: "lyon",
       type: "city",
-      parentId: COUNTRY_ID,
+      parentId: country.id,
     });
 
-    const result = LocationSchema.parse(location);
-    expect(result).toMatchObject(location);
+    const result = LocationSchema.parse(city);
+    expect(result).toMatchObject(city);
   });
 
   it("validates location with ISO code", () => {
@@ -51,41 +35,37 @@ describe("LocationSchema", () => {
   });
 
   it("rejects invalid slug", () => {
-    const location = createLocation({
-      name: "New York",
-      slug: "New York",
-      type: "city",
-      parentId: COUNTRY_ID,
-    });
+    const location = createLocation({});
+    const badData = { ...location, slug: "New York" };
 
-    expect(() => LocationSchema.parse(location)).toThrow();
+    expect(() => LocationSchema.parse(badData)).toThrow();
   });
 
   it("rejects invalid type", () => {
     const location = createLocation({
       name: "Test",
       slug: "test",
-      type: "invalid" as unknown as "country",
     });
-
-    expect(() => LocationSchema.parse(location)).toThrow();
+    const badData = { ...location, type: "invalid" };
+    expect(() => LocationSchema.parse(badData)).toThrow();
   });
 
   it("rejects missing required fields", () => {
-    const location = { id: COUNTRY_ID, slug: "test" };
+    const location = createLocation({});
+    const badData = { ...location, name: null };
 
-    expect(() => LocationSchema.parse(location)).toThrow();
+    expect(() => LocationSchema.parse(badData)).toThrow();
   });
 
   it("rejects invalid UUID format", () => {
-    const location = createLocation({ id: "not-a-uuid", name: "Test" });
-
-    expect(() => LocationSchema.parse(location)).toThrow();
+    const location = createLocation({});
+    const badData = { ...location, id: "not-a-uuid" };
+    expect(() => LocationSchema.parse(badData)).toThrow();
   });
 
   it("rejects invalid ISO code length", () => {
-    const location = createLocation({ isoCode: "FRA" });
-
-    expect(() => LocationSchema.parse(location)).toThrow();
+    const location = createLocation({});
+    const badData = { ...location, isoCode: "FRA" };
+    expect(() => LocationSchema.parse(badData)).toThrow();
   });
 });

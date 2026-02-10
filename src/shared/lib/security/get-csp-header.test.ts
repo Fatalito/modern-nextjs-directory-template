@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { getCspHeader } from "./get-csp-header";
 
 describe("getCspHeader", () => {
-  it("includes the provided nonce in script-src and contains core directives", () => {
-    const nonce = "test-nonce";
-    const header = getCspHeader(nonce);
-    expect(typeof header).toBe("string");
-    expect(header).toContain(`nonce-${nonce}`);
-    expect(header).toContain("img-src");
-    expect(header).toContain("script-src");
-    expect(header).toContain("style-src");
+  it("should add nonce and omits unsafe-eval in production", () => {
+    const header = getCspHeader("n", "production");
+    expect(header).toContain("nonce-n");
+    expect(header).not.toContain("'unsafe-eval'");
+    expect(header).not.toContain("ws://localhost");
+  });
+
+  it("should add nonce and includes dev headers and websockets in development", () => {
+    const header = getCspHeader("n", "development");
+    expect(header).toContain("nonce-n");
+    expect(header).toContain("'unsafe-eval'");
+    expect(header).toContain("ws://localhost:3000");
   });
 });

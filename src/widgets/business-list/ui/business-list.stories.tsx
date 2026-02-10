@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMockBusiness } from "@/shared/lib/mock-data/factories";
+import { createBusiness } from "@/shared/testing";
 import { BusinessList } from "./business-list";
 
 const meta: Meta<typeof BusinessList> = {
@@ -11,21 +11,21 @@ export default meta;
 export const WithMultipleBusinesses: StoryObj<typeof BusinessList> = {
   args: {
     businesses: [
-      createMockBusiness({
+      createBusiness({
         name: "Acme Coffee Shop",
         category: "hospitality",
         images: [
           "https://images.unsplash.com/photo-1511920170033-f8396924c348?w=400&h=600&fit=crop",
         ],
       }),
-      createMockBusiness({
+      createBusiness({
         name: "Tech Solutions Inc",
         category: "tech",
         images: [
           "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=600&fit=crop",
         ],
       }),
-      createMockBusiness({
+      createBusiness({
         name: "Fitness Studio",
         category: "health",
         images: [
@@ -39,7 +39,7 @@ export const WithMultipleBusinesses: StoryObj<typeof BusinessList> = {
 export const SingleBusiness: StoryObj<typeof BusinessList> = {
   args: {
     businesses: [
-      createMockBusiness({
+      createBusiness({
         name: "Solo Shop",
         category: "retail",
         images: [

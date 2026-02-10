@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createMockLocation } from "@/shared/lib/mock-data/factories";
+import { createLocation } from "@/shared/testing";
 import {
   selectAllCountries,
   selectCitiesByCountry,
@@ -7,50 +7,46 @@ import {
 } from "./selectors";
 
 describe("Location Selectors", () => {
-  const mockLocations = [
-    createMockLocation({
-      id: "france",
-      name: "France",
-      slug: "france",
-      type: "country",
-      parentId: null,
-    }),
-    createMockLocation({
-      id: "paris",
-      name: "Paris",
-      slug: "paris",
-      type: "city",
-      parentId: "france",
-    }),
-    createMockLocation({
-      id: "lyon",
-      name: "Lyon",
-      slug: "lyon",
-      type: "city",
-      parentId: "france",
-    }),
-    createMockLocation({
-      id: "uk",
-      name: "United Kingdom",
-      slug: "uk",
-      type: "country",
-      parentId: null,
-    }),
-    createMockLocation({
-      id: "london",
-      name: "London",
-      slug: "london",
-      type: "city",
-      parentId: "uk",
-    }),
-  ];
+  const france = createLocation({
+    name: "France",
+    slug: "france",
+    type: "country",
+    parentId: null,
+  });
+  const uk = createLocation({
+    name: "United Kingdom",
+    slug: "uk",
+    type: "country",
+    parentId: null,
+  });
+  const paris = createLocation({
+    name: "Paris",
+    slug: "paris",
+    type: "city",
+    parentId: france.id,
+  });
+  const lyon = createLocation({
+    name: "Lyon",
+    slug: "lyon",
+    type: "city",
+    parentId: france.id,
+  });
+  const london = createLocation({
+    name: "London",
+    slug: "london",
+    type: "city",
+    parentId: uk.id,
+  });
+  const mockLocations = [france, paris, lyon, london, uk];
 
   describe("selectAllCountries", () => {
     it("returns only countries (type=country, no parentId)", () => {
       const countries = selectAllCountries(mockLocations);
 
       expect(countries).toHaveLength(2);
-      expect(countries.map((c) => c.id)).toEqual(["france", "uk"]);
+      expect(countries.map((c) => c.id)).toEqual(
+        expect.arrayContaining([france.id, uk.id]),
+      );
       expect(countries.every((c) => c.type === "country")).toBe(true);
       expect(countries.every((c) => !c.parentId)).toBe(true);
     });
@@ -65,11 +61,13 @@ describe("Location Selectors", () => {
 
   describe("selectCitiesByCountry", () => {
     it("returns cities for specific country", () => {
-      const cities = selectCitiesByCountry(mockLocations, "france");
+      const cities = selectCitiesByCountry(mockLocations, france.id);
 
       expect(cities).toHaveLength(2);
-      expect(cities.map((c) => c.id)).toEqual(["paris", "lyon"]);
-      expect(cities.every((c) => c.parentId === "france")).toBe(true);
+      expect(cities.map((c) => c.id)).toEqual(
+        expect.arrayContaining([paris.id, lyon.id]),
+      );
+      expect(cities.every((c) => c.parentId === france.id)).toBe(true);
     });
 
     it("returns empty array when country has no cities", () => {
@@ -79,38 +77,53 @@ describe("Location Selectors", () => {
     });
 
     it("returns cities for different country", () => {
-      const cities = selectCitiesByCountry(mockLocations, "uk");
+      const cities = selectCitiesByCountry(mockLocations, uk.id);
 
       expect(cities).toHaveLength(1);
-      expect(cities[0].id).toBe("london");
+      expect(cities[0].id).toBe(london.id);
     });
   });
 
   describe("selectFullLocationPath", () => {
     it("returns country/city path for nested location", () => {
-      const path = selectFullLocationPath(mockLocations, "paris");
+      const path = selectFullLocationPath(mockLocations, lyon.id);
 
-      expect(path).toBe("france/paris");
+      expect(path).toBe("france/lyon");
     });
 
     it("returns city slug for top-level location", () => {
-      const path = selectFullLocationPath(mockLocations, "france");
+      const path = selectFullLocationPath(mockLocations, france.id);
 
       expect(path).toBe("france");
     });
 
     it("returns city slug when country parent not found", () => {
-      const invalidCities = [
-        createMockLocation({
-          id: "orphan",
-          name: "Orphan City",
-          slug: "orphan-city",
-          type: "city",
-          parentId: "nonexistent-country",
-        }),
-      ];
+      const orphanCity = createLocation({
+        name: "Orphan City",
+        slug: "orphan-city",
+        type: "city",
+        parentId: null,
+      });
+      const invalidCities = [orphanCity];
 
-      const path = selectFullLocationPath(invalidCities, "orphan");
+      const path = selectFullLocationPath(invalidCities, orphanCity.id);
+
+      expect(path).toBe("orphan-city");
+    });
+
+    it("returns city slug when parent country is missing from locations array", () => {
+      const orphanCity = createLocation({
+        name: "Orphan City",
+        slug: "orphan-city",
+        type: "city",
+        parentId: france.id,
+      });
+      const locationsWithoutParent = [orphanCity];
+
+      const path = selectFullLocationPath(
+        locationsWithoutParent,
+        orphanCity.id,
+      );
 
       expect(path).toBe("orphan-city");
     });

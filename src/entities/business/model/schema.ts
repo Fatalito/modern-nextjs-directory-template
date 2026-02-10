@@ -1,10 +1,21 @@
 import { z } from "zod";
 import { ContactSchema } from "@/entities/contact";
-import { SlugSchema } from "@/shared/lib";
+import { LocationRefSchema } from "@/entities/location";
+import { ServiceRefSchema } from "@/entities/service";
+import { UserRefSchema } from "@/entities/user";
+import { PublishableEntitySchema, SlugSchema } from "@/shared/lib";
 
-export const BusinessSchema = z.object({
-  id: z.uuid(),
+export const CategoryType = z.enum([
+  "retail",
+  "services",
+  "hospitality",
+  "tech",
+  "health",
+]);
+
+export const BusinessSchema = PublishableEntitySchema.extend({
   managerId: z.uuid(),
+  manager: UserRefSchema.optional(),
   name: z.string().min(2, "Name must be at least 2 characters"),
   slug: SlugSchema,
   description: z.string().max(500).optional(),
@@ -22,19 +33,12 @@ export const BusinessSchema = z.object({
 
   images: z.array(z.url()).min(1, "At least one image is required"),
 
-  category: z.enum(["retail", "services", "hospitality", "tech", "health"]),
-  location: z.object({
-    id: z.uuid(),
-    name: z.string().min(2),
-    slug: SlugSchema,
-  }),
+  category: CategoryType,
+  location: LocationRefSchema,
   serviceIds: z.array(z.uuid()),
+  services: z.array(ServiceRefSchema).optional(),
   languages: z.array(z.string().length(2)),
-
-  createdAt: z.iso.datetime().default(() => new Date().toISOString()),
-  publishedAt: z.iso.datetime().nullable().default(null),
-  updatedAt: z.iso.datetime().default(() => new Date().toISOString()),
-});
+}).describe("businesses");
 
 export type Business = z.infer<typeof BusinessSchema>;
-export type LocationRef = Business["location"];
+export type CategoryRef = z.infer<typeof CategoryType>;

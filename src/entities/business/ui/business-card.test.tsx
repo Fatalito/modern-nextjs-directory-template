@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { createMockBusiness } from "@/shared/lib/mock-data/factories";
+import { createBusiness, createLocation } from "@/shared/testing";
 import { BusinessCard } from "./business-card";
 
 vi.mock("next/image", () => ({
@@ -11,14 +11,13 @@ vi.mock("next/image", () => ({
 
 describe("BusinessCard", () => {
   it("renders card with image, name, category, and location", () => {
-    const business = createMockBusiness({
+    const business = createBusiness({
       name: "Acme Corp",
       category: "tech",
-      location: {
-        id: "test-location-1",
+      location: createLocation({
         name: "New York",
         slug: "new-york",
-      },
+      }),
       images: [
         "https://example.com/first.jpg",
         "https://example.com/second.jpg",

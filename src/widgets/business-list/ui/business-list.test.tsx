@@ -1,15 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { siteConfig } from "@/shared/config";
-import { createMockBusiness } from "@/shared/lib/mock-data/factories";
+import { createBusiness } from "@/shared/testing";
 import { BusinessList } from "./business-list";
 
 describe("BusinessList", () => {
   it("renders multiple businesses with correct count", () => {
     const businesses = [
-      createMockBusiness({ id: "b1", name: "Business One" }),
-      createMockBusiness({ id: "b2", name: "Business Two" }),
-      createMockBusiness({ id: "b3", name: "Business Three" }),
+      createBusiness({ name: "Business One" }),
+      createBusiness({ name: "Business Two" }),
+      createBusiness({ name: "Business Three" }),
     ];
 
     render(<BusinessList businesses={businesses} />);
@@ -21,7 +21,7 @@ describe("BusinessList", () => {
   });
 
   it("renders single business with priority prop on first card", () => {
-    const businesses = [createMockBusiness({ name: "Solo Business" })];
+    const businesses = [createBusiness({ name: "Solo Business" })];
 
     render(<BusinessList businesses={businesses} />);
 
@@ -33,8 +33,8 @@ describe("BusinessList", () => {
     it.each([
       [
         "city + service",
-        { cityName: "Paris", serviceName: "Web Design" },
-        "No Web Design services in Paris yet!",
+        { cityName: "Lyon", serviceName: "Web Design" },
+        "No Web Design services in Lyon yet!",
       ],
       [
         "service only",

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ContactChannel } from "@/entities/contact";
 import {
-  createMockBusiness,
-  createMockLocation,
-  createMockService,
-  createMockUser,
-} from "@/shared/lib/mock-data/factories";
+  createBusiness,
+  createLocation,
+  createService,
+  createUser,
+} from "@/shared/testing";
 import {
   selectBusinessContact,
   selectBusinessesByCriteria,
@@ -13,33 +13,32 @@ import {
 } from "./selectors";
 
 describe("Business Selectors", () => {
-  const user = createMockUser({ id: "manager-1" });
+  const user = createUser();
   const businesses = [
-    createMockBusiness({ id: "b1", managerId: user.id, name: "Shop A" }),
-    createMockBusiness({ id: "b2", managerId: "other-user", name: "Shop B" }),
+    createBusiness({ managerId: user.id, name: "Shop A" }),
+    createBusiness({ name: "Shop B" }),
   ];
 
   it("should filter businesses by managerId", () => {
     const results = selectManagedBusinesses(businesses, user.id);
     expect(results).toHaveLength(1);
-    expect(results[0].id).toBe("b1");
     expect(results[0].managerId).toBe(user.id);
     expect(results[0].name).toBe("Shop A");
   });
 
   describe("selectBusinessContact", () => {
     const contacts = [
-      { channel: "phone" as const, locale: "en", value: "PHONE_EN" },
-      { channel: "whatsapp" as const, locale: "fr", value: "WA_FR" },
+      { channel: "phone" as const, locale: "en", value: "12345678912" },
+      { channel: "whatsapp" as const, locale: "fr", value: "12345678913" },
     ];
-    const business = createMockBusiness({ contacts });
+    const business = createBusiness({ contacts });
 
     it.each([
-      ["Exact match (channel and locale)", "en", "phone", "PHONE_EN"],
-      ["Channel priority (wrong locale)", "fr", "phone", "PHONE_EN"],
-      ["Locale priority (wrong channel)", "fr", "telegram", "WA_FR"],
-      ["Total fallback", "zh", "telegram", "PHONE_EN"],
-      ["No channel", "zh", undefined, "PHONE_EN"],
+      ["Exact match (channel and locale)", "en", "phone", "12345678912"],
+      ["Channel priority (wrong locale)", "fr", "phone", "12345678912"],
+      ["Locale priority (wrong channel)", "fr", "telegram", "12345678913"],
+      ["Total fallback", "zh", "telegram", "12345678912"],
+      ["No channel", "zh", undefined, "12345678912"],
     ])("%s", (_, locale, channel, expectedValue) => {
       const result = selectBusinessContact(business, {
         locale,
@@ -50,21 +49,23 @@ describe("Business Selectors", () => {
   });
 
   describe("selectBusinessesByCriteria", () => {
-    const service = createMockService({});
-    const location = createMockLocation({});
+    const service = createService({});
+    const location = createLocation({});
 
     const list = [
-      createMockBusiness({
+      createBusiness({
         serviceIds: [service.id],
-        location: { id: location.id, name: location.name, slug: location.slug },
+        location,
       }),
-      createMockBusiness({
+      createBusiness({
         serviceIds: [service.id],
-        location: { id: "other", name: "Other City", slug: "other-city" },
+        location: createLocation({ name: "Other City", slug: "other-city" }),
       }),
-      createMockBusiness({
-        serviceIds: ["other"],
-        location: { id: location.id, name: location.name, slug: location.slug },
+      createBusiness({
+        serviceIds: [
+          createService({ name: "Other Service", slug: "other-service" }).id,
+        ],
+        location,
       }),
     ];
 
