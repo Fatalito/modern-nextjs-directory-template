@@ -6,7 +6,7 @@ const rawUserFactory = (overrides: Partial<User>): User => ({
   name: "Test User",
   email: "test@example.com",
   role: "business_owner",
-  passwordHash: "$2b$10$fake.hashed.password.for.testing.only.xyz123",
+  passwordHash: "$2b$10$fake.hashed.password.for.testing.only.xyz123", //NOSONAR
   ...overrides,
 });
 

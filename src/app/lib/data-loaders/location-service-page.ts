@@ -48,7 +48,7 @@ export const getLocationServicePageData = async (
   );
 
   if (!country || !city || !service) {
-    return null;
+    return;
   }
   const [allBusinesses, locations, services] = await Promise.all([
     getAllBusinesses(),

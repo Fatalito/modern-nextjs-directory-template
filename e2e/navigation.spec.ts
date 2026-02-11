@@ -105,7 +105,8 @@ test.describe("Directory Listings", () => {
   test("should show 404 for an incompatible city-country combination", async ({
     page,
   }) => {
-    await page.goto(`/${city2.country.slug}/${city1.slug}`);
+    const response = await page.goto(`/${city2.country.slug}/${city1.slug}`);
+    expect(response?.status()).toBe(404);
     await expect(page.getByText(/404/)).toBeVisible();
   });
 });

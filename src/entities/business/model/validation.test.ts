@@ -3,8 +3,8 @@ import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { isBusinessLocationValid } from "./validation";
 
 describe("isBusinessLocationValid", () => {
-  const city = createLocation({ type: "city" });
   const country = createLocation({ type: "country" });
+  const city = createLocation({ type: "city", parentId: country.id });
 
   it.each([
     {

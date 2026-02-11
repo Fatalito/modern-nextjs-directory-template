@@ -43,12 +43,22 @@ describe("Env Validation Logic", () => {
   });
 
   describe("ENABLE_HSTS", () => {
+    it("defaults to false", () => {
+      const result = serverSchema.parse({});
+      expect(result.ENABLE_HSTS).toBe(false);
+    });
+
     it("transforms 'true' string to boolean", () => {
       expect(serverSchema.parse({ ENABLE_HSTS: "true" }).ENABLE_HSTS).toBe(
         true,
       );
       expect(serverSchema.parse({ ENABLE_HSTS: "FALSE" }).ENABLE_HSTS).toBe(
         false,
+      );
+    });
+    it("trims whitespace before comparing", () => {
+      expect(serverSchema.parse({ ENABLE_HSTS: " true " }).ENABLE_HSTS).toBe(
+        true,
       );
     });
   });

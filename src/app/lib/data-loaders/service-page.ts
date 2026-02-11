@@ -22,13 +22,13 @@ export const getServicePageEntities = cache(async (serviceSlug: string) => {
  * Fetches and aggregates all necessary data for the Service page route.
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the entities, filters, and results for the Service page.
- *          Returns null if the core entity is not found.
+ *          Returns undefined if the core entity is not found.
  */
 export const getServicePageData = async (serviceSlug: string) => {
   const { service } = await getServicePageEntities(serviceSlug);
 
   if (!service) {
-    return null;
+    return;
   }
 
   const [allBusinesses, locations, services] = await Promise.all([

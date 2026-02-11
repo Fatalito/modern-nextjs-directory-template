@@ -24,9 +24,9 @@ export const LocationRefSchema = BaseLocationShape.pick({
 export const LocationSchema = BaseLocationShape.refine(
   (data) => {
     if (data.type === "country") return data.parentId === null;
-    return true;
+    return data.parentId !== null;
   },
-  { message: "Countries cannot have a parentId" },
+  { message: "Countries cannot have a parentId, and cities must have one" },
 ).describe("locations");
 
 export type Location = z.infer<typeof LocationSchema>;

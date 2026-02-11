@@ -1,6 +1,7 @@
 import lighthouse from "lighthouse";
 import { chromium } from "playwright";
 
+const TARGET_URL = process.env.LIGHTHOUSE_URL || "http://127.0.0.1:3000";
 const DEFAULT_CHROME_PORT = 9222;
 const CHROME_DEBUG_PORT =
   Number(process.env.CHROME_DEBUG_PORT) || DEFAULT_CHROME_PORT;
@@ -11,8 +12,8 @@ async function run() {
   });
 
   try {
-    const { lhr } = await lighthouse("http://127.0.0.1:3000", {
-      port: 9222,
+    const { lhr } = await lighthouse(TARGET_URL, {
+      port: CHROME_DEBUG_PORT,
       output: "json",
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
       maxWaitForLoad: 30000,

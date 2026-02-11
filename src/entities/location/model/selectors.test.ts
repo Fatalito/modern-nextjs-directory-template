@@ -11,13 +11,11 @@ describe("Location Selectors", () => {
     name: "France",
     slug: "france",
     type: "country",
-    parentId: null,
   });
   const uk = createLocation({
     name: "United Kingdom",
     slug: "uk",
     type: "country",
-    parentId: null,
   });
   const paris = createLocation({
     name: "Paris",
@@ -98,12 +96,13 @@ describe("Location Selectors", () => {
     });
 
     it("returns city slug when country parent not found", () => {
-      const orphanCity = createLocation({
+      const city = createLocation({
         name: "Orphan City",
         slug: "orphan-city",
         type: "city",
-        parentId: null,
+        parentId: france.id,
       });
+      const orphanCity = { ...city, parentId: null };
       const invalidCities = [orphanCity];
 
       const path = selectFullLocationPath(invalidCities, orphanCity.id);

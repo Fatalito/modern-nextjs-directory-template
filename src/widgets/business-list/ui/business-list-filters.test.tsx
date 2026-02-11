@@ -132,8 +132,8 @@ describe("BusinessListFilters", () => {
         />,
       );
 
-      const parisLink = screen.getByRole("link", { name: /Lyon/i });
-      expect(parisLink).toHaveAttribute("href", "/france/lyon/web-design");
+      const lyonLink = screen.getByRole("link", { name: /Lyon/i });
+      expect(lyonLink).toHaveAttribute("href", "/france/lyon/web-design");
     });
 
     it("city links preserve service when not active", () => {

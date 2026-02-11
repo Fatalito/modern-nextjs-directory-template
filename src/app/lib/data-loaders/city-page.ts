@@ -19,7 +19,7 @@ export const getCityPageEntities = cache(
       getLocationBySlug(countrySlug),
       getLocationBySlug(citySlug),
     ]);
-    const isCorrectParent = city?.parentId === country?.id;
+    const isCorrectParent = city != null && city.parentId === country?.id;
     return { country, city, isCorrectParent };
   },
 );
@@ -40,7 +40,7 @@ export const getCityPageData = async (
   );
 
   if (!country || !city || !isCorrectParent) {
-    return null;
+    return;
   }
 
   const [allBusinesses, locations, services] = await Promise.all([

@@ -31,10 +31,7 @@ const getMockImage = (category: CategoryValue) =>
 const rawBusinessFactory = (overrides: Partial<Business>): Business => {
   const base = getPublishableDefaults();
   const id = overrides.id ?? base.id;
-  console.log(
-    "Creating business with ID:",
-    getMockImage(overrides.category ?? "services"),
-  );
+
   return {
     ...base,
     id,

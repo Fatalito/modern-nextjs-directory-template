@@ -4,7 +4,7 @@ import { getCacheControl } from "./get-cache-control";
 
 describe("getCacheControl", () => {
   const PRIVATE = "private, no-cache, no-store, max-age=0, must-revalidate";
-  const PUBLIC = "public, s-maxage=1, stale-while-revalidate=59";
+  const PUBLIC_SWR = "public, s-maxage=1, stale-while-revalidate=59";
 
   it("returns private for non-GET (mutation) requests", () => {
     const req = new NextRequest("https://example.com", {
@@ -29,7 +29,7 @@ describe("getCacheControl", () => {
       method: "GET",
       headers: new Headers(),
     });
-    expect(getCacheControl(req)).toBe(PUBLIC);
+    expect(getCacheControl(req)).toBe(PUBLIC_SWR);
   });
 
   it("returns private for requests with session cookie", () => {
