@@ -31,10 +31,13 @@ export function BusinessListFilters({
   serviceSlug,
 }: BusinessListFiltersProps) {
   const countries = selectAllCountries(locations);
+  const countriesWithCities = countries.map((country) => ({
+    ...country,
+    cities: selectCitiesByCountry(locations, country.id),
+  }));
 
   const locationBasePath =
     countrySlug && citySlug ? `/${countrySlug}/${citySlug}` : "";
-
   const isAllLocationsActive = !countrySlug || !citySlug;
   const isAllServicesActive = !serviceSlug;
   const allLocationsUrl = serviceSlug ? `/service/${serviceSlug}` : "/";
@@ -55,9 +58,8 @@ export function BusinessListFilters({
             All Locations
           </Link>
         </Button>
-        {countries.flatMap((country) => {
-          const cities = selectCitiesByCountry(locations, country.id);
-          return cities.map((city) => {
+        {countriesWithCities.flatMap((country) =>
+          country.cities.map((city) => {
             const isActive =
               countrySlug === country.slug && citySlug === city.slug;
             const baseHref = `/${country.slug}/${city.slug}`;
@@ -74,8 +76,8 @@ export function BusinessListFilters({
                 </Link>
               </Button>
             );
-          });
-        })}
+          }),
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

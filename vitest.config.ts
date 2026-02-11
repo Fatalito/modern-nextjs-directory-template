@@ -19,6 +19,7 @@ export default defineConfig({
         "src/shared/api/types.ts",
         "src/shared/api/seed-factories/**",
         "src/**/index.ts",
+        "src/**/types.ts",
         "src/**/*.stories.tsx",
         "src/app/**/*.tsx",
         "scripts/**",

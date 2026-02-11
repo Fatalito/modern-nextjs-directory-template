@@ -13,6 +13,11 @@ interface PageProps {
   readonly params: Promise<{ service: string }>;
 }
 
+export const dynamicParams = true;
+/**
+ * Generates static paths for all service combinations at build time.
+ * @returns Array of param objects for static page generation
+ */
 export async function generateStaticParams() {
   return getServicePageDirectoryPaths();
 }
@@ -22,9 +27,10 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { service: serviceSlug } = await params;
 
-  const { service } = await getServicePageEntities(serviceSlug);
+  const data = await getServicePageEntities(serviceSlug);
 
-  if (!service) return pageContent.notFound.service;
+  const service = data?.service;
+  if (!data || !service) return pageContent.notFound.service;
 
   return pageContent.servicePage.metadata(service.name);
 }

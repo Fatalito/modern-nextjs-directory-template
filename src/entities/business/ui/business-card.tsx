@@ -5,7 +5,6 @@ import type { Business } from "@/entities/business";
 interface BusinessCardProps {
   readonly business: Business;
   readonly priority?: boolean;
-  readonly fetchPriority?: "auto" | "high" | "low";
 }
 
 /**
@@ -25,7 +24,6 @@ const getLocationName = (business: Business): string => business.location.name;
 export function BusinessCard({
   business,
   priority = false,
-  fetchPriority = "auto",
 }: BusinessCardProps) {
   const primaryImage = business.images[0];
 
@@ -40,7 +38,7 @@ export function BusinessCard({
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 220px"
             priority={priority}
-            fetchPriority={fetchPriority}
+            fetchPriority={priority ? "high" : "auto"}
             quality={75}
           />
         </div>

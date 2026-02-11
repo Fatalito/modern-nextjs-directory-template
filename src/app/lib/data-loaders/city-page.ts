@@ -1,17 +1,18 @@
 import { cache } from "react";
+import { getAllLocations, getLocationBySlug } from "@/app/lib/data-access";
 import {
-  getAllBusinesses,
-  getAllLocations,
-  getAllServices,
-  getLocationBySlug,
-} from "@/app/lib/data-access";
-import { selectBusinessesByCriteria } from "@/entities/business";
+  isLocationChildOf,
+  selectAllCountries,
+  selectCitiesByCountry,
+} from "@/entities/location";
+import { loadDirectoryPageData } from "./factory";
 
 /**
  * Fetches and validates the core entities for the City page route.
  * @param countrySlug - The slug of the country.
  * @param citySlug - The slug of the city.
  * @returns An object containing the country and city entities.
+ *         Returns undefined if the city is not a child of the country or if any of the entities are not found.
  */
 export const getCityPageEntities = cache(
   async (countrySlug: string, citySlug: string) => {
@@ -19,8 +20,10 @@ export const getCityPageEntities = cache(
       getLocationBySlug(countrySlug),
       getLocationBySlug(citySlug),
     ]);
-    const isCorrectParent = city != null && city.parentId === country?.id;
-    return { country, city, isCorrectParent };
+
+    if (!isLocationChildOf(city, country)) return;
+
+    return { country, city };
   },
 );
 
@@ -30,30 +33,22 @@ export const getCityPageEntities = cache(
  * @param citySlug - The slug of the city.
  * @returns An object containing the entities, filters, and results for the City page.
  */
-export const getCityPageData = async (
-  countrySlug: string,
-  citySlug: string,
-) => {
-  const { country, city, isCorrectParent } = await getCityPageEntities(
-    countrySlug,
-    citySlug,
+export const getCityPageData = (countrySlug: string, citySlug: string) => {
+  return loadDirectoryPageData(
+    () => getCityPageEntities(countrySlug, citySlug),
+    ({ city }) => ({ locationId: city?.id }),
   );
+};
 
-  if (!country || !city || !isCorrectParent) {
-    return;
-  }
+export const getCityPageDirectoryPaths = async () => {
+  const locations = await getAllLocations();
+  const countries = selectAllCountries(locations);
 
-  const [allBusinesses, locations, services] = await Promise.all([
-    getAllBusinesses(),
-    getAllLocations(),
-    getAllServices(),
-  ]);
-
-  return {
-    entities: { country, city },
-    filters: { locations, services },
-    results: selectBusinessesByCriteria(allBusinesses, {
-      locationId: city.id,
-    }),
-  };
+  return countries.flatMap((country) => {
+    const cities = selectCitiesByCountry(locations, country.id);
+    return cities.map((city) => ({
+      country: country.slug,
+      city: city.slug,
+    }));
+  });
 };

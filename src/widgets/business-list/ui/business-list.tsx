@@ -40,6 +40,10 @@ export function BusinessList({
     }
     return pageContent.businessList.emptyState.noFilters();
   };
+
+  const emptyMessage = getEmptyMessage();
+  const hasBusinesses = businesses.length > 0;
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -48,20 +52,19 @@ export function BusinessList({
         </h2>
       </header>
 
-      {businesses.length > 0 ? (
+      {hasBusinesses ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {businesses.map((business, index) => (
             <BusinessCard
               key={business.id}
               business={business}
               priority={index < 2}
-              fetchPriority={index < 2 ? "high" : "auto"}
             />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl">
-          <p className="text-slate-500 text-pretty">{getEmptyMessage()}</p>
+          <p className="text-slate-500 text-pretty">{emptyMessage}</p>
         </div>
       )}
     </section>
