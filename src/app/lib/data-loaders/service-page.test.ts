@@ -34,7 +34,6 @@ vi.mock("@/entities/business", async (importOriginal) => {
 
 vi.mock("react", () => {
   return {
-    memo: <T>(component: T): T => component,
     cache: <Args extends unknown[], Return>(
       fn: (...args: Args) => Return,
     ): ((...args: Args) => Return) => {

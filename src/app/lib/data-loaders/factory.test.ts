@@ -9,7 +9,7 @@ import {
 import { selectBusinessesByCriteria } from "@/entities/business";
 import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { getBaseDirectoryData } from "./base";
-import { createDirectoryLoader } from "./factory";
+import { loadDirectoryPageData } from "./factory";
 
 vi.mock("@/entities/business", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/entities/business")>();
@@ -30,7 +30,7 @@ const mockedBaseData = getBaseDirectoryData as MockedFunction<
   typeof getBaseDirectoryData
 >;
 
-describe("createDirectoryLoader", () => {
+describe("loadDirectoryPageData", () => {
   const mockBaseData = {
     allBusinesses: [createBusiness({ name: "Test Biz" })],
     filters: { locations: [], services: [] },
@@ -45,7 +45,7 @@ describe("createDirectoryLoader", () => {
     const entityFetcher = vi.fn().mockResolvedValue(undefined);
     const criteriaBuilder = vi.fn();
 
-    const result = await createDirectoryLoader(entityFetcher, criteriaBuilder);
+    const result = await loadDirectoryPageData(entityFetcher, criteriaBuilder);
 
     expect(result).toBeUndefined();
     expect(mockedBaseData).toHaveBeenCalled();
@@ -60,7 +60,7 @@ describe("createDirectoryLoader", () => {
 
     const mockResults = [createBusiness({ name: "biz-1" })];
     mockedSelect.mockReturnValue(mockResults);
-    const result = await createDirectoryLoader(entityFetcher, criteriaBuilder);
+    const result = await loadDirectoryPageData(entityFetcher, criteriaBuilder);
 
     expect(result).toEqual({
       entities: mockEntities,
@@ -73,9 +73,9 @@ describe("createDirectoryLoader", () => {
     });
   });
 
-  it("should fetch entities and base data in parallel", async () => {
+  it("should fetch entities and base data", async () => {
     const entityFetcher = vi.fn().mockResolvedValue({ id: "1" });
-    await createDirectoryLoader(entityFetcher, () => ({}));
+    await loadDirectoryPageData(entityFetcher, () => ({}));
 
     expect(entityFetcher).toHaveBeenCalled();
     expect(mockedBaseData).toHaveBeenCalled();

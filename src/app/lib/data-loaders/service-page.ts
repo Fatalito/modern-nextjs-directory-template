@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getAllServices, getServiceBySlug } from "@/app/lib/data-access";
-import { createDirectoryLoader } from "./factory";
+import { loadDirectoryPageData } from "./factory";
 
 /**
  * Fetches and validates the core entities for the Service page route.
@@ -21,7 +21,7 @@ export const getServicePageEntities = cache(async (serviceSlug: string) => {
  *          Returns undefined if the core entity is not found.
  */
 export const getServicePageData = (serviceSlug: string) => {
-  return createDirectoryLoader(
+  return loadDirectoryPageData(
     () => getServicePageEntities(serviceSlug),
     ({ service }) => ({ serviceId: service?.id }),
   );

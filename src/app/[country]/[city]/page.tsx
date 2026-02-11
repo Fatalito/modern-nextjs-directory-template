@@ -13,6 +13,8 @@ interface PageProps {
   readonly params: Promise<{ country: string; city: string }>;
 }
 
+export const dynamicParams = true;
+
 /**
  * Generates static paths for all country/city combinations at build time.
  * @returns Array of param objects for static page generation
@@ -27,8 +29,9 @@ export async function generateMetadata({
   const { country: countrySlug, city: citySlug } = await params;
   const entities = await getCityPageEntities(countrySlug, citySlug);
 
-  if (!entities?.country || !entities?.city)
+  if (!entities?.country || !entities?.city) {
     return pageContent.notFound.location;
+  }
   const { country, city } = entities;
 
   return pageContent.cityPage.metadata(city.name, country.name);

@@ -13,12 +13,14 @@ interface PageProps {
   readonly params: Promise<{ country: string; city: string; service: string }>;
 }
 
+export const dynamicParams = true;
+
 /**
  * Generates static paths for all country/city/service combinations at build time.
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return await getPopularLocationServicePaths(500);
+  return await getPopularLocationServicePaths();
 }
 
 export async function generateMetadata({

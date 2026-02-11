@@ -1,8 +1,11 @@
 import { cache } from "react";
 import { getAllLocations, getLocationBySlug } from "@/app/lib/data-access";
-import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
-import { isLocationChildOf } from "@/entities/location/model/validation";
-import { createDirectoryLoader } from "./factory";
+import {
+  isLocationChildOf,
+  selectAllCountries,
+  selectCitiesByCountry,
+} from "@/entities/location";
+import { loadDirectoryPageData } from "./factory";
 
 /**
  * Fetches and validates the core entities for the City page route.
@@ -31,7 +34,7 @@ export const getCityPageEntities = cache(
  * @returns An object containing the entities, filters, and results for the City page.
  */
 export const getCityPageData = (countrySlug: string, citySlug: string) => {
-  return createDirectoryLoader(
+  return loadDirectoryPageData(
     () => getCityPageEntities(countrySlug, citySlug),
     ({ city }) => ({ locationId: city?.id }),
   );

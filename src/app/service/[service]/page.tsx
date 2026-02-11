@@ -13,6 +13,11 @@ interface PageProps {
   readonly params: Promise<{ service: string }>;
 }
 
+export const dynamicParams = true;
+/**
+ * Generates static paths for all service combinations at build time.
+ * @returns Array of param objects for static page generation
+ */
 export async function generateStaticParams() {
   return getServicePageDirectoryPaths();
 }

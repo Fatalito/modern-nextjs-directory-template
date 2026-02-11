@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { memo, useMemo } from "react";
 import type { Location } from "@/entities/location";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import type { Service } from "@/entities/service";
@@ -24,26 +23,21 @@ interface BusinessListFiltersProps {
  * @param serviceSlug - Currently selected service slug (optional)
  * @returns Filter UI with location and service selection buttons
  */
-export const BusinessListFilters = memo(function BusinessListFilters({
+export function BusinessListFilters({
   locations,
   services,
   countrySlug,
   citySlug,
   serviceSlug,
 }: BusinessListFiltersProps) {
-  const countriesWithCities = useMemo(() => {
-    const countries = selectAllCountries(locations);
-    return countries.map((country) => ({
-      ...country,
-      cities: selectCitiesByCountry(locations, country.id),
-    }));
-  }, [locations]);
+  const countries = selectAllCountries(locations);
+  const countriesWithCities = countries.map((country) => ({
+    ...country,
+    cities: selectCitiesByCountry(locations, country.id),
+  }));
 
-  const locationBasePath = useMemo(
-    () => (countrySlug && citySlug ? `/${countrySlug}/${citySlug}` : ""),
-    [countrySlug, citySlug],
-  );
-
+  const locationBasePath =
+    countrySlug && citySlug ? `/${countrySlug}/${citySlug}` : "";
   const isAllLocationsActive = !countrySlug || !citySlug;
   const isAllServicesActive = !serviceSlug;
   const allLocationsUrl = serviceSlug ? `/service/${serviceSlug}` : "/";
@@ -120,5 +114,4 @@ export const BusinessListFilters = memo(function BusinessListFilters({
       </div>
     </div>
   );
-});
-BusinessListFilters.displayName = "BusinessListFilters";
+}

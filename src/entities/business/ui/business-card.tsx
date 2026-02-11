@@ -1,6 +1,5 @@
 import { MapPin } from "lucide-react";
 import Image from "next/image";
-import { memo } from "react";
 import type { Business } from "@/entities/business";
 
 interface BusinessCardProps {
@@ -22,7 +21,7 @@ const getLocationName = (business: Business): string => business.location.name;
  * @param priority - Whether to prioritise image loading (default: false)
  * @returns Card component with business information
  */
-export const BusinessCard = memo(function BusinessCard({
+export function BusinessCard({
   business,
   priority = false,
 }: BusinessCardProps) {
@@ -61,6 +60,4 @@ export const BusinessCard = memo(function BusinessCard({
       </div>
     </div>
   );
-});
-
-BusinessCard.displayName = "BusinessCard";
+}

@@ -1,4 +1,3 @@
-import { memo, useMemo } from "react";
 import type { Business } from "@/entities/business";
 import { BusinessCard } from "@/entities/business";
 import { pageContent, siteConfig } from "@/shared/config";
@@ -18,13 +17,12 @@ interface BusinessListProps {
  * @param serviceName - Name of filtered service for contextual messaging (optional)
  * @returns Business card grid or contextual empty state
  */
-export const BusinessList = memo(function BusinessList({
+export function BusinessList({
   businesses,
   cityName,
   serviceName,
 }: BusinessListProps) {
-  // Memoise the empty state message logic
-  const emptyMessage = useMemo(() => {
+  const getEmptyMessage = () => {
     if (serviceName && cityName) {
       return pageContent.businessList.emptyState.cityAndService(
         serviceName,
@@ -41,8 +39,9 @@ export const BusinessList = memo(function BusinessList({
       return pageContent.businessList.emptyState.cityOnly(cityName);
     }
     return pageContent.businessList.emptyState.noFilters();
-  }, [cityName, serviceName]);
+  };
 
+  const emptyMessage = getEmptyMessage();
   const hasBusinesses = businesses.length > 0;
 
   return (
@@ -70,6 +69,4 @@ export const BusinessList = memo(function BusinessList({
       )}
     </section>
   );
-});
-
-BusinessList.displayName = "BusinessList";
+}

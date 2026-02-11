@@ -27,6 +27,23 @@ vi.mock("@/entities/business", async (importOriginal) => {
   };
 });
 
+vi.mock("react", () => {
+  return {
+    cache: <Args extends unknown[], Return>(
+      fn: (...args: Args) => Return,
+    ): ((...args: Args) => Return) => {
+      const tracker = vi.fn((...args: Args) => fn(...args));
+      let result: Return;
+      return (...args: Args): Return => {
+        if (tracker.mock.calls.length === 0) {
+          result = tracker(...args);
+        }
+        return result;
+      };
+    },
+  };
+});
+
 const mockCountry = createLocation({ slug: "uk", name: "United Kingdom" });
 const mockCity = createLocation({
   slug: "london",
@@ -49,7 +66,7 @@ describe("Location Service Page Data Loader", () => {
     vi.clearAllMocks();
   });
 
-  it("should return undefined if any core entity is missing", async () => {
+  it("should return undefined if any location is missing", async () => {
     vi.mocked(dataAccess.getLocationBySlug)
       .mockResolvedValueOnce(mockCountry)
       .mockResolvedValueOnce(undefined);
@@ -60,6 +77,16 @@ describe("Location Service Page Data Loader", () => {
       "invalid-city",
       "plumbing",
     );
+    expect(result).toBeUndefined();
+  });
+
+  it("should return undefined if a service is missing", async () => {
+    vi.mocked(dataAccess.getLocationBySlug)
+      .mockResolvedValueOnce(mockCountry)
+      .mockResolvedValueOnce(mockCity);
+    vi.mocked(dataAccess.getServiceBySlug).mockResolvedValue(undefined);
+
+    const result = await getLocationServicePageData("uk", "london", "plumbing");
     expect(result).toBeUndefined();
   });
 

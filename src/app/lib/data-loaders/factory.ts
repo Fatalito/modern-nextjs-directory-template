@@ -10,10 +10,10 @@ import type { DirectoryPageData, SearchCriteria } from "./types";
  * @param entityFetcher - A cached function fetching the specific entities (or undefined if 404)
  * @param criteriaBuilder - A function to map the entities into SearchCriteria for the business selector
  */
-export async function createDirectoryLoader<TEntities>(
+export const loadDirectoryPageData = async <TEntities>(
   entityFetcher: () => Promise<TEntities | undefined>,
   criteriaBuilder: (entities: TEntities) => SearchCriteria,
-): Promise<DirectoryPageData<TEntities> | undefined> {
+): Promise<DirectoryPageData<TEntities> | undefined> => {
   const [entities, baseData] = await Promise.all([
     entityFetcher(),
     getBaseDirectoryData(),
@@ -28,4 +28,4 @@ export async function createDirectoryLoader<TEntities>(
     filters: baseData.filters,
     results: selectBusinessesByCriteria(baseData.allBusinesses, criteria),
   };
-}
+};

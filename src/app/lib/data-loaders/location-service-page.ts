@@ -6,8 +6,8 @@ import {
   getLocationBySlug,
   getServiceBySlug,
 } from "@/app/lib/data-access";
-import { isLocationChildOf } from "@/entities/location/model/validation";
-import { createDirectoryLoader } from "./factory";
+import { isLocationChildOf } from "@/entities/location";
+import { loadDirectoryPageData } from "./factory";
 
 /**
  * Fetches the core entities (country, city, service) based on the provided slugs.
@@ -25,7 +25,7 @@ export const getLocationServicePageEntities = cache(
       getServiceBySlug(serviceSlug),
     ]);
 
-    if (!isLocationChildOf(city, country)) return;
+    if (!isLocationChildOf(city, country) || !service) return;
 
     return { country, city, service };
   },
@@ -45,7 +45,7 @@ export const getLocationServicePageData = (
   citySlug: string,
   serviceSlug: string,
 ) => {
-  return createDirectoryLoader(
+  return loadDirectoryPageData(
     () => getLocationServicePageEntities(countrySlug, citySlug, serviceSlug),
     ({ city, service }) => ({
       locationId: city?.id,
@@ -78,13 +78,14 @@ export const getPopularLocationServicePaths = async (limit = 500) => {
 
   const paths: Array<{ country: string; city: string; service: string }> = [];
   const locationMap = new Map(locations.map((l) => [l.id, l]));
+  const serviceMap = new Map(services.map((s) => [s.id, s]));
 
   for (const combo of existingCombos) {
     if (paths.length >= limit) break;
 
     const [locId, serviceId] = combo.split(splitChar);
     const city = locationMap.get(locId);
-    const service = services.find((s) => s.id === serviceId);
+    const service = serviceMap.get(serviceId);
 
     if (city && service && city.parentId) {
       const country = locationMap.get(city.parentId);
