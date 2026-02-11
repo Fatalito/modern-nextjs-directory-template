@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { selectBusinessesByCriteria } from "@/entities/business";
-import { pageContent, siteConfig } from "@/shared/config";
 import {
-  getBusinesses,
-  getLocations,
-  getServiceBySlug,
-  getServices,
-} from "@/shared/lib";
+  getServicePageData,
+  getServicePageDirectoryPaths,
+  getServicePageEntities,
+} from "@/app/lib/data-loaders/service-page";
+import { pageContent, siteConfig } from "@/shared/config";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -15,20 +13,16 @@ interface PageProps {
   readonly params: Promise<{ service: string }>;
 }
 
-/**
- * Generates static paths for all service pages at build time.
- * @returns Array of param objects for static page generation
- */
 export async function generateStaticParams() {
-  const services = getServices();
-  return services.map((service) => ({ service: service.slug }));
+  return getServicePageDirectoryPaths();
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { service: serviceSlug } = await params;
-  const service = getServiceBySlug(serviceSlug);
+
+  const { service } = await getServicePageEntities(serviceSlug);
 
   if (!service) return pageContent.notFound.service;
 
@@ -37,18 +31,14 @@ export async function generateMetadata({
 
 export default async function ServicePage({ params }: PageProps) {
   const { service: serviceSlug } = await params;
-  const service = getServiceBySlug(serviceSlug);
+  const data = await getServicePageData(serviceSlug);
 
-  if (!service) {
+  if (!data) {
     notFound();
   }
 
-  const businesses = getBusinesses();
-  const locations = getLocations();
-  const services = getServices();
-  const filteredBusinesses = selectBusinessesByCriteria(businesses, {
-    serviceId: service.id,
-  });
+  const { entities, filters, results } = data;
+  const { service } = entities;
 
   return (
     <BusinessDirectoryLayout
@@ -56,18 +46,9 @@ export default async function ServicePage({ params }: PageProps) {
       description={pageContent.servicePage.pageDescription(service.name)}
       author={siteConfig.author}
       license={siteConfig.license}
-      filters={
-        <BusinessListFilters
-          locations={locations}
-          services={services}
-          serviceSlug={serviceSlug}
-        />
-      }
+      filters={<BusinessListFilters {...filters} serviceSlug={serviceSlug} />}
     >
-      <BusinessList
-        businesses={filteredBusinesses}
-        serviceName={service.name}
-      />
+      <BusinessList businesses={results} serviceName={service.name} />
     </BusinessDirectoryLayout>
   );
 }

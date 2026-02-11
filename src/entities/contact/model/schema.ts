@@ -36,14 +36,16 @@ const createPhoneChannelSchema = (channel: "phone" | "whatsapp") =>
 
 export const ContactChannels = z.enum(["phone", "whatsapp", "telegram"]);
 
-export const ContactSchema = z.discriminatedUnion("channel", [
-  createPhoneChannelSchema("phone"),
-  createPhoneChannelSchema("whatsapp"),
-  baseContactSchema.extend({
-    channel: z.literal("telegram"),
-    value: phoneValidation.or(telegramUsernameValidation),
-  }),
-]);
+export const ContactSchema = z
+  .discriminatedUnion("channel", [
+    createPhoneChannelSchema("phone"),
+    createPhoneChannelSchema("whatsapp"),
+    baseContactSchema.extend({
+      channel: z.literal("telegram"),
+      value: z.union([telegramUsernameValidation, phoneValidation]),
+    }),
+  ])
+  .describe("Contact");
 
 export type Contact = z.infer<typeof ContactSchema>;
 export type ContactChannel = z.infer<typeof ContactChannels>;

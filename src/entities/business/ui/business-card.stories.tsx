@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMockBusiness } from "@/shared/lib";
+import { createBusiness } from "@/shared/api/seed-factories";
 import { BusinessCard } from "./business-card";
 
 const meta: Meta<typeof BusinessCard> = {
@@ -10,7 +10,7 @@ export default meta;
 
 export const Default: StoryObj<typeof BusinessCard> = {
   args: {
-    business: createMockBusiness({
+    business: createBusiness({
       name: "Acme Coffee Shop",
       category: "hospitality",
       images: [

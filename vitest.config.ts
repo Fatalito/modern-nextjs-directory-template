@@ -11,8 +11,19 @@ export default defineConfig({
   test: {
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
     coverage: {
+      include: ["src/**/*.ts", "src/**/*.tsx"],
+      exclude: [
+        "src/proxy.ts",
+        "src/shared/api/database.ts",
+        "src/shared/api/repositories.ts",
+        "src/shared/api/types.ts",
+        "src/shared/api/seed-factories/**",
+        "src/**/index.ts",
+        "src/**/*.stories.tsx",
+        "src/app/**/*.tsx",
+        "scripts/**",
+      ],
       reporter: ["text", "json", "json-summary", "clover", "lcov"],
-      exclude: ["src/shared/lib/data/mock-repository.ts", "scripts/**"],
       thresholds: {
         lines: 80,
         branches: 80,

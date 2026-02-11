@@ -23,7 +23,12 @@ export const selectCitiesByCountry = (
 };
 
 /**
- * Builds SEO-friendly path: "france/paris"
+ * Constructs a full location path (country/city) for a given city ID.
+ * If the city has a parent country, returns "countrySlug/citySlug".
+ * If the city has no parent, returns just the city slug.
+ * @param locations - Array of all location entities
+ * @param cityId - UUID of the city to find
+ * @returns Full location path as a string
  */
 export const selectFullLocationPath = (
   locations: Location[],

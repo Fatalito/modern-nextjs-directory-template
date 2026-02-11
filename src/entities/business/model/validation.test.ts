@@ -1,32 +1,45 @@
 import { describe, expect, it } from "vitest";
-import { createMockBusiness, createMockLocation } from "@/shared/lib";
+import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { isBusinessLocationValid } from "./validation";
 
 describe("isBusinessLocationValid", () => {
+  const country = createLocation({ type: "country" });
+  const city = createLocation({ type: "city", parentId: country.id });
+
   it.each([
-    [false, "location is undefined", "loc-1", undefined],
-    [
-      false,
-      "location is a country",
-      "loc-1",
-      { id: "loc-1", type: "country" as const },
-    ],
-    [
-      false,
-      "locationId mismatch",
-      "id-a",
-      { id: "id-b", type: "city" as const },
-    ],
-    [true, "valid city match", "loc-1", { id: "loc-1", type: "city" as const }],
-  ])("returns %s when %s", (expected, _, locationId, location) => {
-    const business = createMockBusiness({
+    {
+      should: "reject undefined",
+      expected: false,
+      bLocId: city.id,
+      loc: undefined,
+    },
+    {
+      should: "reject country types",
+      expected: false,
+      bLocId: country.id,
+      loc: country,
+    },
+    {
+      should: "reject ID mismatches",
+      expected: false,
+      bLocId: country.id,
+      loc: city,
+    },
+    {
+      should: "accept matching city",
+      expected: true,
+      bLocId: city.id,
+      loc: city,
+    },
+  ])("$should", ({ expected, bLocId, loc }) => {
+    const business = createBusiness({
       location: {
-        id: locationId,
-        name: "New York",
-        slug: "new-york",
+        id: bLocId,
+        name: "Test",
+        slug: "test",
       },
     });
-    const loc = location ? createMockLocation(location) : undefined;
+
     expect(isBusinessLocationValid(business, loc)).toBe(expected);
   });
 });

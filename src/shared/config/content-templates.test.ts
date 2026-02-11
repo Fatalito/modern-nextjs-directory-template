@@ -5,11 +5,11 @@ describe("Content Templates", () => {
   describe("cityPage", () => {
     it("generates metadata with city and country", () => {
       const { title, description } = pageContent.cityPage.metadata(
-        "Paris",
+        "Lyon",
         "France",
       );
-      expect(title).toBe("Businesses in Paris, France");
-      expect(description).toContain("Paris");
+      expect(title).toBe("Businesses in Lyon, France");
+      expect(description).toContain("Lyon");
       expect(description).toContain("France");
     });
 
@@ -86,8 +86,8 @@ describe("Content Templates", () => {
       [
         "city and service",
         () =>
-          pageContent.businessList.emptyState.cityAndService("Bakery", "Paris"),
-        "No Bakery services in Paris yet!",
+          pageContent.businessList.emptyState.cityAndService("Bakery", "Lyon"),
+        "No Bakery services in Lyon yet!",
       ],
       [
         "service only",

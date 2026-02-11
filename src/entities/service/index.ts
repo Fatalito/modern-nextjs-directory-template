@@ -1,2 +1,2 @@
-export type { Service } from "./model/schema";
-export { ServiceSchema } from "./model/schema";
+export type { Service, ServiceRef } from "./model/schema";
+export { ServiceRefSchema, ServiceSchema } from "./model/schema";

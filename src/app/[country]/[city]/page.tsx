@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { selectBusinessesByCriteria } from "@/entities/business";
+import { getAllLocations } from "@/app/lib/data-access";
+import {
+  getCityPageData,
+  getCityPageEntities,
+} from "@/app/lib/data-loaders/city-page";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import { pageContent, siteConfig } from "@/shared/config";
-import {
-  getBusinesses,
-  getCityBySlug,
-  getCountryBySlug,
-  getLocations,
-  getServices,
-} from "@/shared/lib";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -22,51 +19,37 @@ interface PageProps {
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  const locations = getLocations();
+  const locations = await getAllLocations();
   const countries = selectAllCountries(locations);
 
-  const paths: { country: string; city: string }[] = [];
-
-  for (const country of countries) {
+  return countries.flatMap((country) => {
     const cities = selectCitiesByCountry(locations, country.id);
-    for (const city of cities) {
-      paths.push({
-        country: country.slug,
-        city: city.slug,
-      });
-    }
-  }
-
-  return paths;
+    return cities.map((city) => ({
+      country: country.slug,
+      city: city.slug,
+    }));
+  });
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { country: countrySlug, city: citySlug } = await params;
-  const country = getCountryBySlug(countrySlug);
-  const city = country ? getCityBySlug(country.id, citySlug) : undefined;
+  const { country, city } = await getCityPageEntities(countrySlug, citySlug);
 
   if (!city || !country) return pageContent.notFound.location;
-
   return pageContent.cityPage.metadata(city.name, country.name);
 }
 
 export default async function LocationPage({ params }: PageProps) {
   const { country: countrySlug, city: citySlug } = await params;
-  const country = getCountryBySlug(countrySlug);
-  const city = country ? getCityBySlug(country.id, citySlug) : undefined;
+  const data = await getCityPageData(countrySlug, citySlug);
 
-  if (!city || !country) {
+  if (!data) {
     notFound();
   }
-
-  const businesses = getBusinesses();
-  const locations = getLocations();
-  const services = getServices();
-  const filteredBusinesses = selectBusinessesByCriteria(businesses, {
-    locationId: city.id,
-  });
+  const { entities, filters, results } = data;
+  const { country, city } = entities;
 
   return (
     <BusinessDirectoryLayout
@@ -76,14 +59,13 @@ export default async function LocationPage({ params }: PageProps) {
       license={siteConfig.license}
       filters={
         <BusinessListFilters
-          locations={locations}
-          services={services}
+          {...filters}
           countrySlug={countrySlug}
           citySlug={citySlug}
         />
       }
     >
-      <BusinessList businesses={filteredBusinesses} cityName={city.name} />
+      <BusinessList businesses={results} cityName={city.name} />
     </BusinessDirectoryLayout>
   );
 }
