@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getAllLocations } from "@/app/lib/data-access";
 import {
   getCityPageData,
+  getCityPageDirectoryPaths,
   getCityPageEntities,
 } from "@/app/lib/data-loaders/city-page";
-import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import { pageContent, siteConfig } from "@/shared/config";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
@@ -19,37 +18,33 @@ interface PageProps {
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  const locations = await getAllLocations();
-  const countries = selectAllCountries(locations);
-
-  return countries.flatMap((country) => {
-    const cities = selectCitiesByCountry(locations, country.id);
-    return cities.map((city) => ({
-      country: country.slug,
-      city: city.slug,
-    }));
-  });
+  return await getCityPageDirectoryPaths();
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { country: countrySlug, city: citySlug } = await params;
-  const { country, city } = await getCityPageEntities(countrySlug, citySlug);
+  const entities = await getCityPageEntities(countrySlug, citySlug);
 
-  if (!city || !country) return pageContent.notFound.location;
+  if (!entities?.country || !entities?.city)
+    return pageContent.notFound.location;
+  const { country, city } = entities;
+
   return pageContent.cityPage.metadata(city.name, country.name);
 }
 
-export default async function LocationPage({ params }: PageProps) {
+export default async function CityPage({ params }: PageProps) {
   const { country: countrySlug, city: citySlug } = await params;
   const data = await getCityPageData(countrySlug, citySlug);
 
-  if (!data) {
-    notFound();
-  }
-  const { entities, filters, results } = data;
-  const { country, city } = entities;
+  const entities = data?.entities;
+  const country = entities?.country;
+  const city = entities?.city;
+
+  if (!data || !country || !city) notFound();
+
+  const { filters, results } = data;
 
   return (
     <BusinessDirectoryLayout

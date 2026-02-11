@@ -20,7 +20,6 @@ import {
   getBusinessById,
   getBusinessBySlug,
   getCitiesByCountry,
-  getDirectoryPaths,
   getLocationById,
   getLocationBySlug,
   getServiceById,
@@ -102,7 +101,6 @@ describe("Data Access Layer", () => {
     parentId: uk.id,
   });
   const s1 = createService({ name: "Web Design", slug: "web-design" });
-  const s2 = createService({ name: "Plumbing", slug: "plumbing" });
   const b1 = createBusiness({
     name: "Tech Corp",
     slug: "tech-corp",
@@ -276,35 +274,6 @@ describe("Data Access Layer", () => {
       const result = await getUserById(mockUser.id);
       expect(result).toEqual(mockUser);
       expect(userRepository.getById).toHaveBeenCalledWith(mockUser.id);
-    });
-  });
-
-  describe("Route Generation (getDirectoryPaths)", () => {
-    it("should generate cartesian product of country -> city -> service", async () => {
-      vi.mocked(locationRepository.getAll).mockResolvedValue([france, paris]);
-
-      vi.mocked(serviceRepository.getAll).mockResolvedValue([s1, s2]);
-
-      const paths = await getDirectoryPaths();
-
-      expect(paths).toEqual([
-        { country: "france", city: "paris", service: "web-design" },
-        { country: "france", city: "paris", service: "plumbing" },
-      ]);
-    });
-
-    it("should handle cities with no country gracefully and ignore them", async () => {
-      vi.mocked(locationRepository.getAll).mockResolvedValue([
-        france,
-        // Orphan city
-        { ...lyon, parentId: null },
-      ]);
-
-      vi.mocked(serviceRepository.getAll).mockResolvedValue([s1]);
-
-      const paths = await getDirectoryPaths();
-
-      expect(paths).toHaveLength(0);
     });
   });
 });

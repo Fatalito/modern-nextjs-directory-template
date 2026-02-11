@@ -71,27 +71,3 @@ export const getServiceBySlug = cache((slug: string) =>
 
 export const getAllUsers = cache(() => userRepository.getAll());
 export const getUserById = cache((id: string) => userRepository.getById(id));
-
-/**
- * Retrieves all valid route segments for the directory.
- * @returns A promise that resolves to an array of objects for static generation.
- */
-export const getDirectoryPaths = cache(async () => {
-  const [countries, allLocations, services] = await Promise.all([
-    getAllCountries(),
-    getAllLocations(),
-    getAllServices(),
-  ]);
-
-  return countries.flatMap((country) => {
-    const cities = selectCitiesByCountry(allLocations, country.id);
-
-    return cities.flatMap((city) =>
-      services.map((service) => ({
-        country: country.slug,
-        city: city.slug,
-        service: service.slug,
-      })),
-    );
-  });
-});

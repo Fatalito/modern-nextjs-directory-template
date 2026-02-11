@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as dataAccess from "@/app/lib/data-access";
 import * as businessEntities from "@/entities/business";
+import * as locationEntities from "@/entities/location";
 import { createBusiness, createLocation } from "@/shared/api/seed-factories";
-import { getCityPageData } from "./city-page";
+import { getCityPageData, getCityPageDirectoryPaths } from "./city-page";
 
 vi.mock("@/app/lib/data-access", () => ({
   getLocationBySlug: vi.fn(),
@@ -19,30 +20,37 @@ vi.mock("@/entities/business", async (importOriginal) => {
   };
 });
 
+vi.mock("@/entities/location", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/entities/location")>();
+  return {
+    ...actual,
+    selectAllCountries: vi.fn(),
+    selectCitiesByCountry: vi.fn(),
+  };
+});
+
+const mockCountry = createLocation({
+  slug: "uk",
+  name: "United Kingdom",
+  type: "country",
+});
+const mockCity = createLocation({
+  slug: "london",
+  name: "London",
+  type: "city",
+  parentId: mockCountry.id,
+});
+
 describe("City Page Data Loader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  const mockCountry = createLocation({
-    slug: "uk",
-    name: "United Kingdom",
-    type: "country",
-  });
-  const mockCity = createLocation({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: mockCountry.id,
-  });
-
   it("should return undefined if the city does not belong to the country", async () => {
     const wrongCountry = createLocation({ slug: "fr", name: "France" });
-
     vi.mocked(dataAccess.getLocationBySlug)
       .mockResolvedValueOnce(wrongCountry)
       .mockResolvedValueOnce(mockCity);
-
     const result = await getCityPageData("fr", "london");
     expect(result).toBeUndefined();
   });
@@ -70,5 +78,23 @@ describe("City Page Data Loader", () => {
       mockBusinesses,
       { locationId: mockCity.id },
     );
+  });
+});
+
+describe("getCityPageDirectoryPaths", () => {
+  it("should return paths for all country-city combinations", async () => {
+    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
+      mockCountry,
+      mockCity,
+    ]);
+    vi.mocked(locationEntities.selectAllCountries).mockReturnValue([
+      mockCountry,
+    ]);
+    vi.mocked(locationEntities.selectCitiesByCountry).mockReturnValue([
+      mockCity,
+    ]);
+    const paths = await getCityPageDirectoryPaths();
+
+    expect(paths).toEqual([{ country: "uk", city: "london" }]);
   });
 });

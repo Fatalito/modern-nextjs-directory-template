@@ -22,9 +22,10 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { service: serviceSlug } = await params;
 
-  const { service } = await getServicePageEntities(serviceSlug);
+  const data = await getServicePageEntities(serviceSlug);
 
-  if (!service) return pageContent.notFound.service;
+  const service = data?.service;
+  if (!data || !service) return pageContent.notFound.service;
 
   return pageContent.servicePage.metadata(service.name);
 }

@@ -6,7 +6,8 @@ import {
   getLocationBySlug,
   getServiceBySlug,
 } from "@/app/lib/data-access";
-import { selectBusinessesByCriteria } from "@/entities/business";
+import { isLocationChildOf } from "@/entities/location/model/validation";
+import { createDirectoryLoader } from "./factory";
 
 /**
  * Fetches the core entities (country, city, service) based on the provided slugs.
@@ -14,6 +15,7 @@ import { selectBusinessesByCriteria } from "@/entities/business";
  * @param citySlug - The slug of the city.
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the country, city, and service entities.
+ *         Returns undefined if the city is not a child of the country or if any of the entities are not found.
  */
 export const getLocationServicePageEntities = cache(
   async (countrySlug: string, citySlug: string, serviceSlug: string) => {
@@ -22,6 +24,8 @@ export const getLocationServicePageEntities = cache(
       getLocationBySlug(citySlug),
       getServiceBySlug(serviceSlug),
     ]);
+
+    if (!isLocationChildOf(city, country)) return;
 
     return { country, city, service };
   },
@@ -36,34 +40,63 @@ export const getLocationServicePageEntities = cache(
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the country, city, service, all locations, all services, and the filtered businesses matching the criteria.
  */
-export const getLocationServicePageData = async (
+export const getLocationServicePageData = (
   countrySlug: string,
   citySlug: string,
   serviceSlug: string,
 ) => {
-  const { country, city, service } = await getLocationServicePageEntities(
-    countrySlug,
-    citySlug,
-    serviceSlug,
+  return createDirectoryLoader(
+    () => getLocationServicePageEntities(countrySlug, citySlug, serviceSlug),
+    ({ city, service }) => ({
+      locationId: city?.id,
+      serviceId: service?.id,
+    }),
   );
+};
 
-  if (!country || !city || !service) {
-    return;
-  }
-  const [allBusinesses, locations, services] = await Promise.all([
+/**
+ * Returns paths only for combinations that have at least one business.
+ * This prevents pre-rendering thousands of empty "No results found" pages.
+ * @param limit - Maximum number of paths to return (default: 500)
+ * @returns Array of param objects for static page generation
+ */
+export const getPopularLocationServicePaths = async (limit = 500) => {
+  const splitChar = "/";
+  const [businesses, locations, services] = await Promise.all([
     getAllBusinesses(),
     getAllLocations(),
     getAllServices(),
   ]);
 
-  const results = selectBusinessesByCriteria(allBusinesses, {
-    locationId: city.id,
-    serviceId: service.id,
-  });
+  const existingCombos = new Set(
+    businesses.flatMap((b) =>
+      b.serviceIds.map(
+        (serviceId) => `${b.location.id}${splitChar}${serviceId}`,
+      ),
+    ),
+  );
 
-  return {
-    entities: { country, city, service },
-    filters: { locations, services },
-    results,
-  };
+  const paths: Array<{ country: string; city: string; service: string }> = [];
+  const locationMap = new Map(locations.map((l) => [l.id, l]));
+
+  for (const combo of existingCombos) {
+    if (paths.length >= limit) break;
+
+    const [locId, serviceId] = combo.split(splitChar);
+    const city = locationMap.get(locId);
+    const service = services.find((s) => s.id === serviceId);
+
+    if (city && service && city.parentId) {
+      const country = locationMap.get(city.parentId);
+      if (country) {
+        paths.push({
+          country: country.slug,
+          city: city.slug,
+          service: service.slug,
+        });
+      }
+    }
+  }
+
+  return paths;
 };

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getDirectoryPaths } from "@/app/lib/data-access";
 import {
   getLocationServicePageData,
   getLocationServicePageEntities,
+  getPopularLocationServicePaths,
 } from "@/app/lib/data-loaders/location-service-page";
 import { pageContent, siteConfig } from "@/shared/config";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
@@ -18,7 +18,7 @@ interface PageProps {
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return await getDirectoryPaths();
+  return await getPopularLocationServicePaths(500);
 }
 
 export async function generateMetadata({
@@ -30,12 +30,14 @@ export async function generateMetadata({
     service: serviceSlug,
   } = await params;
 
-  const { country, city, service } = await getLocationServicePageEntities(
+  const entities = await getLocationServicePageEntities(
     countrySlug,
     citySlug,
     serviceSlug,
   );
-  if (!country || !city || !service) return pageContent.notFound.location;
+  if (!entities?.country || !entities?.city || !entities?.service)
+    return pageContent.notFound.location;
+  const { country, city, service } = entities;
 
   return pageContent.cityServicePage.metadata(
     service.name,
@@ -56,12 +58,14 @@ export default async function LocationServicePage({ params }: PageProps) {
     serviceSlug,
   );
 
-  if (!data) {
-    notFound();
-  }
+  const entities = data?.entities;
+  const country = entities?.country;
+  const city = entities?.city;
+  const service = entities?.service;
 
-  const { entities, filters, results } = data;
-  const { country, city, service } = entities;
+  if (!data || !country || !city || !service) notFound();
+
+  const { filters, results } = data;
 
   return (
     <BusinessDirectoryLayout

@@ -1,20 +1,16 @@
 import { cache } from "react";
-import {
-  getAllBusinesses,
-  getAllLocations,
-  getAllServices,
-  getServiceBySlug,
-} from "@/app/lib/data-access";
-import { selectBusinessesByCriteria } from "@/entities/business";
+import { getAllServices, getServiceBySlug } from "@/app/lib/data-access";
+import { createDirectoryLoader } from "./factory";
 
 /**
  * Fetches and validates the core entities for the Service page route.
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the service entity.
- *          Returns a service property with undefined if the entity is not found.
+ *          Returns undefined if the entity is not found.
  */
 export const getServicePageEntities = cache(async (serviceSlug: string) => {
   const service = await getServiceBySlug(serviceSlug);
+  if (!service) return;
   return { service };
 });
 
@@ -24,36 +20,14 @@ export const getServicePageEntities = cache(async (serviceSlug: string) => {
  * @returns An object containing the entities, filters, and results for the Service page.
  *          Returns undefined if the core entity is not found.
  */
-export const getServicePageData = async (serviceSlug: string) => {
-  const { service } = await getServicePageEntities(serviceSlug);
-
-  if (!service) {
-    return;
-  }
-
-  const [allBusinesses, locations, services] = await Promise.all([
-    getAllBusinesses(),
-    getAllLocations(),
-    getAllServices(),
-  ]);
-
-  const results = selectBusinessesByCriteria(allBusinesses, {
-    serviceId: service.id,
-  });
-
-  return {
-    entities: { service },
-    filters: { locations, services },
-    results,
-  };
+export const getServicePageData = (serviceSlug: string) => {
+  return createDirectoryLoader(
+    () => getServicePageEntities(serviceSlug),
+    ({ service }) => ({ serviceId: service?.id }),
+  );
 };
 
-/**
- * Generates the static paths for all services.
- */
 export const getServicePageDirectoryPaths = async () => {
   const services = await getAllServices();
-  return services.map((service) => ({
-    service: service.slug,
-  }));
+  return services.map((service) => ({ service: service.slug }));
 };
