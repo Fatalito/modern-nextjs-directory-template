@@ -11,7 +11,7 @@ import { selectBusinessesByCriteria } from "@/entities/business";
  * Fetches and validates the core entities for the Service page route.
  * @param serviceSlug - The slug of the service.
  * @returns An object containing the service entity.
- *          Returns null if the entity is not found.
+ *          Returns a service property with undefined if the entity is not found.
  */
 export const getServicePageEntities = cache(async (serviceSlug: string) => {
   const service = await getServiceBySlug(serviceSlug);

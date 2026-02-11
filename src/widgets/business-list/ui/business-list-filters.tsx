@@ -48,7 +48,12 @@ export function BusinessListFilters({
           variant={isAllLocationsActive ? "default" : "outline"}
           size="sm"
         >
-          <Link href={allLocationsUrl}>All Locations</Link>
+          <Link
+            href={allLocationsUrl}
+            aria-current={isAllLocationsActive ? "page" : undefined}
+          >
+            All Locations
+          </Link>
         </Button>
         {countries.flatMap((country) => {
           const cities = selectCitiesByCountry(locations, country.id);
@@ -64,7 +69,7 @@ export function BusinessListFilters({
                 variant={isActive ? "default" : "outline"}
                 size="sm"
               >
-                <Link href={href}>
+                <Link href={href} aria-current={isActive ? "page" : undefined}>
                   {isActive ? `✓ ${city.name}` : city.name}
                 </Link>
               </Button>
@@ -79,7 +84,12 @@ export function BusinessListFilters({
           variant={isAllServicesActive ? "default" : "outline"}
           size="sm"
         >
-          <Link href={clearServiceUrl}>All Services</Link>
+          <Link
+            href={clearServiceUrl}
+            aria-current={isAllServicesActive ? "page" : undefined}
+          >
+            All Services
+          </Link>
         </Button>
         {services.map((service) => {
           const href = locationBasePath
@@ -93,7 +103,7 @@ export function BusinessListFilters({
               variant={isActive ? "default" : "outline"}
               size="sm"
             >
-              <Link href={href}>
+              <Link href={href} aria-current={isActive ? "page" : undefined}>
                 {isActive ? `✓ ${service.name}` : service.name}
               </Link>
             </Button>

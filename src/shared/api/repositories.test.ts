@@ -13,20 +13,25 @@ describe("Specific Repositories", () => {
     services: [{ id: "s1", name: "Ser 1", slug: "ser-1" }],
   } as unknown as IDatabase;
 
-  it("should initialize all repositories with database data", async () => {
+  it("should return all users from user repository", async () => {
     const userRepo = createUserRepository(mockDb);
-    const bizRepo = createBusinessRepository(mockDb);
-    const locRepo = createLocationRepository(mockDb);
-    const serRepo = createServiceRepository(mockDb);
-
     expect(await userRepo.getAll()).toEqual(mockDb.users);
+  });
 
+  it("should return a business by slug", async () => {
+    const bizRepo = createBusinessRepository(mockDb);
     const biz = await bizRepo.getBySlug("biz-1");
     expect(biz).toEqual(mockDb.businesses[0]);
+  });
 
+  it("should return all locations from location repository", async () => {
+    const locRepo = createLocationRepository(mockDb);
     const locs = await locRepo.getAll();
-    expect(locs[0].id).toBe("l1");
+    expect(locs).toEqual(mockDb.locations);
+  });
 
+  it("should return a service by slug", async () => {
+    const serRepo = createServiceRepository(mockDb);
     const ser = await serRepo.getBySlug("ser-1");
     expect(ser).toEqual(mockDb.services[0]);
   });

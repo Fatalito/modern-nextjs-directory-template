@@ -37,14 +37,12 @@ describe("BusinessListFilters", () => {
   it("renders location and service filters", () => {
     render(<BusinessListFilters locations={locations} services={services} />);
 
-    // Location filters
     expect(
       screen.getByRole("link", { name: /All Locations/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Lyon/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /London/i })).toBeInTheDocument();
 
-    // Service filters
     expect(
       screen.getByRole("link", { name: /All Services/i }),
     ).toBeInTheDocument();
@@ -100,8 +98,7 @@ describe("BusinessListFilters", () => {
       const allLocationsButton = screen.getByRole("link", {
         name: /All Locations/i,
       });
-      const className = allLocationsButton.getAttribute("class") || "";
-      expect(className).toContain("bg-primary");
+      expect(allLocationsButton).toHaveAttribute("aria-current", "page");
     });
 
     it("shows All Services as active when no service selected", () => {
@@ -117,8 +114,7 @@ describe("BusinessListFilters", () => {
       const allServicesButton = screen.getByRole("link", {
         name: /All Services/i,
       });
-      const className = allServicesButton.getAttribute("class") || "";
-      expect(className).toContain("bg-primary");
+      expect(allServicesButton).toHaveAttribute("aria-current", "page");
     });
   });
 

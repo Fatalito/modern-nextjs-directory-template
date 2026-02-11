@@ -10,7 +10,7 @@ import {
   createLocation,
   createService,
   createUser,
-} from "../../shared/api/seed-factories";
+} from "@/shared/api/seed-factories";
 import {
   getAllBusinesses,
   getAllCountries,

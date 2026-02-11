@@ -1,11 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as dataAccess from "@/app/lib/data-access";
 import * as businessEntities from "@/entities/business";
 import {
   createBusiness,
   createLocation,
   createService,
-} from "../../../shared/api/seed-factories";
+} from "@/shared/api/seed-factories";
 import { getLocationServicePageData } from "./location-service-page";
 
 vi.mock("@/app/lib/data-access", () => ({
@@ -25,6 +25,9 @@ vi.mock("@/entities/business", async (importOriginal) => {
 });
 
 describe("Location Service Page Data Loader", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
   const mockCountry = createLocation({ slug: "uk", name: "United Kingdom" });
   const mockCity = createLocation({ slug: "london", name: "London" });
   const mockService = createService({ slug: "plumbing", name: "Plumbing" });
@@ -60,10 +63,14 @@ describe("Location Service Page Data Loader", () => {
 
     const result = await getLocationServicePageData("uk", "london", "plumbing");
 
-    expect(result?.entities).toEqual({
-      country: mockCountry,
-      city: mockCity,
-      service: mockService,
+    expect(result).toEqual({
+      entities: {
+        country: mockCountry,
+        city: mockCity,
+        service: mockService,
+      },
+      filters: { locations: [mockCity], services: [mockService] },
+      results: mockBusinesses,
     });
 
     expect(businessEntities.selectBusinessesByCriteria).toHaveBeenCalledWith(

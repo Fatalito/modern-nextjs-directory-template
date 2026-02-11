@@ -30,6 +30,12 @@ describe("Repository Factories", () => {
   describe("createSlugRepository", () => {
     const repo = createSlugRepository(mockData);
 
+    it("should inherit base repository methods (getAll)", async () => {
+      const results = await repo.getAll();
+      expect(results).toEqual(mockData);
+      expect(results).not.toBe(mockData);
+    });
+
     it("should inherit base repository methods (getById)", async () => {
       const item = await repo.getById("2");
       expect(item).toEqual(mockData[1]);

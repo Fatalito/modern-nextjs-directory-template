@@ -106,6 +106,7 @@ test.describe("Directory Listings", () => {
     page,
   }) => {
     const response = await page.goto(`/${city2.country.slug}/${city1.slug}`);
+    expect(response).not.toBeNull();
     expect(response?.status()).toBe(404);
     await expect(page.getByText(/404/)).toBeVisible();
   });

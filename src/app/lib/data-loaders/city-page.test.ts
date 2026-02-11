@@ -1,10 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as dataAccess from "@/app/lib/data-access";
 import * as businessEntities from "@/entities/business";
-import {
-  createBusiness,
-  createLocation,
-} from "../../../shared/api/seed-factories";
+import { createBusiness, createLocation } from "@/shared/api/seed-factories";
 import { getCityPageData } from "./city-page";
 
 vi.mock("@/app/lib/data-access", () => ({
@@ -23,6 +20,10 @@ vi.mock("@/entities/business", async (importOriginal) => {
 });
 
 describe("City Page Data Loader", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const mockCountry = createLocation({
     slug: "uk",
     name: "United Kingdom",
