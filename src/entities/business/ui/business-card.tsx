@@ -1,11 +1,11 @@
 import { MapPin } from "lucide-react";
 import Image from "next/image";
+import { memo } from "react";
 import type { Business } from "@/entities/business";
 
 interface BusinessCardProps {
   readonly business: Business;
   readonly priority?: boolean;
-  readonly fetchPriority?: "auto" | "high" | "low";
 }
 
 /**
@@ -22,10 +22,9 @@ const getLocationName = (business: Business): string => business.location.name;
  * @param priority - Whether to prioritise image loading (default: false)
  * @returns Card component with business information
  */
-export function BusinessCard({
+export const BusinessCard = memo(function BusinessCard({
   business,
   priority = false,
-  fetchPriority = "auto",
 }: BusinessCardProps) {
   const primaryImage = business.images[0];
 
@@ -40,7 +39,7 @@ export function BusinessCard({
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 220px"
             priority={priority}
-            fetchPriority={fetchPriority}
+            fetchPriority={priority ? "high" : "auto"}
             quality={75}
           />
         </div>
@@ -62,4 +61,6 @@ export function BusinessCard({
       </div>
     </div>
   );
-}
+});
+
+BusinessCard.displayName = "BusinessCard";

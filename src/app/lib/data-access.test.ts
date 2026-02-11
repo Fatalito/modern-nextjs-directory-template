@@ -51,6 +51,7 @@ vi.mock("@/shared/api", () => ({
 }));
 
 vi.mock("react", () => ({
+  memo: <T>(component: T): T => component,
   cache: <Args extends unknown[], Return>(
     fn: (...args: Args) => Return,
   ): ((...args: Args) => Return) => {

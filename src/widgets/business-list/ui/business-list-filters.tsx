@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { memo, useMemo } from "react";
 import type { Location } from "@/entities/location";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
 import type { Service } from "@/entities/service";
@@ -23,17 +24,25 @@ interface BusinessListFiltersProps {
  * @param serviceSlug - Currently selected service slug (optional)
  * @returns Filter UI with location and service selection buttons
  */
-export function BusinessListFilters({
+export const BusinessListFilters = memo(function BusinessListFilters({
   locations,
   services,
   countrySlug,
   citySlug,
   serviceSlug,
 }: BusinessListFiltersProps) {
-  const countries = selectAllCountries(locations);
+  const countriesWithCities = useMemo(() => {
+    const countries = selectAllCountries(locations);
+    return countries.map((country) => ({
+      ...country,
+      cities: selectCitiesByCountry(locations, country.id),
+    }));
+  }, [locations]);
 
-  const locationBasePath =
-    countrySlug && citySlug ? `/${countrySlug}/${citySlug}` : "";
+  const locationBasePath = useMemo(
+    () => (countrySlug && citySlug ? `/${countrySlug}/${citySlug}` : ""),
+    [countrySlug, citySlug],
+  );
 
   const isAllLocationsActive = !countrySlug || !citySlug;
   const isAllServicesActive = !serviceSlug;
@@ -55,9 +64,8 @@ export function BusinessListFilters({
             All Locations
           </Link>
         </Button>
-        {countries.flatMap((country) => {
-          const cities = selectCitiesByCountry(locations, country.id);
-          return cities.map((city) => {
+        {countriesWithCities.flatMap((country) =>
+          country.cities.map((city) => {
             const isActive =
               countrySlug === country.slug && citySlug === city.slug;
             const baseHref = `/${country.slug}/${city.slug}`;
@@ -74,8 +82,8 @@ export function BusinessListFilters({
                 </Link>
               </Button>
             );
-          });
-        })}
+          }),
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -112,4 +120,5 @@ export function BusinessListFilters({
       </div>
     </div>
   );
-}
+});
+BusinessListFilters.displayName = "BusinessListFilters";
