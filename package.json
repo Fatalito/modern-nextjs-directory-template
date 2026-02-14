@@ -61,7 +61,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "babel-plugin-react-compiler": "1.0.0",
-    "happy-dom": "^20.6.0",
+    "happy-dom": "^20.6.1",
     "lefthook": "^2.1.0",
     "lighthouse": "^13.0.2",
     "start-server-and-test": "^2.1.3",
