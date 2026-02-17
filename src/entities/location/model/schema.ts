@@ -2,7 +2,6 @@ import { z } from "zod";
 import { BaseEntitySchema, SlugSchema } from "@/shared/lib";
 
 export const LocationType = z.enum(["country", "city"]);
-export type LocationTypeValue = z.infer<typeof LocationType>;
 
 export const BaseLocationShape = BaseEntitySchema.extend({
   // For a Country, parentId is null. For a City, it's the Country's UUID.
@@ -12,7 +11,7 @@ export const BaseLocationShape = BaseEntitySchema.extend({
   name: z.string().min(2),
   slug: SlugSchema,
 
-  isoCode: z.string().length(2).optional(),
+  isoCode: z.string().length(2).nullish(),
 });
 
 export const LocationRefSchema = BaseLocationShape.pick({
@@ -28,6 +27,3 @@ export const LocationSchema = BaseLocationShape.refine(
   },
   { message: "Countries cannot have a parentId, and cities must have one" },
 ).describe("locations");
-
-export type Location = z.infer<typeof LocationSchema>;
-export type LocationRef = z.infer<typeof LocationRefSchema>;

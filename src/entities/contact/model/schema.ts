@@ -25,7 +25,7 @@ const telegramUsernameValidation = z
 
 const baseContactSchema = z.object({
   locale: z.string().length(2),
-  label: z.string().optional(),
+  label: z.string().nullish(),
 });
 
 const createPhoneChannelSchema = (channel: "phone" | "whatsapp") =>

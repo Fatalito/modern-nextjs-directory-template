@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createBusiness } from "@/shared/api/seed-factories";
+import { createBusiness } from "@/shared/testing";
 import { BusinessSchema } from "./schema";
 
 describe("BusinessSchema Validation", () => {
@@ -8,7 +8,7 @@ describe("BusinessSchema Validation", () => {
     ["name", { name: "A" }, "too_small"],
     ["slug", { slug: "Bad_Slug!" }, "invalid_format"],
   ])("should reject invalid %s", (field, overrides, expectedCode) => {
-    const validData = createBusiness({});
+    const validData = createBusiness();
     const badData = { ...validData, ...overrides };
     const result = BusinessSchema.safeParse(badData);
 
@@ -20,7 +20,7 @@ describe("BusinessSchema Validation", () => {
   });
 
   it("should accept a valid business object", () => {
-    const mock = createBusiness({});
+    const mock = createBusiness();
     const result = BusinessSchema.safeParse(mock);
     expect(result.success).toBe(true);
   });

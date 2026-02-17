@@ -1,4 +1,12 @@
-export type { Location, LocationRef, LocationTypeValue } from "./model/schema";
+export {
+  getAllCountries,
+  getAllLocations,
+  getCitiesByCountry,
+  getCityCountryDirectoryPaths,
+  getCountryAndCityBySlugs,
+  getLocationById,
+  getLocationBySlug,
+} from "./api/accessors";
 export {
   LocationRefSchema,
   LocationSchema,
@@ -9,4 +17,10 @@ export {
   selectCitiesByCountry,
   selectFullLocationPath,
 } from "./model/selectors";
+export type {
+  Location,
+  LocationRef,
+  LocationTypeValue,
+  NewLocation,
+} from "./model/types";
 export { isLocationChildOf } from "./model/validation";

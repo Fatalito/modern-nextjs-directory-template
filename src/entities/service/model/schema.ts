@@ -2,13 +2,12 @@ import { z } from "zod";
 import { BaseEntitySchema, SlugSchema } from "@/shared/lib";
 
 export const ServiceSchema = BaseEntitySchema.extend({
-  parentId: z.uuid().nullable(),
   name: z.string().min(2),
   slug: SlugSchema,
 
-  icon: z.string().optional(),
+  icon: z.string().nullish(),
 
-  description: z.string().max(200).optional(),
+  description: z.string().max(200).nullish(),
 }).describe("services");
 
 export const ServiceRefSchema = ServiceSchema.pick({
@@ -16,6 +15,3 @@ export const ServiceRefSchema = ServiceSchema.pick({
   name: true,
   slug: true,
 }).describe("ServiceReference");
-
-export type Service = z.infer<typeof ServiceSchema>;
-export type ServiceRef = z.infer<typeof ServiceRefSchema>;

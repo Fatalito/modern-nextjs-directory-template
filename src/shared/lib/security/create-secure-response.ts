@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { getCacheControl } from "./get-cache-control";
 import { getCspHeader } from "./get-csp-header";
@@ -11,7 +12,7 @@ import { getCspHeader } from "./get-csp-header";
  * - Cache-Control based on request characteristics (public vs private)
  */
 export const createSecureResponse = (request: NextRequest): NextResponse => {
-  const nonce = btoa(crypto.randomUUID());
+  const nonce = btoa(randomUUID());
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

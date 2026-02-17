@@ -1,2 +1,3 @@
-export type { Service, ServiceRef } from "./model/schema";
+export { getAllServices, getServiceBySlug } from "./api/accessors";
 export { ServiceRefSchema, ServiceSchema } from "./model/schema";
+export type { NewService, Service, ServiceRef } from "./model/types";

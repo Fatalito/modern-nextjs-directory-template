@@ -1,9 +1,20 @@
-export type { Business, CategoryValue } from "./model/schema";
-export { BusinessSchema } from "./model/schema";
+export {
+  filterBusinesses,
+  getBusinessById,
+  getBusinessBySlug,
+  getPopularPaths,
+} from "./api/accessors";
+export { BusinessSchema, CategoryType } from "./model/schema";
 export {
   selectBusinessContact,
   selectBusinessesByCriteria,
   selectManagedBusinesses,
 } from "./model/selectors";
+export type {
+  Business,
+  CategoryValue,
+  DbBusiness,
+  NewBusiness,
+} from "./model/types";
 export { isBusinessLocationValid } from "./model/validation";
 export { BusinessCard } from "./ui/business-card";

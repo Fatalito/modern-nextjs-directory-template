@@ -1,9 +1,7 @@
 import { cache } from "react";
-import { getAllLocations, getLocationBySlug } from "@/app/lib/data-access";
 import {
-  isLocationChildOf,
-  selectAllCountries,
-  selectCitiesByCountry,
+  getCityCountryDirectoryPaths,
+  getCountryAndCityBySlugs,
 } from "@/entities/location";
 import { loadDirectoryPageData } from "./factory";
 
@@ -16,14 +14,12 @@ import { loadDirectoryPageData } from "./factory";
  */
 export const getCityPageEntities = cache(
   async (countrySlug: string, citySlug: string) => {
-    const [country, city] = await Promise.all([
-      getLocationBySlug(countrySlug),
-      getLocationBySlug(citySlug),
-    ]);
-
-    if (!isLocationChildOf(city, country)) return;
-
-    return { country, city };
+    const countryAndCity = await getCountryAndCityBySlugs(
+      citySlug,
+      countrySlug,
+    );
+    if (!countryAndCity) return;
+    return { ...countryAndCity };
   },
 );
 
@@ -41,14 +37,5 @@ export const getCityPageData = (countrySlug: string, citySlug: string) => {
 };
 
 export const getCityPageDirectoryPaths = async () => {
-  const locations = await getAllLocations();
-  const countries = selectAllCountries(locations);
-
-  return countries.flatMap((country) => {
-    const cities = selectCitiesByCountry(locations, country.id);
-    return cities.map((city) => ({
-      country: country.slug,
-      city: city.slug,
-    }));
-  });
+  return await getCityCountryDirectoryPaths();
 };

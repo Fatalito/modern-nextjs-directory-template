@@ -1,22 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as dataAccess from "@/app/lib/data-access";
 import * as businessEntities from "@/entities/business";
 import * as locationEntities from "@/entities/location";
-import { createBusiness, createLocation } from "@/shared/api/seed-factories";
+import { createBusiness, createLocation } from "@/shared/testing";
 import { getCityPageData, getCityPageDirectoryPaths } from "./city-page";
-
-vi.mock("@/app/lib/data-access", () => ({
-  getLocationBySlug: vi.fn(),
-  getAllBusinesses: vi.fn(),
-  getAllLocations: vi.fn(),
-  getAllServices: vi.fn(),
-}));
 
 vi.mock("@/entities/business", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/entities/business")>();
   return {
     ...actual,
-    selectBusinessesByCriteria: vi.fn(),
+    filterBusinesses: vi.fn(),
   };
 });
 
@@ -24,22 +16,25 @@ vi.mock("@/entities/location", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/entities/location")>();
   return {
     ...actual,
-    selectAllCountries: vi.fn(),
-    selectCitiesByCountry: vi.fn(),
+    getAllLocations: vi.fn(),
+    getCountryAndCityBySlugs: vi.fn(),
+    getCityCountryDirectoryPaths: vi.fn(),
   };
 });
 
-const mockCountry = createLocation({
-  slug: "uk",
-  name: "United Kingdom",
-  type: "country",
-});
-const mockCity = createLocation({
-  slug: "london",
-  name: "London",
-  type: "city",
-  parentId: mockCountry.id,
-});
+const mockCountry = {
+  ...createLocation({ slug: "uk", name: "United Kingdom" }),
+  isoCode: null as string | null,
+};
+const mockCity = {
+  ...createLocation({
+    slug: "london",
+    name: "London",
+    type: "city",
+    parentId: mockCountry.id,
+  }),
+  isoCode: null as string | null,
+};
 
 describe("City Page Data Loader", () => {
   beforeEach(() => {
@@ -47,52 +42,41 @@ describe("City Page Data Loader", () => {
   });
 
   it("should return undefined if the city does not belong to the country", async () => {
-    const wrongCountry = createLocation({ slug: "fr", name: "France" });
-    vi.mocked(dataAccess.getLocationBySlug)
-      .mockResolvedValueOnce(wrongCountry)
-      .mockResolvedValueOnce(mockCity);
+    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue(
+      undefined,
+    );
     const result = await getCityPageData("fr", "london");
     expect(result).toBeUndefined();
   });
 
   it("should aggregate data correctly for a valid city-country pair", async () => {
-    vi.mocked(dataAccess.getLocationBySlug)
-      .mockResolvedValueOnce(mockCountry)
-      .mockResolvedValueOnce(mockCity);
+    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValueOnce({
+      country: mockCountry,
+      city: mockCity,
+    });
 
     const mockBusinesses = [createBusiness({ name: "London Shop" })];
-    vi.mocked(dataAccess.getAllBusinesses).mockResolvedValue(mockBusinesses);
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
-      mockCountry,
-      mockCity,
-    ]);
-    vi.mocked(dataAccess.getAllServices).mockResolvedValue([]);
-    vi.mocked(businessEntities.selectBusinessesByCriteria).mockReturnValue(
+    vi.mocked(businessEntities.filterBusinesses).mockResolvedValue(
       mockBusinesses,
     );
+    // vi.mocked(dataAccess.getAllServices).mockResolvedValue([]);
 
     const result = await getCityPageData("uk", "london");
 
     expect(result?.entities).toEqual({ country: mockCountry, city: mockCity });
-    expect(businessEntities.selectBusinessesByCriteria).toHaveBeenCalledWith(
-      mockBusinesses,
-      { locationId: mockCity.id },
-    );
+    expect(result?.results).toEqual(mockBusinesses);
+    expect(businessEntities.filterBusinesses).toHaveBeenCalledWith({
+      locationId: mockCity.id,
+    });
   });
 });
 
 describe("getCityPageDirectoryPaths", () => {
   it("should return paths for all country-city combinations", async () => {
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
-      mockCountry,
-      mockCity,
+    vi.mocked(locationEntities.getCityCountryDirectoryPaths).mockResolvedValue([
+      { country: mockCountry.slug, city: mockCity.slug },
     ]);
-    vi.mocked(locationEntities.selectAllCountries).mockReturnValue([
-      mockCountry,
-    ]);
-    vi.mocked(locationEntities.selectCitiesByCountry).mockReturnValue([
-      mockCity,
-    ]);
+
     const paths = await getCityPageDirectoryPaths();
 
     expect(paths).toEqual([{ country: "uk", city: "london" }]);

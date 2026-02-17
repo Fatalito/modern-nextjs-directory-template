@@ -5,7 +5,7 @@ import {
   createLocation,
   createService,
   createUser,
-} from "@/shared/api/seed-factories";
+} from "@/shared/testing";
 import {
   selectBusinessContact,
   selectBusinessesByCriteria,
@@ -49,8 +49,8 @@ describe("Business Selectors", () => {
   });
 
   describe("selectBusinessesByCriteria", () => {
-    const service = createService({});
-    const location = createLocation({});
+    const service = createService();
+    const location = createLocation();
 
     const list = [
       createBusiness({

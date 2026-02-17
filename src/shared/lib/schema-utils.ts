@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 let seedClock = Date.now();
 
 /**
@@ -7,7 +9,7 @@ export const getBaseDefaults = () => {
   seedClock += 1000;
   const date = new Date(seedClock).toISOString();
   return {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     createdAt: date,
     updatedAt: date,
   };

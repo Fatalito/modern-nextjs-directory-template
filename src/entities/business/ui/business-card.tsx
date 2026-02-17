@@ -1,6 +1,6 @@
 import { MapPin } from "lucide-react";
 import Image from "next/image";
-import type { Business } from "@/entities/business";
+import type { Business } from "../model/types";
 
 interface BusinessCardProps {
   readonly business: Business;

@@ -52,3 +52,10 @@ storybook-static
 /playwright/.auth/
 playwright-e2e.txt
 perf-report.md
+
+# Drizzle and SQLite
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+drizzle/meta/*snapshot.json

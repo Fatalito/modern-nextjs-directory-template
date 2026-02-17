@@ -17,14 +17,14 @@ export const CategoryType = z.enum([
 
 export const BusinessSchema = PublishableEntitySchema.extend({
   managerId: z.uuid(),
-  manager: UserRefSchema.optional(),
+  manager: UserRefSchema.nullish(),
   name: z.string().min(2, "Name must be at least 2 characters"),
   slug: SlugSchema,
-  description: z.string().max(500).optional(),
-  website: z.union([z.literal(""), z.url()]).optional(),
+  description: z.string().max(500).nullish(),
+  website: z.union([z.literal(""), z.url()]).nullish(),
 
-  metaTitle: z.string().max(60).optional(),
-  metaDescription: z.string().max(160).optional(),
+  metaTitle: z.string().max(60).nullish(),
+  metaDescription: z.string().max(160).nullish(),
 
   email: z.email(),
   contacts: z.array(ContactSchema).min(1),
@@ -38,9 +38,6 @@ export const BusinessSchema = PublishableEntitySchema.extend({
   category: CategoryType,
   location: LocationRefSchema,
   serviceIds: z.array(z.uuid()),
-  services: z.array(ServiceRefSchema).optional(),
+  services: z.array(ServiceRefSchema).nullish(),
   languages: z.array(z.string().length(2)),
 }).describe("businesses");
-
-export type Business = z.infer<typeof BusinessSchema>;
-export type CategoryValue = z.infer<typeof CategoryType>;

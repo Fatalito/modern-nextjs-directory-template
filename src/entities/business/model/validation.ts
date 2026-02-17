@@ -1,5 +1,5 @@
 import type { Location } from "@/entities/location";
-import type { Business } from "./schema";
+import type { Business } from "./types";
 
 /**
  * Ensures a business is linked to a valid City-type location.

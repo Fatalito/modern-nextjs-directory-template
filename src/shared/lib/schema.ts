@@ -9,5 +9,5 @@ export const BaseEntitySchema = z
   .describe("BaseEntity");
 
 export const PublishableEntitySchema = BaseEntitySchema.extend({
-  publishedAt: z.iso.datetime().nullable(),
+  publishedAt: z.iso.datetime().nullish(),
 }).describe("PublishableEntity");

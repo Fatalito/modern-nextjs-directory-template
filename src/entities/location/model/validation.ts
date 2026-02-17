@@ -1,4 +1,4 @@
-import type { Location } from "./schema";
+import type { Location } from "./types";
 
 /**
  * Validates the hierarchical relationship between locations.

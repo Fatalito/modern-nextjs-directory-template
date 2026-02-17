@@ -1,15 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createService } from "@/shared/api/seed-factories";
+import { createService } from "@/shared/testing";
 import { ServiceSchema } from "./schema";
 
 describe("ServiceSchema", () => {
-  it("validates a complete service with parent", () => {
-    const parentService = createService({
-      name: "Parent Service",
-      slug: "parent-service",
-    });
+  it("validates a complete service", () => {
     const service = createService({
-      parentId: parentService.id,
       icon: "wrench",
       description: "Professional plumbing services",
       createdAt: new Date().toISOString(),
@@ -17,16 +12,6 @@ describe("ServiceSchema", () => {
 
     const result = ServiceSchema.parse(service);
     expect(result).toMatchObject(service);
-  });
-
-  it("validates service without parent", () => {
-    const service = createService({
-      name: "Home Maintenance",
-      slug: "home-maintenance",
-    });
-
-    const result = ServiceSchema.parse(service);
-    expect(result.parentId).toBeNull();
   });
 
   it("validates service without optional fields", () => {

@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { createUser } from "@/shared/api/seed-factories";
+import { createUser } from "@/shared/testing";
 import { UserRole, UserSchema } from "./schema";
 
 describe("UserSchema", () => {
   it("validates a complete user", () => {
     const user = createUser({
-      contacts: [],
+      contacts: [
+        {
+          channel: "phone",
+          locale: "en",
+          value: "1234567890",
+          label: "Office",
+        },
+      ],
       role: "admin",
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString(),
@@ -25,7 +32,7 @@ describe("UserSchema", () => {
     const result = UserSchema.parse(user);
     expect(result.role).toBe("business_owner");
     expect(result.createdAt).toBeDefined();
-    expect(result.lastLogin).toBeUndefined();
+    expect(result.lastLogin).toBeNull();
   });
 
   it.each([
@@ -35,7 +42,7 @@ describe("UserSchema", () => {
     ["empty password", { passwordHash: "" }],
   ])("rejects %s", (_, user) => {
     const invalidUser = {
-      ...createUser({}),
+      ...createUser(),
       ...user,
     };
     const result = UserSchema.safeParse(invalidUser);

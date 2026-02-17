@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { getAllServices, getServiceBySlug } from "@/app/lib/data-access";
+import { getAllServices, getServiceBySlug } from "@/entities/service";
 import { loadDirectoryPageData } from "./factory";
 
 /**

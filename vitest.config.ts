@@ -14,10 +14,9 @@ export default defineConfig({
       include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: [
         "src/proxy.ts",
-        "src/shared/api/database.ts",
-        "src/shared/api/repositories.ts",
-        "src/shared/api/types.ts",
-        "src/shared/api/seed-factories/**",
+        "**/seed.ts",
+        "**/shared/testing/**",
+        "**/db/schema.ts",
         "src/**/index.ts",
         "src/**/types.ts",
         "src/**/*.stories.tsx",

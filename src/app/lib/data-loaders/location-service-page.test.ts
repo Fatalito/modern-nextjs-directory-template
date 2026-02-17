@@ -1,32 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as dataAccess from "@/app/lib/data-access";
 import * as businessEntities from "@/entities/business";
+import * as locationEntities from "@/entities/location";
+import * as serviceEntities from "@/entities/service";
 import {
   createBusiness,
   createLocation,
   createService,
-} from "@/shared/api/seed-factories";
+} from "@/shared/testing";
 import {
   getLocationServicePageData,
   getPopularLocationServicePaths,
 } from "./location-service-page";
 
-vi.mock("@/app/lib/data-access", () => ({
-  getLocationBySlug: vi.fn(),
-  getServiceBySlug: vi.fn(),
-  getAllBusinesses: vi.fn(),
-  getAllLocations: vi.fn(),
-  getAllServices: vi.fn(),
-}));
-
 vi.mock("@/entities/business", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/entities/business")>();
   return {
     ...actual,
-    selectBusinessesByCriteria: vi.fn(),
+    filterBusinesses: vi.fn(),
+    getPopularPaths: vi.fn(),
   };
 });
-
+vi.mock("@/entities/location", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/entities/location")>();
+  return {
+    ...actual,
+    getAllLocations: vi.fn(),
+    getCountryAndCityBySlugs: vi.fn(),
+  };
+});
+vi.mock("@/entities/service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/entities/service")>();
+  return {
+    ...actual,
+    getAllServices: vi.fn(),
+    getServiceBySlug: vi.fn(),
+  };
+});
 vi.mock("react", () => {
   return {
     cache: <Args extends unknown[], Return>(
@@ -44,13 +53,19 @@ vi.mock("react", () => {
   };
 });
 
-const mockCountry = createLocation({ slug: "uk", name: "United Kingdom" });
-const mockCity = createLocation({
-  slug: "london",
-  name: "London",
-  parentId: mockCountry.id,
-  type: "city",
-});
+const mockCountry = {
+  ...createLocation({ slug: "uk", name: "United Kingdom" }),
+  isoCode: null as string | null,
+};
+const mockCity = {
+  ...createLocation({
+    slug: "london",
+    name: "London",
+    parentId: mockCountry.id,
+    type: "city",
+  }),
+  isoCode: null as string | null,
+};
 const mockService = createService({ slug: "plumbing", name: "Plumbing" });
 
 const mockBusinesses = [
@@ -66,11 +81,11 @@ describe("Location Service Page Data Loader", () => {
     vi.clearAllMocks();
   });
 
-  it("should return undefined if any location is missing", async () => {
-    vi.mocked(dataAccess.getLocationBySlug)
-      .mockResolvedValueOnce(mockCountry)
-      .mockResolvedValueOnce(undefined);
-    vi.mocked(dataAccess.getServiceBySlug).mockResolvedValue(mockService);
+  it("should return undefined if location is not found", async () => {
+    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue(
+      undefined,
+    );
+    vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(mockService);
 
     const result = await getLocationServicePageData(
       "uk",
@@ -81,28 +96,27 @@ describe("Location Service Page Data Loader", () => {
   });
 
   it("should return undefined if a service is missing", async () => {
-    vi.mocked(dataAccess.getLocationBySlug)
-      .mockResolvedValueOnce(mockCountry)
-      .mockResolvedValueOnce(mockCity);
-    vi.mocked(dataAccess.getServiceBySlug).mockResolvedValue(undefined);
+    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue({
+      country: mockCountry,
+      city: mockCity,
+    });
+    vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(undefined);
 
     const result = await getLocationServicePageData("uk", "london", "plumbing");
     expect(result).toBeUndefined();
   });
 
   it("should aggregate data and filter by both location and service", async () => {
-    vi.mocked(dataAccess.getLocationBySlug)
-      .mockResolvedValueOnce(mockCountry)
-      .mockResolvedValueOnce(mockCity);
-    vi.mocked(dataAccess.getServiceBySlug).mockResolvedValue(mockService);
-
-    vi.mocked(dataAccess.getAllBusinesses).mockResolvedValue(mockBusinesses);
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([mockCity]);
-    vi.mocked(dataAccess.getAllServices).mockResolvedValue([mockService]);
-
-    vi.mocked(businessEntities.selectBusinessesByCriteria).mockReturnValue(
+    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue({
+      country: mockCountry,
+      city: mockCity,
+    });
+    vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(mockService);
+    vi.mocked(businessEntities.filterBusinesses).mockResolvedValue(
       mockBusinesses,
     );
+    vi.mocked(locationEntities.getAllLocations).mockResolvedValue([mockCity]);
+    vi.mocked(serviceEntities.getAllServices).mockResolvedValue([mockService]);
 
     const result = await getLocationServicePageData("uk", "london", "plumbing");
 
@@ -112,60 +126,33 @@ describe("Location Service Page Data Loader", () => {
         city: mockCity,
         service: mockService,
       },
-      filters: { locations: [mockCity], services: [mockService] },
+      filters: {
+        locations: [mockCity],
+        services: [mockService],
+        categories: Object.values(businessEntities.CategoryType),
+      },
       results: mockBusinesses,
     });
 
-    expect(businessEntities.selectBusinessesByCriteria).toHaveBeenCalledWith(
-      mockBusinesses,
-      {
-        locationId: mockCity.id,
-        serviceId: mockService.id,
-      },
-    );
+    expect(businessEntities.filterBusinesses).toHaveBeenCalledWith({
+      locationId: mockCity.id,
+      serviceId: mockService.id,
+    });
   });
 });
 
 describe("getPopularLocationServicePaths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(dataAccess.getAllBusinesses).mockResolvedValue(mockBusinesses);
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
-      mockCity,
-      mockCountry,
-    ]);
-    vi.mocked(dataAccess.getAllServices).mockResolvedValue([mockService]);
   });
 
-  it("should generate paths based on existing business data", async () => {
+  it("should delegate to getPopularPaths with the given limit", async () => {
+    const mockPaths = [{ country: "uk", city: "london", service: "plumbing" }];
+    vi.mocked(businessEntities.getPopularPaths).mockResolvedValue(mockPaths);
+
     const paths = await getPopularLocationServicePaths(10);
-    expect(paths).toContainEqual({
-      country: "uk",
-      city: "london",
-      service: "plumbing",
-    });
-  });
 
-  it("should hit the limit and break the loop", async () => {
-    const paths = await getPopularLocationServicePaths(0);
-    expect(paths).toHaveLength(0);
-  });
-
-  it("should not generate path for orphan cities", async () => {
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
-      { ...mockCity, parentId: null },
-      mockCountry,
-    ]);
-    const paths = await getPopularLocationServicePaths(1);
-    expect(paths).toHaveLength(0);
-  });
-
-  it("should not generate path for orphan cities with wrong id", async () => {
-    vi.mocked(dataAccess.getAllLocations).mockResolvedValue([
-      { ...mockCity, parentId: "wrong-id" },
-      mockCountry,
-    ]);
-    const paths = await getPopularLocationServicePaths(1);
-    expect(paths).toHaveLength(0);
+    expect(paths).toEqual(mockPaths);
+    expect(businessEntities.getPopularPaths).toHaveBeenCalledWith(10);
   });
 });

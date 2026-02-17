@@ -1,12 +1,7 @@
 import { cache } from "react";
-import {
-  getAllBusinesses,
-  getAllLocations,
-  getAllServices,
-  getLocationBySlug,
-  getServiceBySlug,
-} from "@/app/lib/data-access";
-import { isLocationChildOf } from "@/entities/location";
+import { getPopularPaths } from "@/entities/business";
+import { getCountryAndCityBySlugs } from "@/entities/location";
+import { getServiceBySlug } from "@/entities/service";
 import { loadDirectoryPageData } from "./factory";
 
 /**
@@ -19,15 +14,14 @@ import { loadDirectoryPageData } from "./factory";
  */
 export const getLocationServicePageEntities = cache(
   async (countrySlug: string, citySlug: string, serviceSlug: string) => {
-    const [country, city, service] = await Promise.all([
-      getLocationBySlug(countrySlug),
-      getLocationBySlug(citySlug),
+    const [countryAndCity, service] = await Promise.all([
+      getCountryAndCityBySlugs(citySlug, countrySlug),
       getServiceBySlug(serviceSlug),
     ]);
 
-    if (!isLocationChildOf(city, country) || !service) return;
+    if (!countryAndCity || !service) return;
 
-    return { country, city, service };
+    return { ...countryAndCity, service };
   },
 );
 
@@ -54,50 +48,6 @@ export const getLocationServicePageData = (
   );
 };
 
-/**
- * Returns paths only for combinations that have at least one business.
- * This prevents pre-rendering thousands of empty "No results found" pages.
- * @param limit - Maximum number of paths to return (default: 500)
- * @returns Array of param objects for static page generation
- */
 export const getPopularLocationServicePaths = async (limit = 500) => {
-  const splitChar = "/";
-  const [businesses, locations, services] = await Promise.all([
-    getAllBusinesses(),
-    getAllLocations(),
-    getAllServices(),
-  ]);
-
-  const existingCombos = new Set(
-    businesses.flatMap((b) =>
-      b.serviceIds.map(
-        (serviceId) => `${b.location.id}${splitChar}${serviceId}`,
-      ),
-    ),
-  );
-
-  const paths: Array<{ country: string; city: string; service: string }> = [];
-  const locationMap = new Map(locations.map((l) => [l.id, l]));
-  const serviceMap = new Map(services.map((s) => [s.id, s]));
-
-  for (const combo of existingCombos) {
-    if (paths.length >= limit) break;
-
-    const [locId, serviceId] = combo.split(splitChar);
-    const city = locationMap.get(locId);
-    const service = serviceMap.get(serviceId);
-
-    if (city && service && city.parentId) {
-      const country = locationMap.get(city.parentId);
-      if (country) {
-        paths.push({
-          country: country.slug,
-          city: city.slug,
-          service: service.slug,
-        });
-      }
-    }
-  }
-
-  return paths;
+  return getPopularPaths(limit);
 };
