@@ -1,18 +1,18 @@
 {
   "home-page [chromium]": {
-    "domReady": 19,
-    "loadTime": 78
+    "domReady": 38,
+    "loadTime": 106
   },
   "city-view [chromium]": {
-    "domReady": 18,
-    "loadTime": 80
+    "domReady": 38,
+    "loadTime": 112
   },
   "home-page [mobile-chrome]": {
-    "domReady": 16,
-    "loadTime": 78
+    "domReady": 35,
+    "loadTime": 127
   },
   "city-view [mobile-chrome]": {
-    "domReady": 15,
-    "loadTime": 74
+    "domReady": 32,
+    "loadTime": 107
   }
 }
