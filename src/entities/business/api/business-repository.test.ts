@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { seedBaseBusiness } from "@/shared/testing";
+import { seedBaseBusiness } from "@/shared/testing/helpers";
 import { businessRepository } from "./index";
 
 describe("Business Repository", () => {

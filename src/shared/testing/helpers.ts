@@ -1,32 +1,9 @@
-import type { NewBusiness, NewLocation, NewService } from "@/shared/api";
+import type { NewBusiness, NewService } from "@/shared/api";
 import { db, schema } from "@/shared/api";
 import { createBusinessRaw } from "./factories/business.factory";
-import { createLocationRaw } from "./factories/location.factory";
+import { createCountryCityRaw } from "./factories/location.factory";
 import { createServiceRaw } from "./factories/service.factory";
 import { createUserRaw } from "./factories/user.factory";
-
-/**
- * Creates Raw Location objects without DB side effects.
- * Utilise this when you only need the object structure.
- */
-export const createCountryCityRaw = (
-  countryOverrides: Partial<NewLocation> = {},
-  cityOverrides: Partial<NewLocation> = {},
-) => {
-  const country = createLocationRaw({
-    slug: "uk",
-    name: "United Kingdom",
-    ...countryOverrides,
-  });
-  const city = createLocationRaw({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: country.id,
-    ...cityOverrides,
-  });
-  return { country, city };
-};
 
 type SeedOverrides = {
   business?: Partial<NewBusiness>;

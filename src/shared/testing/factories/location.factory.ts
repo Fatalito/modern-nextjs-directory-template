@@ -38,3 +38,26 @@ export const createLocation = createSafeFactory(
   LocationSchema,
   rawLocationMock,
 );
+
+/**
+ * Composite factory — creates a matched country + city pair.
+ * Use when tests need a valid location hierarchy without seeding the DB.
+ */
+export const createCountryCityRaw = (
+  countryOverrides: Partial<NewLocation> = {},
+  cityOverrides: Partial<NewLocation> = {},
+) => {
+  const country = createLocationRaw({
+    slug: "uk",
+    name: "United Kingdom",
+    ...countryOverrides,
+  });
+  const city = createLocationRaw({
+    slug: "london",
+    name: "London",
+    type: "city",
+    parentId: country.id,
+    ...cityOverrides,
+  });
+  return { country, city };
+};
