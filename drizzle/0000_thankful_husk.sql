@@ -6,6 +6,7 @@ CREATE TABLE `business_services` (
 	FOREIGN KEY (`service_id`) REFERENCES `services`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE INDEX `business_services_service_id_idx` ON `business_services` (`service_id`);--> statement-breakpoint
 CREATE TABLE `businesses` (
 	`id` text PRIMARY KEY NOT NULL,
 	`manager_id` text NOT NULL,
@@ -30,6 +31,8 @@ CREATE TABLE `businesses` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `businesses_slug_unique` ON `businesses` (`slug`);--> statement-breakpoint
+CREATE INDEX `businesses_location_id_idx` ON `businesses` (`location_id`);--> statement-breakpoint
+CREATE INDEX `businesses_manager_id_idx` ON `businesses` (`manager_id`);--> statement-breakpoint
 CREATE TABLE `locations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`slug` text NOT NULL,
@@ -42,7 +45,8 @@ CREATE TABLE `locations` (
 	FOREIGN KEY (`parent_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `locations_slug_unique` ON `locations` (`slug`);--> statement-breakpoint
+CREATE UNIQUE INDEX `locations_slug_parent_unique` ON `locations` (`slug`,`parent_id`);--> statement-breakpoint
+CREATE INDEX `locations_parent_id_idx` ON `locations` (`parent_id`);--> statement-breakpoint
 CREATE TABLE `services` (
 	`id` text PRIMARY KEY NOT NULL,
 	`slug` text NOT NULL,

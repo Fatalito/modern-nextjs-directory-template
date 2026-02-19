@@ -6,32 +6,28 @@ import {
   type InferSelectModel,
   type SQL,
 } from "drizzle-orm";
-import type { DB } from "@/shared/api/db";
-import { createSlugRepository } from "@/shared/api/db/base-repository";
-import {
-  businesses,
-  businessServices,
-  locations,
-  services,
-  type users,
-} from "@/shared/api/db/schema";
-import type { Business, CategoryValue } from "../model/types";
+import type { CategoryValue, DB } from "@/shared/api";
+import { createSlugRepository, schema } from "@/shared/api";
+import type { Business } from "../model/types";
 
-type BaseBusiness = InferSelectModel<typeof businesses>;
+type BaseBusiness = InferSelectModel<typeof schema.businesses>;
 
 type BusinessWithRelations = BaseBusiness & {
-  location: InferSelectModel<typeof locations>;
-  manager: InferSelectModel<typeof users>;
-  businessServices: (InferSelectModel<typeof businessServices> & {
-    service: InferSelectModel<typeof services>;
+  location: InferSelectModel<typeof schema.locations>;
+  manager: Pick<InferSelectModel<typeof schema.users>, "id" | "name" | "email">;
+  businessServices: (InferSelectModel<typeof schema.businessServices> & {
+    service: InferSelectModel<typeof schema.services>;
   })[];
 };
 
+const WITH_BUSINESS_RELATIONS = {
+  location: true,
+  manager: { columns: { id: true, name: true, email: true } },
+  businessServices: { with: { service: true } },
+} as const;
+
 export const createBusinessRepository = (db: DB) => {
-  const base = createSlugRepository<typeof businesses, Business>(
-    db,
-    businesses,
-  );
+  const base = createSlugRepository(db, schema.businesses);
   const mapToBusiness = ({
     businessServices: bs,
     ...rest
@@ -43,18 +39,24 @@ export const createBusinessRepository = (db: DB) => {
 
   return {
     ...base,
+    getById: async (id: string): Promise<Business | undefined> => {
+      const result = await db.query.businesses.findFirst({
+        where: eq(schema.businesses.id, id),
+        with: WITH_BUSINESS_RELATIONS,
+      });
+      return result ? mapToBusiness(result) : undefined;
+    },
+
+    getAll: async (): Promise<Business[]> => {
+      const results = await db.query.businesses.findMany({
+        with: WITH_BUSINESS_RELATIONS,
+      });
+      return results.map(mapToBusiness);
+    },
     getBySlug: async (slug: string): Promise<Business | undefined> => {
       const result = await db.query.businesses.findFirst({
-        where: eq(businesses.slug, slug),
-        with: {
-          location: true,
-          businessServices: {
-            with: {
-              service: true,
-            },
-          },
-          manager: true,
-        },
+        where: eq(schema.businesses.slug, slug),
+        with: WITH_BUSINESS_RELATIONS,
       });
 
       if (!result) return undefined;
@@ -69,21 +71,21 @@ export const createBusinessRepository = (db: DB) => {
       const filters: SQL[] = [];
 
       if (params.category) {
-        filters.push(eq(businesses.category, params.category));
+        filters.push(eq(schema.businesses.category, params.category));
       }
       if (params.locationId) {
-        filters.push(eq(businesses.locationId, params.locationId));
+        filters.push(eq(schema.businesses.locationId, params.locationId));
       }
       if (params.serviceId) {
         filters.push(
           exists(
             db
               .select()
-              .from(businessServices)
+              .from(schema.businessServices)
               .where(
                 and(
-                  eq(businessServices.businessId, businesses.id),
-                  eq(businessServices.serviceId, params.serviceId),
+                  eq(schema.businessServices.businessId, schema.businesses.id),
+                  eq(schema.businessServices.serviceId, params.serviceId),
                 ),
               ),
           ),
@@ -92,34 +94,37 @@ export const createBusinessRepository = (db: DB) => {
 
       const results = await db.query.businesses.findMany({
         where: filters.length > 0 ? and(...filters) : undefined,
-        with: {
-          location: true,
-          manager: true,
-          businessServices: { with: { service: true } },
-        },
+        with: WITH_BUSINESS_RELATIONS,
       });
       return results.map(mapToBusiness);
     },
     getPopularPaths: async (limit = 500) => {
-      const parentLocations = aliasedTable(locations, "parent");
+      const parentLocations = aliasedTable(schema.locations, "parent");
 
       return db
         .selectDistinct({
-          city: locations.slug,
+          city: schema.locations.slug,
           country: parentLocations.slug,
-          service: services.slug,
+          service: schema.services.slug,
         })
-        .from(businesses)
+        .from(schema.businesses)
         .innerJoin(
-          businessServices,
-          eq(businesses.id, businessServices.businessId),
+          schema.businessServices,
+          eq(schema.businesses.id, schema.businessServices.businessId),
         )
-        .innerJoin(services, eq(businessServices.serviceId, services.id))
-        .innerJoin(locations, eq(businesses.locationId, locations.id))
-        .innerJoin(parentLocations, eq(parentLocations.id, locations.parentId))
+        .innerJoin(
+          schema.services,
+          eq(schema.businessServices.serviceId, schema.services.id),
+        )
+        .innerJoin(
+          schema.locations,
+          eq(schema.businesses.locationId, schema.locations.id),
+        )
+        .innerJoin(
+          parentLocations,
+          eq(parentLocations.id, schema.locations.parentId),
+        )
         .limit(limit);
     },
   };
 };
-
-export type BusinessRepository = ReturnType<typeof createBusinessRepository>;

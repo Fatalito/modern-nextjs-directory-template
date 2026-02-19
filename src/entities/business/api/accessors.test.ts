@@ -1,15 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  businesses,
-  businessServices,
-  db,
-  locations,
-  services,
-  users,
-} from "@/shared/api";
+import { db, schema } from "@/shared/api";
 import {
   createBusinessRaw,
-  createLocationRaw,
+  createCountryCityRaw,
   createServiceRaw,
   createUserRaw,
 } from "@/shared/testing";
@@ -21,36 +14,32 @@ import {
 } from "./accessors";
 
 describe("Business Accessors", () => {
-  const user = createUserRaw();
-  const country = createLocationRaw({
-    slug: "uk",
-    name: "United Kingdom",
-    type: "country",
-  });
-  const city = createLocationRaw({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: country.id,
-  });
-  const service = createServiceRaw({ slug: "web-design" });
-  const business = createBusinessRaw({
-    name: "Test Cafe",
-    slug: "test-cafe",
-    managerId: user.id,
-    locationId: city.id,
-    category: "hospitality",
-  });
+  let user: ReturnType<typeof createUserRaw>;
+  let country: ReturnType<typeof createCountryCityRaw>["country"];
+  let city: ReturnType<typeof createCountryCityRaw>["city"];
+  let service: ReturnType<typeof createServiceRaw>;
+  let business: ReturnType<typeof createBusinessRaw>;
 
-  beforeEach(() => {
-    db.transaction((tx) => {
-      tx.insert(users).values(user).run();
-      tx.insert(locations).values([country, city]).run();
-      tx.insert(services).values(service).run();
-      tx.insert(businesses).values(business).run();
-      tx.insert(businessServices)
-        .values({ businessId: business.id, serviceId: service.id })
-        .run();
+  beforeEach(async () => {
+    user = createUserRaw();
+    ({ country, city } = createCountryCityRaw());
+    service = createServiceRaw({ slug: "web-design" });
+    business = createBusinessRaw({
+      name: "Test Cafe",
+      slug: "test-cafe",
+      managerId: user.id,
+      locationId: city.id,
+      category: "hospitality",
+    });
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.users).values(user);
+      await tx.insert(schema.locations).values([country, city]);
+      await tx.insert(schema.services).values(service);
+      await tx.insert(schema.businesses).values(business);
+      await tx.insert(schema.businessServices).values({
+        businessId: business.id,
+        serviceId: service.id,
+      });
     });
   });
 

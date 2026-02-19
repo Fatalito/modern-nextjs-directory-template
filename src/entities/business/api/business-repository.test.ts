@@ -1,86 +1,54 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  businesses,
-  businessServices,
-  db,
-  locations,
-  services,
-  users,
-} from "@/shared/api";
-import {
-  createBusinessRaw,
-  createLocationRaw,
-  createServiceRaw,
-  createUserRaw,
-} from "@/shared/testing";
+import { seedBaseBusiness } from "@/shared/testing";
 import { businessRepository } from "./index";
 
 describe("Business Repository", () => {
-  const user = createUserRaw();
-  const country = createLocationRaw({
-    slug: "uk",
-    name: "United Kingdom",
-    type: "country",
-  });
-  const city = createLocationRaw({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: country.id,
-  });
-  const serviceA = createServiceRaw({ slug: "web-design", name: "Web Design" });
-  const serviceB = createServiceRaw({ slug: "plumbing", name: "Plumbing" });
+  let bizA: Awaited<ReturnType<typeof seedBaseBusiness>>;
+  let bizB: Awaited<ReturnType<typeof seedBaseBusiness>>;
 
-  const bizA = createBusinessRaw({
-    name: "Tech Studio",
-    slug: "tech-studio",
-    managerId: user.id,
-    locationId: city.id,
-    category: "tech",
-  });
-  const bizB = createBusinessRaw({
-    name: "London Plumbers",
-    slug: "london-plumbers",
-    managerId: user.id,
-    locationId: city.id,
-    category: "services",
-  });
-
-  beforeEach(() => {
-    db.transaction((tx) => {
-      tx.insert(users).values(user).run();
-      tx.insert(locations).values([country, city]).run();
-      tx.insert(services).values([serviceA, serviceB]).run();
-      tx.insert(businesses).values([bizA, bizB]).run();
-      tx.insert(businessServices)
-        .values([
-          { businessId: bizA.id, serviceId: serviceA.id },
-          { businessId: bizB.id, serviceId: serviceB.id },
-        ])
-        .run();
+  beforeEach(async () => {
+    bizA = await seedBaseBusiness({
+      business: { name: "Tech Studio", slug: "tech-studio", category: "tech" },
+      service: { name: "WebDesign", slug: "web-design" },
+    });
+    bizB = await seedBaseBusiness({
+      business: { name: "London Plumbers", slug: "london-plumbers" },
+      service: { name: "Plumbing", slug: "plumbing" },
+      locationId: bizA.locationId,
+      userId: bizA.userId,
     });
   });
 
-  it("should be using in-memory db", () => {
-    expect(db.$client.name).toBe(":memory:");
-  });
-
-  it("should return all businesses", async () => {
+  it("should return all businesses with relations", async () => {
     const all = await businessRepository.getAll();
     expect(all).toHaveLength(2);
+    const techStudio = all.find((b) => b.slug === "tech-studio");
+    expect(techStudio?.location).toBeDefined();
+    expect(techStudio?.serviceIds).toContain(bizA.service.id);
   });
 
-  it("should fetch a business by id", async () => {
-    const result = await businessRepository.getById(bizA.id);
+  it("should fetch a business by id with relations", async () => {
+    const result = await businessRepository.getById(bizA.business.id);
     expect(result).toBeDefined();
     expect(result?.name).toBe("Tech Studio");
+    expect(result?.location).toBeDefined();
+    expect(result?.serviceIds).toContain(bizA.service.id);
+  });
+
+  it("should handle a business by id not found", async () => {
+    const result = await businessRepository.getById("non-existent-id");
+    expect(result).toBeUndefined();
   });
 
   it("should fetch a business by slug with relations", async () => {
-    const result = await businessRepository.getBySlug("tech-studio");
+    const result = await businessRepository.getBySlug(bizA.business.slug);
     expect(result).toBeDefined();
-    expect(result?.slug).toBe("tech-studio");
-    expect(result?.serviceIds).toContain(serviceA.id);
+    expect(result?.serviceIds).toContain(bizA.service.id);
+  });
+
+  it("should handle a business by slug not found", async () => {
+    const result = await businessRepository.getBySlug("non-existent-slug");
+    expect(result).toBeUndefined();
   });
 
   it("should return undefined for a non-existent slug", async () => {
@@ -95,21 +63,23 @@ describe("Business Repository", () => {
     });
 
     it("should filter by category", async () => {
-      const results = await businessRepository.filters({ category: "tech" });
+      const results = await businessRepository.filters({
+        category: bizA.business.category,
+      });
       expect(results).toHaveLength(1);
       expect(results[0].name).toBe("Tech Studio");
     });
 
     it("should filter by locationId", async () => {
       const results = await businessRepository.filters({
-        locationId: city.id,
+        locationId: bizA.locationId,
       });
       expect(results).toHaveLength(2);
     });
 
     it("should filter by serviceId", async () => {
       const results = await businessRepository.filters({
-        serviceId: serviceA.id,
+        serviceId: bizA.service.id,
       });
       expect(results).toHaveLength(1);
       expect(results[0].name).toBe("Tech Studio");
@@ -117,11 +87,19 @@ describe("Business Repository", () => {
 
     it("should filter by combined params", async () => {
       const results = await businessRepository.filters({
-        category: "services",
-        serviceId: serviceB.id,
+        category: bizB.business.category,
+        serviceId: bizB.service.id,
       });
       expect(results).toHaveLength(1);
       expect(results[0].name).toBe("London Plumbers");
+    });
+
+    it("should return empty when the service exists but not in the specified location", async () => {
+      const results = await businessRepository.filters({
+        locationId: "some-other-uuid",
+        serviceId: bizA.service.id,
+      });
+      expect(results).toHaveLength(0);
     });
 
     it("should return empty for non-matching filters", async () => {

@@ -1,31 +1,21 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, locations } from "@/shared/api";
-import { createLocationRaw } from "@/shared/testing";
+import { db, schema } from "@/shared/api";
+import { createCountryCityRaw } from "@/shared/testing";
 import {
   getAllCountries,
   getAllLocations,
   getCitiesByCountry,
+  getCityAndCountryBySlugs,
   getCityCountryDirectoryPaths,
-  getCountryAndCityBySlugs,
   getLocationById,
   getLocationBySlug,
 } from "./accessors";
 
 describe("Location Accessors", () => {
-  const country = createLocationRaw({
-    slug: "uk",
-    name: "United Kingdom",
-    type: "country",
-  });
-  const city = createLocationRaw({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: country.id,
-  });
+  const { country, city } = createCountryCityRaw();
 
-  beforeEach(() => {
-    db.insert(locations).values([country, city]).run();
+  beforeEach(async () => {
+    await db.insert(schema.locations).values([country, city]);
   });
 
   it("should return all locations", async () => {
@@ -58,7 +48,7 @@ describe("Location Accessors", () => {
   });
 
   it("should return country and city by slugs", async () => {
-    const result = await getCountryAndCityBySlugs("london", "uk");
+    const result = await getCityAndCountryBySlugs("london", "uk");
     expect(result).toBeDefined();
     expect(result?.city.slug).toBe("london");
     expect(result?.country.slug).toBe("uk");

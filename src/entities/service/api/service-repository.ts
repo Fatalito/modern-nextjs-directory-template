@@ -1,12 +1,5 @@
-import type { Service } from "@/entities/service";
-import type { DB } from "@/shared/api/db";
-import {
-  createSlugRepository,
-  type ISlugRepository,
-} from "@/shared/api/db/base-repository";
-import { services } from "@/shared/api/db/schema";
+import type { DB } from "@/shared/api";
+import { createSlugRepository, schema } from "@/shared/api";
 
-export type IServiceRepository = ISlugRepository<Service>;
-
-export const createServiceRepository = (db: DB): IServiceRepository =>
-  createSlugRepository<typeof services, Service>(db, services);
+export const createServiceRepository = (db: DB) =>
+  createSlugRepository(db, schema.services);

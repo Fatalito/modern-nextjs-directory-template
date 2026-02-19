@@ -1,9 +1,9 @@
+import type { FilterCriteria } from "@/shared/api";
 import { getBaseDirectoryData } from "./base";
-import type { DirectoryPageData, FilterCriteria } from "./types";
+import type { DirectoryPageData } from "./types";
 
 /**
- * A generic loader that fetches route-specific entities and global directory data in parallel,
- * then applies the business selector.
+ * A generic loader that fetches route-specific entities and global directory data.
  *
  * @template TEntities - The shape of the route-specific entities (e.g., { city, country })
  * @param entityFetcher - A cached function fetching the specific entities (or undefined if 404)

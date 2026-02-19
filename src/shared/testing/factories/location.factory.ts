@@ -1,9 +1,6 @@
-import {
-  type Location,
-  LocationSchema,
-  type NewLocation,
-} from "@/entities/location";
+import type { NewLocation } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
+import { type Location, LocationSchema } from "@/shared/model";
 
 /**
  * Defaults for raw DB factory - ensures all required fields are populated for Drizzle seeding and integration tests.
@@ -34,14 +31,8 @@ export const createLocationRaw = (
  * In the case of Location, the DB and UI types are often very similar
  * because it's a self-referencing table, but we keep the structure consistent.
  */
-const rawLocationMock = (overrides: Partial<Location> = {}): Location => {
-  const raw = createLocationRaw(overrides as Partial<NewLocation>);
-
-  return {
-    ...raw,
-    ...overrides,
-  } as Location;
-};
+const rawLocationMock = (overrides: Partial<Location> = {}): Location =>
+  createLocationRaw(overrides as Partial<NewLocation>) as Location;
 
 export const createLocation = createSafeFactory(
   LocationSchema,

@@ -1,10 +1,12 @@
+import { fileURLToPath } from "node:url";
 import {
   createBusinessRaw,
+  createCountryCityRaw,
   createLocationRaw,
   createServiceRaw,
   createUserRaw,
 } from "@/shared/testing";
-import { db } from "./index";
+import { db } from "./db";
 import * as schema from "./schema";
 
 export async function seed() {
@@ -16,42 +18,19 @@ export async function seed() {
     email: "fatalito@directory.com",
     role: "agent",
   });
-  await db.insert(schema.users).values(user).onConflictDoNothing();
 
   // 2. Locations
-  const france = createLocationRaw({
-    name: "France",
-    slug: "france",
-    type: "country",
-  });
+  const { country: france, city: paris } = createCountryCityRaw(
+    { slug: "france", name: "France" },
+    { slug: "paris", name: "Paris" },
+  );
   const lyon = createLocationRaw({
     name: "Lyon",
     slug: "lyon",
     type: "city",
     parentId: france.id,
   });
-  const paris = createLocationRaw({
-    name: "Paris",
-    slug: "paris",
-    type: "city",
-    parentId: france.id,
-  });
-  const uk = createLocationRaw({
-    name: "United Kingdom",
-    slug: "uk",
-    type: "country",
-  });
-  const london = createLocationRaw({
-    name: "London",
-    slug: "london",
-    type: "city",
-    parentId: uk.id,
-  });
-
-  await db
-    .insert(schema.locations)
-    .values([france, lyon, paris, uk, london])
-    .onConflictDoNothing();
+  const { country: uk, city: london } = createCountryCityRaw();
 
   // 3. Services
   const webDesign = createServiceRaw({
@@ -70,11 +49,6 @@ export async function seed() {
     name: "Consulting",
     slug: "consulting",
   });
-
-  await db
-    .insert(schema.services)
-    .values([webDesign, restaurant, plumbing, consulting])
-    .onConflictDoNothing();
 
   // 4. Businesses
   const techStudio = createBusinessRaw({
@@ -121,40 +95,44 @@ export async function seed() {
     category: "hospitality",
   });
 
-  await db
-    .insert(schema.businesses)
-    .values([techStudio, lilakIt, namasteRestaurant])
-    .onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.users).values(user).onConflictDoNothing();
 
-  // 5. Join Table
-  await db
-    .insert(schema.businessServices)
-    .values([
-      {
-        businessId: techStudio.id,
-        serviceId: webDesign.id,
-      },
-      {
-        businessId: namasteRestaurant.id,
-        serviceId: restaurant.id,
-      },
-      {
-        businessId: lilakIt.id,
-        serviceId: webDesign.id,
-      },
-      {
-        businessId: lilakIt.id,
-        serviceId: consulting.id,
-      },
-    ])
-    .onConflictDoNothing();
+    await tx
+      .insert(schema.locations)
+      .values([france, lyon, paris, uk, london])
+      .onConflictDoNothing();
+
+    await tx
+      .insert(schema.services)
+      .values([webDesign, restaurant, plumbing, consulting])
+      .onConflictDoNothing();
+
+    await tx
+      .insert(schema.businesses)
+      .values([techStudio, lilakIt, namasteRestaurant])
+      .onConflictDoNothing();
+
+    // 5. Join Table
+    await tx
+      .insert(schema.businessServices)
+      .values([
+        { businessId: techStudio.id, serviceId: webDesign.id },
+        { businessId: namasteRestaurant.id, serviceId: restaurant.id },
+        { businessId: lilakIt.id, serviceId: webDesign.id },
+        { businessId: lilakIt.id, serviceId: consulting.id },
+      ])
+      .onConflictDoNothing();
+  });
 
   console.log("✅ Database synced with seed data!");
 }
 
-try {
-  await seed();
-} catch (error) {
-  console.error("❌ Seeding failed:", error);
-  process.exit(1);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  try {
+    await seed();
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  }
 }

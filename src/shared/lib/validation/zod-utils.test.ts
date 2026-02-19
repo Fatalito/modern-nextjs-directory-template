@@ -120,7 +120,6 @@ describe("createSafeFactory", () => {
 
     const defaultFactory = () => null;
 
-    // @ts-expect-error - We intentionally want to return null to test this case
     const create = createSafeFactory(schema, defaultFactory);
 
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

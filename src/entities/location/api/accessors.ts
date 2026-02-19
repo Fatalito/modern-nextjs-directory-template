@@ -48,9 +48,9 @@ export const getCitiesByCountry = cache((countryId: string) =>
  * @param countrySlug - The slug of the country.
  * @returns An object containing { city, country }, or undefined if not found.
  */
-export const getCountryAndCityBySlugs = cache(
+export const getCityAndCountryBySlugs = cache(
   (citySlug: string, countrySlug: string) =>
-    locationRepository.getCountryAndCityBySlugs(citySlug, countrySlug),
+    locationRepository.getCityAndCountryBySlugs(citySlug, countrySlug),
 );
 
 /**

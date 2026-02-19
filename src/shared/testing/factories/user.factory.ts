@@ -1,6 +1,6 @@
-import { randomUUID } from "node:crypto";
-import { type NewUser, type User, UserSchema } from "@/entities/user";
+import type { NewUser } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
+import { type User, UserSchema } from "@/shared/model";
 
 /**
  * Defaults for raw DB factory
@@ -8,7 +8,7 @@ import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 const getUserDefaults = () => ({
   ...getBaseDefaults(),
   name: "Test User",
-  email: `test-${randomUUID()}@example.com`,
+  email: `test-${crypto.randomUUID()}@example.com`,
   role: "business_owner" as const,
   website: "https://example.com",
   passwordHash: "...",
@@ -34,12 +34,7 @@ export const createUserRaw = (overrides: Partial<NewUser> = {}): NewUser => ({
 /**
  * Rich Factory (UI) - Matches UserSchema (usually excludes sensitive data)
  */
-const rawUserMock = (overrides: Partial<User> = {}): User => {
-  const raw = createUserRaw(overrides as Partial<NewUser>);
-  return {
-    ...raw,
-    ...overrides,
-  } as User;
-};
+const rawUserMock = (overrides: Partial<User> = {}): User =>
+  createUserRaw(overrides as Partial<NewUser>) as User;
 
 export const createUser = createSafeFactory(UserSchema, rawUserMock);

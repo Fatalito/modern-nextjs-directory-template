@@ -58,4 +58,3 @@ perf-report.md
 *.db-journal
 *.db-shm
 *.db-wal
-drizzle/meta/*snapshot.json

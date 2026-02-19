@@ -9,7 +9,14 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [react()],
   test: {
-    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
+    clearMocks: true,
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/e2e/**",
+      ".next/",
+      ".git/",
+    ],
     coverage: {
       include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: [
@@ -31,7 +38,7 @@ export default defineConfig({
         statements: 80,
       },
     },
-    environment: "happy-dom",
+    environment: "node",
     globals: true,
     setupFiles: "./vitest.setup.ts",
   },

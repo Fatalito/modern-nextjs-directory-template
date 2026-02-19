@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as businessEntities from "@/entities/business";
 import * as locationEntities from "@/entities/location";
 import * as serviceEntities from "@/entities/service";
+import { Category } from "@/shared/api/db/constants";
 import {
   createBusiness,
   createLocation,
@@ -25,7 +26,7 @@ vi.mock("@/entities/location", async (importOriginal) => {
   return {
     ...actual,
     getAllLocations: vi.fn(),
-    getCountryAndCityBySlugs: vi.fn(),
+    getCityAndCountryBySlugs: vi.fn(),
   };
 });
 vi.mock("@/entities/service", async (importOriginal) => {
@@ -36,27 +37,18 @@ vi.mock("@/entities/service", async (importOriginal) => {
     getServiceBySlug: vi.fn(),
   };
 });
-vi.mock("react", () => {
-  return {
-    cache: <Args extends unknown[], Return>(
-      fn: (...args: Args) => Return,
-    ): ((...args: Args) => Return) => {
-      const tracker = vi.fn((...args: Args) => fn(...args));
-      let result: Return;
-      return (...args: Args): Return => {
-        if (tracker.mock.calls.length === 0) {
-          result = tracker(...args);
-        }
-        return result;
-      };
-    },
-  };
+vi.mock("react", async () => {
+  const { createReactCacheMock } = await import(
+    "@/shared/testing/react-cache-mock"
+  );
+  return createReactCacheMock();
 });
 
 const mockCountry = {
   ...createLocation({ slug: "uk", name: "United Kingdom" }),
-  isoCode: null as string | null,
+  isoCode: null,
 };
+
 const mockCity = {
   ...createLocation({
     slug: "london",
@@ -64,8 +56,9 @@ const mockCity = {
     parentId: mockCountry.id,
     type: "city",
   }),
-  isoCode: null as string | null,
+  isoCode: null,
 };
+
 const mockService = createService({ slug: "plumbing", name: "Plumbing" });
 
 const mockBusinesses = [
@@ -82,7 +75,7 @@ describe("Location Service Page Data Loader", () => {
   });
 
   it("should return undefined if location is not found", async () => {
-    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue(
+    vi.mocked(locationEntities.getCityAndCountryBySlugs).mockResolvedValue(
       undefined,
     );
     vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(mockService);
@@ -96,7 +89,7 @@ describe("Location Service Page Data Loader", () => {
   });
 
   it("should return undefined if a service is missing", async () => {
-    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue({
+    vi.mocked(locationEntities.getCityAndCountryBySlugs).mockResolvedValue({
       country: mockCountry,
       city: mockCity,
     });
@@ -107,7 +100,7 @@ describe("Location Service Page Data Loader", () => {
   });
 
   it("should aggregate data and filter by both location and service", async () => {
-    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue({
+    vi.mocked(locationEntities.getCityAndCountryBySlugs).mockResolvedValue({
       country: mockCountry,
       city: mockCity,
     });
@@ -129,7 +122,7 @@ describe("Location Service Page Data Loader", () => {
       filters: {
         locations: [mockCity],
         services: [mockService],
-        categories: Object.values(businessEntities.CategoryType),
+        categories: Category.options,
       },
       results: mockBusinesses,
     });

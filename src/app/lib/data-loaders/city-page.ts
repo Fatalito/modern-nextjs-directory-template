@@ -1,7 +1,7 @@
 import { cache } from "react";
 import {
+  getCityAndCountryBySlugs,
   getCityCountryDirectoryPaths,
-  getCountryAndCityBySlugs,
 } from "@/entities/location";
 import { loadDirectoryPageData } from "./factory";
 
@@ -14,12 +14,11 @@ import { loadDirectoryPageData } from "./factory";
  */
 export const getCityPageEntities = cache(
   async (countrySlug: string, citySlug: string) => {
-    const countryAndCity = await getCountryAndCityBySlugs(
+    const countryAndCity = await getCityAndCountryBySlugs(
       citySlug,
       countrySlug,
     );
-    if (!countryAndCity) return;
-    return { ...countryAndCity };
+    return countryAndCity;
   },
 );
 
@@ -36,6 +35,5 @@ export const getCityPageData = (countrySlug: string, citySlug: string) => {
   );
 };
 
-export const getCityPageDirectoryPaths = async () => {
-  return await getCityCountryDirectoryPaths();
-};
+export const getCityPageDirectoryPaths = async () =>
+  getCityCountryDirectoryPaths();

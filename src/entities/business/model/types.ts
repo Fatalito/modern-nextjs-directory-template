@@ -1,18 +1,16 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import type { z } from "zod";
-import type { businesses } from "@/shared/api/db/schema";
-import type { BusinessSchema, CategoryType } from "./schema";
+import type { InferSelectModel } from "drizzle-orm";
+import type { NewBusiness, schema } from "@/shared/api";
+import type { Business } from "@/shared/model";
 
 /**
  * DATABASE TYPES
  * Derived directly from Drizzle
  */
-export type DbBusiness = InferSelectModel<typeof businesses>;
-export type NewBusiness = InferInsertModel<typeof businesses>;
+export type DbBusiness = InferSelectModel<typeof schema.businesses>;
+export type { NewBusiness };
 
 /**
  * DOMAIN / UI TYPES
- * Derived from Zod for validation and rich UI interactions.
+ * Derived from Zod schemas in @/shared/model
  */
-export type Business = z.infer<typeof BusinessSchema>;
-export type CategoryValue = z.infer<typeof CategoryType>;
+export type { Business };

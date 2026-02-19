@@ -1,9 +1,6 @@
-import {
-  type NewService,
-  type Service,
-  ServiceSchema,
-} from "@/entities/service";
+import type { NewService } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
+import { type Service, ServiceSchema } from "@/shared/model";
 
 /**
  * Defaults for raw DB factory - ensures all required fields are populated for Drizzle seeding and integration tests.
@@ -30,16 +27,8 @@ export const createServiceRaw = (
 
 /**
  * Rich Factory (Nested) - Use this for frontend tests and anywhere you want the full nested structure with validation.
- * In the case of Location, the DB and UI types are often very similar
- * because it's a self-referencing table, but we keep the structure consistent.
  */
-const rawServiceMock = (overrides: Partial<Service> = {}): Service => {
-  const raw = createServiceRaw(overrides as Partial<NewService>);
-
-  return {
-    ...raw,
-    ...overrides,
-  } as Service;
-};
+const rawServiceMock = (overrides: Partial<Service> = {}): Service =>
+  createServiceRaw(overrides as Partial<NewService>) as Service;
 
 export const createService = createSafeFactory(ServiceSchema, rawServiceMock);

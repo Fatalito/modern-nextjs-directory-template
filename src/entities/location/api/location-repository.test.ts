@@ -1,34 +1,19 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, locations } from "@/shared/api";
-import { createLocationRaw } from "@/shared/testing";
+import { db, schema } from "@/shared/api";
+import { createCountryCityRaw } from "@/shared/testing";
 import { locationRepository } from "./index";
 
 describe("Location Repository", () => {
-  const country = createLocationRaw({
-    slug: "uk",
-    name: "United Kingdom",
-    type: "country",
-  });
-  const city = createLocationRaw({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: country.id,
-  });
-  const otherCountry = createLocationRaw({
-    slug: "fr",
-    name: "France",
-    type: "country",
-  });
-  const otherCity = createLocationRaw({
-    slug: "paris",
-    name: "Paris",
-    type: "city",
-    parentId: otherCountry.id,
-  });
+  const { country, city } = createCountryCityRaw();
+  const { country: otherCountry, city: otherCity } = createCountryCityRaw(
+    { slug: "fr", name: "France" },
+    { slug: "paris", name: "Paris" },
+  );
 
-  beforeEach(() => {
-    db.insert(locations).values([country, city, otherCountry, otherCity]).run();
+  beforeEach(async () => {
+    await db
+      .insert(schema.locations)
+      .values([country, city, otherCountry, otherCity]);
   });
 
   it("should return all locations", async () => {
@@ -78,9 +63,9 @@ describe("Location Repository", () => {
     });
   });
 
-  describe("getCountryAndCityBySlugs", () => {
+  describe("getCityAndCountryBySlugs", () => {
     it("should return country and city for valid slugs", async () => {
-      const result = await locationRepository.getCountryAndCityBySlugs(
+      const result = await locationRepository.getCityAndCountryBySlugs(
         "london",
         "uk",
       );
@@ -90,7 +75,7 @@ describe("Location Repository", () => {
     });
 
     it("should return undefined when city does not belong to country", async () => {
-      const result = await locationRepository.getCountryAndCityBySlugs(
+      const result = await locationRepository.getCityAndCountryBySlugs(
         "london",
         "fr",
       );
@@ -98,7 +83,7 @@ describe("Location Repository", () => {
     });
 
     it("should return undefined for a non-existent city slug", async () => {
-      const result = await locationRepository.getCountryAndCityBySlugs(
+      const result = await locationRepository.getCityAndCountryBySlugs(
         "berlin",
         "uk",
       );

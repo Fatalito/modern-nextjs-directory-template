@@ -1,11 +1,6 @@
-import { randomUUID } from "node:crypto";
-import {
-  type Business,
-  BusinessSchema,
-  type CategoryValue,
-} from "@/entities/business";
-import type { NewBusiness } from "@/entities/business/model/types";
+import type { CategoryValue, NewBusiness } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
+import { type Business, BusinessSchema } from "@/shared/model";
 
 const MOCK_BUSINESS_IMAGES: Record<CategoryValue, string> = {
   retail:
@@ -50,8 +45,8 @@ export const createBusinessRaw = (
   return {
     ...base,
     id,
-    managerId: randomUUID(),
-    locationId: randomUUID(),
+    managerId: crypto.randomUUID(),
+    locationId: crypto.randomUUID(),
     directoryName: `folder-${id.slice(0, 8)}`,
     images: [getMockImage(overrides.category ?? "services")],
     ...overrides,
@@ -64,18 +59,13 @@ export const createBusinessRaw = (
  * but not stored directly in the DB.
  */
 const rawBusinessMock = (overrides: Partial<Business> = {}): Business => {
-  const raw = createBusinessRaw(overrides as Partial<NewBusiness>);
+  const raw = createBusinessRaw(overrides as Partial<NewBusiness & Business>);
 
   return {
     ...raw,
-    location: {
-      id: raw.locationId,
-      name: "Test City",
-      slug: "test-city",
-    },
+    location: { id: raw.locationId, name: "Test City", slug: "test-city" },
     serviceIds: [],
     services: [],
-    ...overrides,
   } as Business;
 };
 

@@ -1,4 +1,4 @@
-import type { ContactChannel } from "@/entities/contact";
+import type { ContactChannel } from "@/shared/model";
 import type { Business } from "./types";
 
 /**

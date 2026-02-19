@@ -1,42 +1,45 @@
 import { aliasedTable, and, eq, isNull } from "drizzle-orm";
-import type { DB } from "@/shared/api/db";
-import { createSlugRepository } from "@/shared/api/db/base-repository";
-import { locations } from "@/shared/api/db/schema";
-import type { Location, LocationTypeValue } from "../model/types";
+import type { DB } from "@/shared/api";
+import { createSlugRepository, schema } from "@/shared/api";
 
 export const createLocationRepository = (db: DB) => {
-  const base = createSlugRepository<typeof locations, Location>(db, locations);
+  const base = createSlugRepository(db, schema.locations);
 
   return {
     ...base,
     getAllCountries: async () =>
       await db.query.locations.findMany({
         where: and(
-          isNull(locations.parentId),
-          eq(locations.type, "country" as LocationTypeValue),
+          isNull(schema.locations.parentId),
+          eq(schema.locations.type, "country"),
         ),
       }),
     getCitiesByCountry: async (countryId: string) =>
       await db.query.locations.findMany({
         where: and(
-          eq(locations.parentId, countryId),
-          eq(locations.type, "city" as LocationTypeValue),
+          eq(schema.locations.parentId, countryId),
+          eq(schema.locations.type, "city"),
         ),
       }),
-    getCountryAndCityBySlugs: async (citySlug: string, countrySlug: string) => {
-      const parentLocations = aliasedTable(locations, "parent");
+    getCityAndCountryBySlugs: async (citySlug: string, countrySlug: string) => {
+      const parentLocations = aliasedTable(schema.locations, "parent");
 
       const [result] = await db
         .select({
-          city: locations,
+          city: schema.locations,
           country: parentLocations,
         })
-        .from(locations)
-        .innerJoin(parentLocations, eq(locations.parentId, parentLocations.id))
+        .from(schema.locations)
+        .innerJoin(
+          parentLocations,
+          eq(schema.locations.parentId, parentLocations.id),
+        )
         .where(
           and(
-            eq(locations.slug, citySlug),
+            eq(schema.locations.slug, citySlug),
+            eq(schema.locations.type, "city"),
             eq(parentLocations.slug, countrySlug),
+            eq(parentLocations.type, "country"),
           ),
         )
         .limit(1);
@@ -46,24 +49,25 @@ export const createLocationRepository = (db: DB) => {
       return result;
     },
     getCityCountryDirectoryPaths: async (limit = 1000) => {
-      const parentLocations = aliasedTable(locations, "parent");
+      const parentLocations = aliasedTable(schema.locations, "parent");
 
       return db
         .select({
-          city: locations.slug,
+          city: schema.locations.slug,
           country: parentLocations.slug,
         })
-        .from(locations)
-        .innerJoin(parentLocations, eq(locations.parentId, parentLocations.id))
+        .from(schema.locations)
+        .innerJoin(
+          parentLocations,
+          eq(schema.locations.parentId, parentLocations.id),
+        )
         .where(
           and(
-            eq(locations.type, "city" as LocationTypeValue),
-            eq(parentLocations.type, "country" as LocationTypeValue),
+            eq(schema.locations.type, "city"),
+            eq(parentLocations.type, "country"),
           ),
         )
         .limit(limit);
     },
   };
 };
-
-export type LocationRepository = ReturnType<typeof createLocationRepository>;

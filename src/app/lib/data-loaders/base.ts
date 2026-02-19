@@ -1,7 +1,7 @@
-import type { FilterCriteria } from "@/app/lib/data-loaders/types";
-import { CategoryType, filterBusinesses } from "@/entities/business";
+import { filterBusinesses } from "@/entities/business";
 import { getAllLocations } from "@/entities/location";
 import { getAllServices } from "@/entities/service";
+import { Category, type FilterCriteria } from "@/shared/api";
 
 /**
  * Fetches global data required for any directory page.
@@ -17,6 +17,6 @@ export const getBaseDirectoryData = async (params: FilterCriteria = {}) => {
 
   return {
     businesses,
-    filters: { locations, services, categories: Object.values(CategoryType) },
+    filters: { locations, services, categories: Category.options },
   };
 };

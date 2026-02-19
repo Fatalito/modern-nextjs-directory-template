@@ -1,19 +1,9 @@
 import { customType } from "drizzle-orm/sqlite-core";
 
 export const jsonColumnConfig = <TData>() => ({
-  dataType() {
-    return "text";
-  },
-  fromDriver(value: string): TData {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return [] as unknown as TData;
-    }
-  },
-  toDriver(value: TData): string {
-    return JSON.stringify(value);
-  },
+  dataType: () => "text",
+  fromDriver: (value: string): TData => JSON.parse(value),
+  toDriver: (value: TData): string => JSON.stringify(value),
 });
 
 /**

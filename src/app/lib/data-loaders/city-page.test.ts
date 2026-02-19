@@ -17,7 +17,7 @@ vi.mock("@/entities/location", async (importOriginal) => {
   return {
     ...actual,
     getAllLocations: vi.fn(),
-    getCountryAndCityBySlugs: vi.fn(),
+    getCityAndCountryBySlugs: vi.fn(),
     getCityCountryDirectoryPaths: vi.fn(),
   };
 });
@@ -42,7 +42,7 @@ describe("City Page Data Loader", () => {
   });
 
   it("should return undefined if the city does not belong to the country", async () => {
-    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValue(
+    vi.mocked(locationEntities.getCityAndCountryBySlugs).mockResolvedValue(
       undefined,
     );
     const result = await getCityPageData("fr", "london");
@@ -50,7 +50,7 @@ describe("City Page Data Loader", () => {
   });
 
   it("should aggregate data correctly for a valid city-country pair", async () => {
-    vi.mocked(locationEntities.getCountryAndCityBySlugs).mockResolvedValueOnce({
+    vi.mocked(locationEntities.getCityAndCountryBySlugs).mockResolvedValueOnce({
       country: mockCountry,
       city: mockCity,
     });
@@ -59,7 +59,6 @@ describe("City Page Data Loader", () => {
     vi.mocked(businessEntities.filterBusinesses).mockResolvedValue(
       mockBusinesses,
     );
-    // vi.mocked(dataAccess.getAllServices).mockResolvedValue([]);
 
     const result = await getCityPageData("uk", "london");
 

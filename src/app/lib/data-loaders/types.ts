@@ -1,12 +1,7 @@
-import type { Business, CategoryValue } from "@/entities/business";
+import type { Business } from "@/entities/business";
 import type { Location } from "@/entities/location";
 import type { Service } from "@/entities/service";
-
-export type FilterCriteria = {
-  locationId?: string;
-  serviceId?: string;
-  category?: CategoryValue;
-};
+import type { CategoryValue } from "@/shared/api";
 
 export interface DirectoryPageData<TEntities> {
   entities: TEntities;

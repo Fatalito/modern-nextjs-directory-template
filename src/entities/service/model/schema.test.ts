@@ -14,17 +14,17 @@ describe("ServiceSchema", () => {
     expect(result).toMatchObject(service);
   });
 
-  it("validates service without optional fields", () => {
+  it("validates service with null optional fields", () => {
     const service = createService({
       name: "Electrician",
       slug: "electrician",
-      description: undefined,
-      icon: undefined,
+      description: null,
+      icon: null,
     });
 
     const result = ServiceSchema.parse(service);
-    expect(result.icon).toBeUndefined();
-    expect(result.description).toBeUndefined();
+    expect(result.icon).toBeNull();
+    expect(result.description).toBeNull();
     expect(result.createdAt).toBeDefined();
   });
 

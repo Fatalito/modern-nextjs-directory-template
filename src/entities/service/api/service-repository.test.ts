@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, services } from "@/shared/api";
+import { db, schema } from "@/shared/api";
 import { createServiceRaw } from "@/shared/testing";
 import { serviceRepository } from "./index";
 
-describe("Service Repository", async () => {
-  const service = await createServiceRaw({ slug: "test-service" });
+describe("Service Repository", () => {
+  let service: ReturnType<typeof createServiceRaw>;
 
   beforeEach(async () => {
-    await db.insert(services).values([service]);
+    service = createServiceRaw();
+    await db.insert(schema.services).values([service]);
   });
 
   it("should return all services", async () => {
-    const services = await serviceRepository.getAll();
-    expect(services).toEqual([service]);
+    const allServices = await serviceRepository.getAll();
+    expect(allServices).toEqual([service]);
   });
 
   it("should return a service by id", async () => {

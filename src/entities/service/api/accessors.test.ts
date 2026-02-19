@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, services } from "@/shared/api";
+import { db, schema } from "@/shared/api";
 import { createServiceRaw } from "@/shared/testing";
 import { getAllServices, getServiceById, getServiceBySlug } from "./accessors";
 
 describe("Service Accessors", () => {
-  const service = createServiceRaw({
-    name: "Web Design",
-    slug: "web-design",
-  });
+  let service: ReturnType<typeof createServiceRaw>;
 
-  beforeEach(() => {
-    db.insert(services).values(service).run();
+  beforeEach(async () => {
+    service = createServiceRaw({
+      name: "Web Design",
+      slug: "web-design",
+    });
+
+    await db.insert(schema.services).values(service);
   });
 
   it("should return all services", async () => {

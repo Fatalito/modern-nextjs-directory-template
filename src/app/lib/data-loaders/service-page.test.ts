@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as businessEntities from "@/entities/business";
 import * as locationEntities from "@/entities/location";
 import * as serviceEntities from "@/entities/service";
+import { Category } from "@/shared/api";
 import {
   createBusiness,
   createLocation,
@@ -36,21 +37,11 @@ vi.mock("@/entities/service", async (importOriginal) => {
   };
 });
 
-vi.mock("react", () => {
-  return {
-    cache: <Args extends unknown[], Return>(
-      fn: (...args: Args) => Return,
-    ): ((...args: Args) => Return) => {
-      const tracker = vi.fn((...args: Args) => fn(...args));
-      let result: Return;
-      return (...args: Args): Return => {
-        if (tracker.mock.calls.length === 0) {
-          result = tracker(...args);
-        }
-        return result;
-      };
-    },
-  };
+vi.mock("react", async () => {
+  const { createReactCacheMock } = await import(
+    "@/shared/testing/react-cache-mock"
+  );
+  return createReactCacheMock();
 });
 
 describe("Service Page Loaders", () => {
@@ -110,7 +101,7 @@ describe("Service Page Loaders", () => {
         filters: {
           locations: [mockLocation],
           services: [mockService],
-          categories: Object.values(businessEntities.CategoryType),
+          categories: Category.options,
         },
         results: [mockBusiness],
       });

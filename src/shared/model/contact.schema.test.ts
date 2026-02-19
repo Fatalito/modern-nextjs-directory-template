@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ContactSchema } from "@/entities/contact";
+import { ContactSchema } from "./contact.schema";
 
 const expectValidationError = (
   result: ReturnType<typeof ContactSchema.safeParse>,

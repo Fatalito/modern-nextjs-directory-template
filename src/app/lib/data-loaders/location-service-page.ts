@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getPopularPaths } from "@/entities/business";
-import { getCountryAndCityBySlugs } from "@/entities/location";
+import { getCityAndCountryBySlugs } from "@/entities/location";
 import { getServiceBySlug } from "@/entities/service";
 import { loadDirectoryPageData } from "./factory";
 
@@ -15,7 +15,7 @@ import { loadDirectoryPageData } from "./factory";
 export const getLocationServicePageEntities = cache(
   async (countrySlug: string, citySlug: string, serviceSlug: string) => {
     const [countryAndCity, service] = await Promise.all([
-      getCountryAndCityBySlugs(citySlug, countrySlug),
+      getCityAndCountryBySlugs(citySlug, countrySlug),
       getServiceBySlug(serviceSlug),
     ]);
 

@@ -1,19 +1,16 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import type { z } from "zod";
-import type { locations } from "@/shared/api/db/schema";
-import type { LocationRefSchema, LocationSchema, LocationType } from "./schema";
+import type { InferSelectModel } from "drizzle-orm";
+import type { NewLocation, schema } from "@/shared/api";
+import type { Location, LocationRef } from "@/shared/model";
 
 /**
  * DATABASE TYPES
  * Derived directly from Drizzle
  */
-export type DbLocation = InferSelectModel<typeof locations>;
-export type NewLocation = InferInsertModel<typeof locations>;
+export type DbLocation = InferSelectModel<typeof schema.locations>;
+export type { NewLocation };
 
 /**
  * DOMAIN / UI TYPES
- * Derived from Zod for validation and rich UI interactions.
+ * Derived from Zod schemas in @/shared/model
  */
-export type Location = z.infer<typeof LocationSchema>;
-export type LocationRef = z.infer<typeof LocationRefSchema>;
-export type LocationTypeValue = z.infer<typeof LocationType>;
+export type { Location, LocationRef };

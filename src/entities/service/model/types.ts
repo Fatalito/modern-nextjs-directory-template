@@ -1,18 +1,16 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import type { z } from "zod";
-import type { services } from "@/shared/api/db/schema";
-import type { ServiceRefSchema, ServiceSchema } from "./schema";
+import type { InferSelectModel } from "drizzle-orm";
+import type { NewService, schema } from "@/shared/api";
+import type { Service, ServiceRef } from "@/shared/model";
 
 /**
  * DATABASE TYPES
  * Derived directly from Drizzle
  */
-export type DbService = InferSelectModel<typeof services>;
-export type NewService = InferInsertModel<typeof services>;
+export type DbService = InferSelectModel<typeof schema.services>;
+export type { NewService };
 
 /**
  * DOMAIN / UI TYPES
- * Derived from Zod for validation and rich UI interactions.
+ * Derived from Zod schemas in @/shared/model
  */
-export type Service = z.infer<typeof ServiceSchema>;
-export type ServiceRef = z.infer<typeof ServiceRefSchema>;
+export type { Service, ServiceRef };

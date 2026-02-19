@@ -1,6 +1,6 @@
 import { type AnyColumn, eq, type InferSelectModel } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
-import type { DB } from "./index";
+import type { DB } from "./db";
 
 type StringColumn = AnyColumn<{ data: string }>;
 
@@ -17,64 +17,48 @@ export interface ISlugRepository<T> extends IBaseRepository<T> {
 
 /**
  * Factory for a standard Drizzle repository (ID lookups).
+ * Always returns the precise Drizzle row type — no unsafe casts.
+ * Callers that need richer domain types (with relations) must override these methods.
  */
-export const createRepository = <
-  TTable extends TableWithId,
-  T = InferSelectModel<TTable>,
->(
+export const createRepository = <TTable extends TableWithId>(
   db: DB,
   table: TTable,
-): IBaseRepository<T> => ({
-  /**
-   * Returns all items in the repository.
-   * @returns A promise that resolves to an array of all items in the repository.
-   */
+): IBaseRepository<InferSelectModel<TTable>> => ({
   getAll: async () => {
     const results = await db.select().from(table);
-    return results as T[];
+    return results as InferSelectModel<TTable>[];
   },
 
-  /**
-   *  Finds an item by its unique identifier.
-   * @param id - The unique identifier of the item.
-   * @returns A promise that resolves to the item if found, or undefined if not found.
-   */
   getById: async (id: string) => {
     const [result] = await db
       .select()
       .from(table)
       .where(eq(table.id, id))
       .limit(1);
-    return (result as T) ?? undefined;
+    return result as InferSelectModel<TTable> | undefined;
   },
 });
 
 /**
- * Factory for a Drizzle repository with Slug support.
+ * Factory for a Drizzle repository with slug support.
+ * Always returns the precise Drizzle row type — no unsafe casts.
+ * Callers that need richer domain types (with relations) must override these methods.
  */
-export const createSlugRepository = <
-  TTable extends TableWithSlug,
-  T = InferSelectModel<TTable>,
->(
+export const createSlugRepository = <TTable extends TableWithSlug>(
   db: DB,
   table: TTable,
-): ISlugRepository<T> => {
-  const base = createRepository<TTable, T>(db, table);
+): ISlugRepository<InferSelectModel<TTable>> => {
+  const base = createRepository(db, table);
 
   return {
     ...base,
-    /**
-     * Finds an item by its slug.
-     * @param slug - The slug of the item.
-     * @returns A promise that resolves to the item if found, or undefined if not found.
-     */
     getBySlug: async (slug: string) => {
       const [result] = await db
         .select()
         .from(table)
         .where(eq(table.slug, slug))
         .limit(1);
-      return (result as T) ?? undefined;
+      return result as InferSelectModel<TTable> | undefined;
     },
   };
 };

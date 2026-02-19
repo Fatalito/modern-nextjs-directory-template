@@ -41,18 +41,24 @@ const reportValidationError = (
  * @returns A factory function that produces validated mock data
  */
 
-export const createSafeFactory = <T extends object>(
-  schema: z.ZodType<T>,
-  defaultFactory: (overrides: Partial<T>) => T,
+export const createSafeFactory = <TSchema extends z.ZodTypeAny, TData>(
+  schema: TSchema,
+  generator: (overrides: Partial<TData>) => TData,
 ) => {
-  return (overrides: Partial<T> = {}): T => {
-    const data = defaultFactory(overrides);
-    const result = schema.safeParse(data);
+  return (overrides: Partial<TData> = {}): z.infer<TSchema> => {
+    const base = generator(overrides);
+    const merged = { ...base, ...overrides };
+
+    const result = schema.safeParse(merged);
 
     if (!result.success) {
-      reportValidationError(result.error, schema.description ?? "Entity", data);
+      reportValidationError(
+        result.error,
+        schema.description ?? "Entity",
+        merged,
+      );
     }
 
-    return result.data as T;
+    return result.data as z.infer<TSchema>;
   };
 };

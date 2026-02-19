@@ -13,17 +13,13 @@ export function Copyright({
   license,
   className,
 }: CopyrightProps) {
-  const currentYear = year ?? new Date().getFullYear();
-
-  const parts: string[] = [currentYear.toString()];
-  if (author) parts.push(author);
-  if (license) parts.push(license);
-
-  const copyrightText = parts.join(" ");
+  const displayYear = year ?? new Date().getFullYear();
 
   return (
     <div className={cn("text-xs text-muted-foreground", className)}>
-      &copy; {copyrightText}.
+      &copy; <time dateTime={displayYear.toString()}>{displayYear}</time>
+      {author && ` ${author}`}
+      {license && ` ${license}`}.
     </div>
   );
 }

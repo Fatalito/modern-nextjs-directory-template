@@ -4,10 +4,10 @@ import { BusinessSchema } from "./schema";
 
 describe("BusinessSchema Validation", () => {
   it.each([
-    ["email", { email: "not-an-email" }, "invalid_format"],
-    ["name", { name: "A" }, "too_small"],
-    ["slug", { slug: "Bad_Slug!" }, "invalid_format"],
-  ])("should reject invalid %s", (field, overrides, expectedCode) => {
+    ["email", { email: "not-an-email" }, "invalid_format", "email"],
+    ["name", { name: "A" }, "too_small", undefined],
+    ["slug", { slug: "Bad_Slug!" }, "invalid_format", "regex"],
+  ])("should reject invalid %s", (field, overrides, expectedCode, expectedFormat) => {
     const validData = createBusiness();
     const badData = { ...validData, ...overrides };
     const result = BusinessSchema.safeParse(badData);
@@ -16,6 +16,9 @@ describe("BusinessSchema Validation", () => {
     if (!result.success) {
       const issue = result.error.issues.find((i) => i.path.includes(field));
       expect(issue?.code).toBe(expectedCode);
+      if (expectedCode === "invalid_format") {
+        expect((issue as { format?: string })?.format).toBe(expectedFormat);
+      }
     }
   });
 

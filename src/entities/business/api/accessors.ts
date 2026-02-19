@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { FilterCriteria } from "@/app/lib/data-loaders/types";
+import type { FilterCriteria } from "@/shared/api";
 import { businessRepository } from "./index";
 
 /**
@@ -20,13 +20,15 @@ export const getBusinessBySlug = cache((slug: string) =>
   businessRepository.getBySlug(slug),
 );
 
+const EMPTY_FILTER: FilterCriteria = {};
+
 /**
  * Filters businesses by optional category, service, and/or location.
  * Returns all businesses when no criteria are provided.
  * @param params - Optional search criteria: category, serviceId, and locationId.
  * @returns An array of businesses matching the criteria.
  */
-export const filterBusinesses = cache((params: FilterCriteria = {}) =>
+export const filterBusinesses = cache((params: FilterCriteria = EMPTY_FILTER) =>
   businessRepository.filters(params),
 );
 

@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { db, users } from "@/shared/api";
+import { db, schema } from "@/shared/api";
 import { createUserRaw } from "@/shared/testing";
 import { userRepository } from "./index";
 
-describe("User Repository", async () => {
-  const user = await createUserRaw({ name: "test-user" });
-
+describe("User Repository", () => {
+  let user: ReturnType<typeof createUserRaw>;
   beforeEach(async () => {
-    await db.insert(users).values([user]);
+    user = createUserRaw();
+    await db.insert(schema.users).values([user]);
   });
 
   it("should return all users", async () => {
-    const users = await userRepository.getAll();
-    expect(users).toEqual([user]);
+    const allUsers = await userRepository.getAll();
+    expect(allUsers).toEqual([user]);
   });
 
   it("should return a user by id", async () => {

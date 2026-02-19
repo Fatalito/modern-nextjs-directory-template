@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { jsonColumnConfig } from "@/shared/api/db/custom-types";
+import { jsonColumnConfig } from "./custom-types";
 
 describe("jsonColumn configuration", () => {
   type TestData = { foo: string }[];
@@ -13,8 +13,8 @@ describe("jsonColumn configuration", () => {
     expect(config.fromDriver('[{"foo":"bar"}]')).toEqual([{ foo: "bar" }]);
   });
 
-  it("should return an empty array on invalid JSON", () => {
-    expect(config.fromDriver("invalid-json")).toEqual([]);
+  it("should error on invalid JSON", () => {
+    expect(() => config.fromDriver("invalid-json")).toThrow();
   });
   it("should return 'text' as the data type", () => {
     expect(config.dataType()).toBe("text");

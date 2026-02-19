@@ -6,8 +6,8 @@ labels: enhancement
 assignees: ''
 ---
 
-### Objective
-### User Stories (BDD)
+# Objective
+# User Stories (BDD)
 
 **Scenario: [Scenario Name]**
 * **Given** [initial context]
@@ -17,7 +17,7 @@ assignees: ''
 
 ---
 
-### Definition of Done (DoD)
+# Definition of Done (DoD)
 - [ ] **Functional:** [Core logic/feature works as expected]
 - [ ] **UI/UX:** [Responsive design, accessible, and matches brand styles]
 - [ ] **SEO/Meta:** [Semantic HTML, OpenGraph, and meta tags verified]
@@ -27,7 +27,7 @@ assignees: ''
 
 ---
 
-### 🛠 Technical Specifications
+# 🛠 Technical Specifications
 
 <details>
 <summary><b>View Implementation Details</b></summary>
@@ -40,16 +40,16 @@ assignees: ''
 
 ---
 
-### Implementation Roadmap (Tasks)
+# Implementation Roadmap (Tasks)
 
-#### 🏗 Infrastructure & Foundation
+## 🏗 Infrastructure & Foundation
 - [ ] Task 1
 - [ ] Task 2
 
-#### 🖼 UI & Layout Integration
+## 🖼 UI & Layout Integration
 - [ ] Task 3
 - [ ] Task 4
 
-#### 🧪 Quality Assurance & SEO
+## 🧪 Quality Assurance & SEO
 - [ ] Task 5
 - [ ] Task 6
