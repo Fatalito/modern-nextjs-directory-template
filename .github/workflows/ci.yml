@@ -67,10 +67,13 @@ jobs:
 
       - name: Build Storybook
         run: npm run storybook:build
-      
+
+      - name: Push DB Schema & Seed
+        run: npm run db:push && npm run db:seed
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-      
+
       - name: Run Functional E2E Tests
         env:
           NODE_ENV: production

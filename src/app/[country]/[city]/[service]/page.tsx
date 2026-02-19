@@ -20,7 +20,11 @@ export const dynamicParams = true;
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return await getPopularLocationServicePaths();
+  try {
+    return await getPopularLocationServicePaths();
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({

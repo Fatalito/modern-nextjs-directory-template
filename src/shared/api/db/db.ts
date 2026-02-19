@@ -2,8 +2,7 @@ import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
 import { client } from "./client";
 import * as schema from "./schema";
 
-const isTest = process.env.NODE_ENV === "test";
-const enableLogger = isTest && process.env.DEBUG_SQL === "true";
+const enableLogger = !!process.env.VITEST && process.env.DEBUG_SQL === "true";
 
 export const db = drizzle(client, {
   schema,
