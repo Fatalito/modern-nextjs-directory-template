@@ -6,5 +6,4 @@ export {
 } from "./db/base-repository";
 export { type DB, db } from "./db/db";
 
-import * as schema from "./db/schema";
-export { schema };
+export * as schema from "./db/schema";

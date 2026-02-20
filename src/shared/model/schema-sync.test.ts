@@ -9,7 +9,7 @@ import { getTableColumns } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { schema } from "@/shared/api";
 import { BusinessRawSchema } from "./business.schema";
-import { BaseLocationShape } from "./location.schema";
+import { LocationRawSchema } from "./location.schema";
 import { ServiceSchema } from "./service.schema";
 import { UserSchema } from "./user.schema";
 
@@ -19,20 +19,45 @@ const drizzleKeys = (table: Parameters<typeof getTableColumns>[0]) =>
 const zodKeys = (zodObject: { shape: Record<string, unknown> }) =>
   Object.keys(zodObject.shape).sort();
 
+const expectSameKeys = (drizzle: string[], zod: string[], label: string) => {
+  const missing = drizzle.filter((k) => !zod.includes(k));
+  const extra = zod.filter((k) => !drizzle.includes(k));
+  expect(
+    missing,
+    `${label}: add to Zod schema — ${missing.join(", ")}`,
+  ).toHaveLength(0);
+  expect(
+    extra,
+    `${label}: remove from Zod schema — ${extra.join(", ")}`,
+  ).toHaveLength(0);
+};
+
 describe("Schema sync: Zod raw shapes ↔ Drizzle table columns", () => {
   it("businesses table matches BusinessRawSchema", () => {
-    expect(drizzleKeys(schema.businesses)).toEqual(zodKeys(BusinessRawSchema));
+    expectSameKeys(
+      drizzleKeys(schema.businesses),
+      zodKeys(BusinessRawSchema),
+      "businesses",
+    );
   });
 
-  it("locations table matches BaseLocationShape", () => {
-    expect(drizzleKeys(schema.locations)).toEqual(zodKeys(BaseLocationShape));
+  it("locations table matches LocationRawSchema", () => {
+    expectSameKeys(
+      drizzleKeys(schema.locations),
+      zodKeys(LocationRawSchema),
+      "locations",
+    );
   });
 
   it("services table matches ServiceSchema", () => {
-    expect(drizzleKeys(schema.services)).toEqual(zodKeys(ServiceSchema));
+    expectSameKeys(
+      drizzleKeys(schema.services),
+      zodKeys(ServiceSchema),
+      "services",
+    );
   });
 
   it("users table matches UserSchema", () => {
-    expect(drizzleKeys(schema.users)).toEqual(zodKeys(UserSchema));
+    expectSameKeys(drizzleKeys(schema.users), zodKeys(UserSchema), "users");
   });
 });

@@ -66,6 +66,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 | Storybook | `npm run storybook` |
 | Storybook build | `npm run storybook:build` |
 | Perf check | `npm run perf:check` |
+| Lighthouse only | `npm run perf:lighthouse` |
 | Perf compare vs baseline | `npm run perf:compare` |
 | Update perf baseline | `npm run perf:baseline` |
 | Security audit | `npm run security:audit` |
@@ -177,7 +178,7 @@ NEXT_OUTPUT_MODE=standalone npm run build
 This repository tracks two complementary performance signals:
 
 - **Playwright E2E timing** — raw `domReady` / `loadTime` metrics compared against a canonical baseline in `perf-baseline.json`
-- **Lighthouse** — automated audits for Performance, Accessibility, Best Practices, and SEO scores; run as part of `perf:e2e`
+- **Lighthouse** — automated audits for Performance, Accessibility, Best Practices, and SEO scores; run via `chrome-launcher` (avoids CDP conflicts with Playwright) as part of `perf:e2e`
 
 ### Core Metrics
 
@@ -196,6 +197,16 @@ npm run perf:compare
 
 > **Note:** Local results vary by hardware. Always trust the CI baseline for final verification.
 
+### CI Caching
+
+The CI pipeline caches three layers to minimise redundant work:
+
+| Cache | Key | Benefit |
+|-------|-----|---------|
+| `node_modules` | `package-lock.json` hash | Skips `npm ci` entirely on cache hit |
+| `.next/cache` | lockfile + `src/**` hash | Speeds up incremental Turbopack compilation |
+| Playwright browsers | `package-lock.json` hash | Skips ~300 MB browser download; only system deps reinstalled |
+
 ### CI Gatekeeper
 
 Every PR triggers a `perf:e2e` job with:
@@ -204,6 +215,7 @@ Every PR triggers a `perf:e2e` job with:
 - **Warmup:** routes are curled before measurement to ensure JIT compilation
 - **Resilience:** multiple samples with median delta to squash outliers
 - **Failure condition:** build fails if a metric regresses by more than the configured threshold (default 20%) or a baseline is missing
+- **Server lifecycle:** the perf benchmark runs via `start-server-and-test` so the production server stays alive when Lighthouse connects (Playwright's `webServer` would kill it between steps)
 
 ### Updating the Baseline
 
@@ -247,9 +259,10 @@ This is useful for supply-chain compliance and licence auditing in regulated env
 
 ### HTTP Security Headers
 
-Configured in `src/shared/config/` via `next.config.ts`. Key headers:
+Applied in the middleware via `src/shared/lib/security/`. Key headers:
 
-- **Content-Security-Policy** — strict CSP defined in `src/shared/config/security-policies.ts`
+- **Content-Security-Policy** — CSP defined in `src/shared/config/security-policies.ts`; uses `'unsafe-inline'` to allow Next.js hydration scripts while still blocking external script sources
+- **Cache-Control** — public routes served with `s-maxage=1, stale-while-revalidate=60` (CDN stale window); ISR revalidation period is set separately per route via `export const revalidate`
 - **HSTS** — enabled via `ENABLE_HSTS=true` (requires HTTPS)
 - Standard headers: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
 

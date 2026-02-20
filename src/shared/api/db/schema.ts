@@ -11,7 +11,7 @@ import type {
   CategoryValue,
   Contact,
   LocationTypeValue,
-  UserRoleType,
+  UserRoleValue,
 } from "@/shared/model";
 import { jsonColumn } from "./custom-types";
 
@@ -28,7 +28,7 @@ export const users = sqliteTable("users", {
   email: text("email").notNull().unique(),
   website: text("website"),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").$type<UserRoleType>().notNull().default("business_owner"),
+  role: text("role").$type<UserRoleValue>().notNull().default("business_owner"),
   contacts: jsonColumn<Contact[]>("contacts").notNull(),
 
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),

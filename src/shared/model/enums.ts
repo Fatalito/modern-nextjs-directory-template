@@ -16,4 +16,4 @@ export type CategoryValue = z.infer<typeof Category>;
 
 export type LocationTypeValue = z.infer<typeof LocationType>;
 
-export type UserRoleType = z.infer<typeof UserRole>;
+export type UserRoleValue = z.infer<typeof UserRole>;

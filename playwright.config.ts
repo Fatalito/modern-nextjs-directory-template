@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const CI_WEB_SERVER_COMMAND = "npm run start";
+const LOCAL_WEB_SERVER_COMMAND = "npm run build && npm run start";
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -36,11 +39,9 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: process.env.CI
-      ? "npm run start"
-      : "npm run build && npm run start",
+    command: process.env.CI ? CI_WEB_SERVER_COMMAND : LOCAL_WEB_SERVER_COMMAND,
     url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI || !!process.env.REUSE_SERVER,
     timeout: 120000,
   },
 });

@@ -17,11 +17,11 @@ export {
   LocationType,
   type LocationTypeValue,
   UserRole,
-  type UserRoleType,
+  type UserRoleValue,
 } from "./enums";
 export type { Location, LocationRef } from "./location.schema";
 export {
-  BaseLocationShape,
+  LocationRawSchema,
   LocationRefSchema,
   LocationSchema,
 } from "./location.schema";

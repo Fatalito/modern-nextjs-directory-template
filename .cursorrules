@@ -23,6 +23,7 @@ Both **Claude Code** and **Cursor** read it (`CLAUDE.md` is a symlink to this fi
 | DB studio (GUI) | `npm run db:studio` |
 | Storybook | `npm run storybook` |
 | Perf check | `npm run perf:check` |
+| Lighthouse only | `npm run perf:lighthouse` |
 
 > **Last step of any global change:** run `npm run lint:fix` to satisfy Biome import ordering.
 

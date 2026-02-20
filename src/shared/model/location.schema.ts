@@ -3,7 +3,7 @@ import { BaseEntitySchema } from "./base-schema";
 import { LocationType } from "./enums";
 import { SlugSchema } from "./slug";
 
-export const BaseLocationShape = BaseEntitySchema.extend({
+export const LocationRawSchema = BaseEntitySchema.extend({
   // For a Country, parentId is null. For a City, it's the Country's UUID.
   parentId: z.uuid().nullable(),
   type: LocationType,
@@ -14,13 +14,13 @@ export const BaseLocationShape = BaseEntitySchema.extend({
   isoCode: z.string().length(2).nullable(),
 });
 
-export const LocationRefSchema = BaseLocationShape.pick({
+export const LocationRefSchema = LocationRawSchema.pick({
   id: true,
   name: true,
   slug: true,
 }).describe("LocationReference");
 
-export const LocationSchema = BaseLocationShape.refine(
+export const LocationSchema = LocationRawSchema.refine(
   (data) => {
     if (data.type === "country") return data.parentId === null;
     return data.parentId !== null;
