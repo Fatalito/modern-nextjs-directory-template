@@ -10,7 +10,7 @@ const getUserDefaults = () => ({
   email: `test-${crypto.randomUUID()}@example.com`,
   role: "business_owner" as const,
   website: "https://example.com",
-  passwordHash: "...",
+  passwordHash: "...", // NOSONAR
   contacts: [
     {
       channel: "phone" as const,
