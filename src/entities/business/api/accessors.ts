@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { EMPTY_FILTER } from "@/shared/lib";
 import type { FilterCriteria } from "@/shared/model";
 import { businessRepository } from "./index";
 
@@ -20,8 +21,6 @@ export const getBusinessBySlug = cache((slug: string) =>
   businessRepository.getBySlug(slug),
 );
 
-const EMPTY_FILTER: FilterCriteria = {};
-
 /**
  * Filters businesses by optional category, service, and/or location.
  * Returns all businesses when no criteria are provided.
@@ -35,8 +34,8 @@ export const filterBusinesses = cache((params: FilterCriteria = EMPTY_FILTER) =>
 /**
  * Returns distinct city/country/service path combinations that have at least one business.
  * Used at build time for ISR static path generation — not cached.
- * @param limit - Maximum number of paths to return (default: 500).
+ * @param limit - Maximum number of paths to return.
  * @returns An array of { country, city, service } slug combinations.
  */
-export const getPopularPaths = (limit = 500) =>
+export const getPopularPaths = (limit?: number) =>
   businessRepository.getPopularPaths(limit);

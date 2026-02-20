@@ -3,7 +3,7 @@ import { createLocation } from "@/shared/testing";
 import { LocationSchema } from "./location.schema";
 
 describe("LocationSchema", () => {
-  const location = createLocation();
+  const location = createLocation({ type: "country" });
 
   it("validates a complete country location", () => {
     const result = LocationSchema.parse(location);

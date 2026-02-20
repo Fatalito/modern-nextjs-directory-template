@@ -6,7 +6,6 @@ import {
   getServicePageEntities,
 } from "@/app/lib/data-loaders/service-page";
 import { pageContent, siteConfig } from "@/shared/config";
-import { safeGenerateStaticParams } from "@/shared/lib/generate-static-params";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -14,13 +13,15 @@ interface PageProps {
   readonly params: Promise<{ service: string }>;
 }
 
+export const revalidate = 3600;
 export const dynamicParams = true;
+
 /**
  * Generates static paths for all service combinations at build time.
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return safeGenerateStaticParams(getServicePageDirectoryPaths, "Service Page");
+  return getServicePageDirectoryPaths();
 }
 
 export async function generateMetadata({

@@ -48,5 +48,5 @@ export const getLocationServicePageData = (
     }),
   );
 
-export const getPopularLocationServicePaths = (limit = 500) =>
+export const getPopularLocationServicePaths = (limit?: number) =>
   getPopularPaths(limit);

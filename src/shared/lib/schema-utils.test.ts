@@ -11,7 +11,8 @@ describe("getBaseDefaults", () => {
     expect(typeof result.createdAt).toBe("string");
     expect(typeof result.updatedAt).toBe("string");
     expect(result.createdAt).toEqual(result.updatedAt);
-    expect(() => new Date(result.createdAt)).not.toThrow();
+    const createdAt = new Date(result.createdAt);
+    expect(Number.isNaN(createdAt.getTime())).toBe(false);
   });
 
   it("returns unique id and increasing timestamps on each call", () => {

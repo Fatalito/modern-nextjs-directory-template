@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createClient } from "@libsql/client";
-import { DB_FILE_NAME } from "@/shared/api/db/constants";
+import { DB_FILE_NAME } from "./constants";
 
 // VITEST is set by the Vitest runner. Avoids capturing Next.js builds that run
 // under NODE_ENV=test in CI but must connect to the real file-based DB.

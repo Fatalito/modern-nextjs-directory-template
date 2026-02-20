@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Category, LocationType, UserRole } from "@/shared/model";
+import { Category, LocationType, UserRole } from "./enums";
 
 describe("UserRole", () => {
   it("accepts valid roles", () => {

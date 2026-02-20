@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
-import { DB_FILE_NAME } from "@/shared/api/db/constants";
+import { DB_FILE_NAME } from "./src/shared/api/db/constants";
 
 const dbFileAbs = fileURLToPath(new URL(`./${DB_FILE_NAME}`, import.meta.url));
 

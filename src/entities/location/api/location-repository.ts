@@ -2,6 +2,8 @@ import { aliasedTable, and, eq, isNull } from "drizzle-orm";
 import { createSlugRepository, type DB, schema } from "@/shared/api";
 import { type Location, LocationSchema } from "@/shared/model";
 
+const DEFAULT_CITY_COUNTRY_PATHS_LIMIT = 1000;
+
 export const createLocationRepository = (db: DB) => {
   const base = createSlugRepository(db, schema.locations, (r) =>
     LocationSchema.parse(r),
@@ -64,7 +66,9 @@ export const createLocationRepository = (db: DB) => {
       };
     },
 
-    getCityCountryDirectoryPaths: async (limit = 1000) => {
+    getCityCountryDirectoryPaths: async (
+      limit = DEFAULT_CITY_COUNTRY_PATHS_LIMIT,
+    ) => {
       const parentLocations = aliasedTable(schema.locations, "parent");
 
       return db

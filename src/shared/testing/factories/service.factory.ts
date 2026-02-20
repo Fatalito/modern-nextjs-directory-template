@@ -26,6 +26,6 @@ export const createServiceRaw = (overrides: Partial<Service> = {}): Service => {
  * Rich Factory (Nested) - Use this for frontend tests and anywhere you want the full nested structure with validation.
  */
 const rawServiceMock = (overrides: Partial<Service> = {}): Service =>
-  createServiceRaw(overrides) as Service;
+  createServiceRaw(overrides);
 
 export const createService = createSafeFactory(ServiceSchema, rawServiceMock);

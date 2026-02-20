@@ -61,18 +61,18 @@ jobs:
       
       - name: Execute Tests & Coverage
         run: npm run test:coverage
-      
-      - name: Build Production App
-        run: npm run build
-
-      - name: Build Storybook
-        run: npm run storybook:build
 
       - name: Push DB Schema
         run: npm run db:push
 
       - name: Seed DB Schema 
         run: npm run db:seed
+      
+      - name: Build Production App
+        run: npm run build
+
+      - name: Build Storybook
+        run: npm run storybook:build
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

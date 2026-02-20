@@ -3,24 +3,16 @@ import { getCacheControl } from "./get-cache-control";
 import { getCspHeader } from "./get-csp-header";
 
 /**
- * Creates a NextResponse with an integrated security context.
- * It generates a unique nonce, injects it into request headers for App Router consumption and applies CSP (with nonce) and Cache-Control to the response.
+ * Creates a NextResponse with security and cache headers.
  * @param request - The incoming NextRequest object
  * @returns A NextResponse with security headers set
- * - Content-Security-Policy with nonce for inline script protection
+ * - Content-Security-Policy blocking external scripts and untrusted sources
  * - Cache-Control based on request characteristics (public vs private)
  */
 export const createSecureResponse = (request: NextRequest): NextResponse => {
-  const nonce = btoa(crypto.randomUUID());
+  const response = NextResponse.next();
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
-
-  response.headers.set("Content-Security-Policy", getCspHeader(nonce));
+  response.headers.set("Content-Security-Policy", getCspHeader());
   response.headers.set("Cache-Control", getCacheControl(request));
 
   return response;

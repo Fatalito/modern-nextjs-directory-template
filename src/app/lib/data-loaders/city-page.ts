@@ -26,4 +26,5 @@ export const getCityPageData = (countrySlug: string, citySlug: string) =>
     ({ city }) => ({ locationId: city?.id }),
   );
 
-export const getCityPageDirectoryPaths = () => getCityCountryDirectoryPaths();
+export const getCityPageDirectoryPaths = (limit?: number) =>
+  getCityCountryDirectoryPaths(limit);

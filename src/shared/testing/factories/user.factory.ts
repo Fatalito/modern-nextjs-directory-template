@@ -34,6 +34,6 @@ export const createUserRaw = (overrides: Partial<User> = {}): User => ({
  * Rich Factory (UI) - Matches UserSchema (usually excludes sensitive data)
  */
 const rawUserMock = (overrides: Partial<User> = {}): User =>
-  createUserRaw(overrides) as User;
+  createUserRaw(overrides);
 
 export const createUser = createSafeFactory(UserSchema, rawUserMock);

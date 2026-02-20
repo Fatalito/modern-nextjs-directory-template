@@ -80,7 +80,7 @@ const rawBusinessMock = (overrides: Partial<Business> = {}): Business => {
     },
     serviceIds: serviceIds ?? services?.map((s) => s.id) ?? [],
     services: services ?? [],
-  } as Business;
+  };
 };
 
 /**

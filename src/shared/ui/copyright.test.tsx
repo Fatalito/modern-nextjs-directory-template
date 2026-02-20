@@ -3,6 +3,12 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Copyright } from "./copyright";
 
+const COPYRIGHT_YEAR_REGEX = /2026/;
+const AUTHOR_REGEX = /TestAuthor/;
+const LICENSE_REGEX = /MIT/;
+const LEGACY_YEAR_REGEX = /1999/;
+const LEGACY_AUTHOR_REGEX = /Legacy Corp/i;
+
 const hasExactTextContent =
   (text: string) => (_: string, element: Element | null) => {
     const isMatch = (node: Element | null) => node?.textContent === text;
@@ -36,9 +42,9 @@ describe("Copyright Component", () => {
   it("renders with current year when year is not provided", () => {
     render(<Copyright author="TestAuthor" license="MIT" />);
 
-    expect(screen.getByText(/2026/)).toBeInTheDocument();
-    expect(screen.getByText(/TestAuthor/)).toBeInTheDocument();
-    expect(screen.getByText(/MIT/)).toBeInTheDocument();
+    expect(screen.getByText(COPYRIGHT_YEAR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(AUTHOR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(LICENSE_REGEX)).toBeInTheDocument();
   });
 
   it("renders correctly with missing author prop", () => {
@@ -65,7 +71,7 @@ describe("Copyright Component", () => {
 
   it("prioritises the year prop over the system clock", () => {
     render(<Copyright year={1999} author="Legacy Corp" />);
-    expect(screen.getByText(/1999/)).toBeInTheDocument();
-    expect(screen.getByText(/Legacy Corp/i)).toBeInTheDocument();
+    expect(screen.getByText(LEGACY_YEAR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(LEGACY_AUTHOR_REGEX)).toBeInTheDocument();
   });
 });

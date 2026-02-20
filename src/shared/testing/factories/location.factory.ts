@@ -31,7 +31,7 @@ export const createLocationRaw = (
  * because it's a self-referencing table, but we keep the structure consistent.
  */
 const rawLocationMock = (overrides: Partial<Location> = {}): Location =>
-  createLocationRaw(overrides) as Location;
+  createLocationRaw(overrides);
 
 export const createLocation = createSafeFactory(
   LocationSchema,

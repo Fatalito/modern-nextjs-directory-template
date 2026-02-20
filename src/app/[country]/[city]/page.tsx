@@ -6,7 +6,6 @@ import {
   getCityPageEntities,
 } from "@/app/lib/data-loaders/city-page";
 import { pageContent, siteConfig } from "@/shared/config";
-import { safeGenerateStaticParams } from "@/shared/lib/generate-static-params";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -14,6 +13,7 @@ interface PageProps {
   readonly params: Promise<{ country: string; city: string }>;
 }
 
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 /**
@@ -21,7 +21,7 @@ export const dynamicParams = true;
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return safeGenerateStaticParams(getCityPageDirectoryPaths, "City Page");
+  return getCityPageDirectoryPaths();
 }
 
 export async function generateMetadata({

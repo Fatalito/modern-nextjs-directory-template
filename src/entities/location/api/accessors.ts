@@ -56,8 +56,8 @@ export const getCityAndCountryBySlugs = cache(
 /**
  * Returns distinct city/country slug pairs for directory pages.
  * Used at build time for ISR static path generation — not cached.
- * @param limit - Maximum number of paths to return (default: 1000).
+ * @param limit - Maximum number of paths to return.
  * @returns An array of { country, city } slug combinations.
  */
-export const getCityCountryDirectoryPaths = (limit = 1000) =>
+export const getCityCountryDirectoryPaths = (limit?: number) =>
   locationRepository.getCityCountryDirectoryPaths(limit);
