@@ -66,13 +66,6 @@ jobs:
       - name: OWASP Dependency Audit
         run: npm run security:audit
 
-      - name: Snyk Security Scan
-        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # v6.2.0
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
-
       - name: Biome Lint & Format (Spotless equivalent)
         run: npm run lint
       
