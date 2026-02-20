@@ -1,6 +1,7 @@
+// @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { createBusiness, createLocation } from "@/shared/api/seed-factories";
+import { createBusiness, createLocation } from "@/shared/testing";
 import { BusinessCard } from "./business-card";
 
 vi.mock("next/image", () => ({
@@ -11,12 +12,19 @@ vi.mock("next/image", () => ({
 
 describe("BusinessCard", () => {
   it("renders card with image, name, category, and location", () => {
+    const us = createLocation({
+      name: "United States",
+      slug: "united-states",
+      type: "country",
+    });
     const business = createBusiness({
       name: "Acme Corp",
       category: "tech",
       location: createLocation({
         name: "New York",
         slug: "new-york",
+        type: "city",
+        parentId: us.id,
       }),
       images: [
         "https://example.com/first.jpg",

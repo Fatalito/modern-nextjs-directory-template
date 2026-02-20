@@ -1,7 +1,8 @@
+// @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { createBusiness } from "@/shared/api/seed-factories";
 import { siteConfig } from "@/shared/config";
+import { createBusiness } from "@/shared/testing";
 import { BusinessList } from "./business-list";
 
 describe("BusinessList", () => {

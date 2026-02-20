@@ -1,21 +1,25 @@
+import fs from "node:fs";
+import path from "node:path";
+import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
-import { chromium } from "playwright";
 
 const TARGET_URL = process.env.LIGHTHOUSE_URL || "http://127.0.0.1:3000";
-const DEFAULT_CHROME_PORT = 9222;
-const CHROME_DEBUG_PORT =
-  Number(process.env.CHROME_DEBUG_PORT) || DEFAULT_CHROME_PORT;
+const SCORES_PATH = path.join(
+  process.cwd(),
+  "test-results",
+  "lighthouse-scores.json",
+);
 
 async function run() {
-  let browser;
+  let chrome;
 
   try {
-    browser = await chromium.launch({
-      args: [`--remote-debugging-port=${CHROME_DEBUG_PORT}`],
+    chrome = await launch({
+      chromeFlags: ["--headless", "--disable-gpu", "--no-sandbox"],
     });
 
     const { lhr } = await lighthouse(TARGET_URL, {
-      port: CHROME_DEBUG_PORT,
+      port: chrome.port,
       output: "json",
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
       maxWaitForLoad: 30000,
@@ -36,7 +40,23 @@ async function run() {
       { name: "SEO", score: toPercent(cats.seo?.score) },
     ];
 
-    // 2. Get Top 3 Recommendations (Opportunities)
+    // 2. Persist scores for comparison
+    fs.mkdirSync(path.dirname(SCORES_PATH), { recursive: true });
+    fs.writeFileSync(
+      SCORES_PATH,
+      JSON.stringify(
+        {
+          performance: scores[0].score,
+          accessibility: scores[1].score,
+          "best-practices": scores[2].score,
+          seo: scores[3].score,
+        },
+        null,
+        2,
+      ),
+    );
+
+    // 3. Get Top 3 Recommendations (Opportunities)
     const opportunities = Object.values(lhr.audits)
       .filter(
         (audit) =>
@@ -51,7 +71,7 @@ async function run() {
       )
       .slice(0, 3);
 
-    // 3. Build Markdown
+    // 4. Build Markdown
     console.log(`### 🔦 Lighthouse Audit\n`);
     console.log(`| Category | Score |`);
     console.log(`| :--- | :---: |`);
@@ -87,8 +107,7 @@ async function run() {
     console.error("❌ Lighthouse Audit Failed:", error);
     process.exitCode = 1;
   } finally {
-    await browser?.close();
-    console.log("Cleanup: Browser process closed.");
+    chrome?.kill();
   }
 }
 

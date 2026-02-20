@@ -34,12 +34,29 @@ jobs:
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version: ${{ steps.nvmrc.outputs.version }}
-          cache: 'npm'
+
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts
 
+      - name: Cache Next.js Build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
       - name: Cache Playwright Browsers
+        id: playwright-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.cache/ms-playwright
@@ -61,16 +78,27 @@ jobs:
       
       - name: Execute Tests & Coverage
         run: npm run test:coverage
+
+      - name: Push DB Schema
+        run: npm run db:push
+
+      - name: Seed DB Schema 
+        run: npm run db:seed
       
       - name: Build Production App
         run: npm run build
 
       - name: Build Storybook
         run: npm run storybook:build
-      
+
       - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
-      
+
+      - name: Install Playwright System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
       - name: Run Functional E2E Tests
         env:
           NODE_ENV: production
@@ -88,10 +116,14 @@ jobs:
       - name: Run Performance Benchmark
         env:
           NODE_ENV: production
-        run: npm run perf:e2e 2>&1 | tee perf-e2e.txt
+          REUSE_SERVER: "true"
+        run: npx start-server-and-test 'npm start' http://localhost:3000 'npm run perf:e2e' 2>&1 | tee perf-e2e.txt
 
       - name: Compare Performance Metrics
         run: npm run perf:compare 2>&1 | tee perf-report.md
+
+      - name: Compare Lighthouse Scores
+        run: npm run perf:lighthouse:compare 2>&1 | tee lighthouse-report.md
 
       - name: Upload Performance Metrics
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -109,12 +141,36 @@ jobs:
           path: test-results/perf-summary.json
           retention-days: 30
 
+      - name: Upload Lighthouse Scores
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lighthouse-scores
+          path: test-results/lighthouse-scores.json
+          retention-days: 30
+
       - name: Upload Playwright Text Output
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: ${{ !cancelled() }}
         with:
           name: playwright-e2e
           path: playwright-e2e.txt
+          retention-days: 30
+
+      - name: Upload Performance Benchmark Output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-e2e
+          path: perf-e2e.txt
+          retention-days: 30
+
+      - name: Upload Lighthouse Report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-report
+          path: lighthouse-report.md
           retention-days: 30
       
       - name: SonarCloud Scan
@@ -161,6 +217,23 @@ jobs:
               body: body
             });
             
+      - name: 💬 Comment Lighthouse Report
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.existsSync('lighthouse-report.md')
+              ? fs.readFileSync('lighthouse-report.md', 'utf8')
+              : '_Lighthouse report missing._';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
       - name: Generate SBOM (CycloneDX)
         run: npm run security:sbom
       

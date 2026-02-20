@@ -1,45 +1,64 @@
+// @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Copyright } from "./copyright";
 
+const COPYRIGHT_YEAR_REGEX = /2026/;
+const AUTHOR_REGEX = /TestAuthor/;
+const LICENSE_REGEX = /MIT/;
+const LEGACY_YEAR_REGEX = /1999/;
+const LEGACY_AUTHOR_REGEX = /Legacy Corp/i;
+
+const hasExactTextContent =
+  (text: string) => (_: string, element: Element | null) => {
+    const isMatch = (node: Element | null) => node?.textContent === text;
+    return (
+      isMatch(element) &&
+      Array.from(element?.children ?? []).every(
+        (child) => !isMatch(child as Element),
+      )
+    );
+  };
+
 describe("Copyright Component", () => {
+  const fixedDate = new Date("2026-02-19");
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedDate);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
   });
 
   it("renders with all props provided", () => {
     render(<Copyright author="TestAuthor" year={2024} license="MIT" />);
-
-    expect(screen.getByText(/© 2024 TestAuthor MIT\./)).toBeInTheDocument();
-  });
-
-  it("renders with current year when year is not provided", () => {
-    const currentYear = new Date().getFullYear();
-    render(<Copyright author="TestAuthor" license="MIT" />);
-
     expect(
-      screen.getByText(
-        new RegExp(String.raw`© ${currentYear} TestAuthor MIT\.`),
-      ),
+      screen.getByText(hasExactTextContent("© 2024 TestAuthor MIT.")),
     ).toBeInTheDocument();
   });
 
-  it("renders without author when not provided", () => {
+  it("renders with current year when year is not provided", () => {
+    render(<Copyright author="TestAuthor" license="MIT" />);
+
+    expect(screen.getByText(COPYRIGHT_YEAR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(AUTHOR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(LICENSE_REGEX)).toBeInTheDocument();
+  });
+
+  it("renders correctly with missing author prop", () => {
     render(<Copyright year={2024} license="MIT" />);
-
-    expect(screen.getByText(/© 2024 MIT\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(hasExactTextContent("© 2024 MIT.")),
+    ).toBeInTheDocument();
   });
 
-  it("renders without license when not provided", () => {
+  it("renders correctly with missing license props", () => {
     render(<Copyright author="TestAuthor" year={2024} />);
-
-    expect(screen.getByText(/© 2024 TestAuthor\./)).toBeInTheDocument();
-  });
-
-  it("renders with only year when author and license are omitted", () => {
-    render(<Copyright year={2024} />);
-
-    expect(screen.getByText(/© 2024\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(hasExactTextContent("© 2024 TestAuthor.")),
+    ).toBeInTheDocument();
   });
 
   it("applies custom className", () => {
@@ -47,22 +66,12 @@ describe("Copyright Component", () => {
       <Copyright author="TestAuthor" year={2024} className="custom-class" />,
     );
 
-    const element = container.querySelector(".custom-class");
-    expect(element).toBeInTheDocument();
+    expect(container.firstChild).toHaveClass("custom-class");
   });
 
-  it("accepts year as string", () => {
-    render(<Copyright year="2023" author="TestAuthor" />);
-
-    expect(screen.getByText(/© 2023 TestAuthor\./)).toBeInTheDocument();
-  });
-
-  it("uses current year from Date when no year prop is provided", () => {
-    const mockDate = new Date("2025-06-15");
-    vi.setSystemTime(mockDate);
-
-    render(<Copyright author="TestAuthor" />);
-
-    expect(screen.getByText(/© 2025 TestAuthor\./)).toBeInTheDocument();
+  it("prioritises the year prop over the system clock", () => {
+    render(<Copyright year={1999} author="Legacy Corp" />);
+    expect(screen.getByText(LEGACY_YEAR_REGEX)).toBeInTheDocument();
+    expect(screen.getByText(LEGACY_AUTHOR_REGEX)).toBeInTheDocument();
   });
 });

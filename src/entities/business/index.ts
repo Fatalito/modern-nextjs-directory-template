@@ -1,5 +1,3 @@
-export type { Business, CategoryValue } from "./model/schema";
-export { BusinessSchema } from "./model/schema";
 export {
   selectBusinessContact,
   selectBusinessesByCriteria,

@@ -1,4 +1,4 @@
-import type { Location } from "./schema";
+import type { Location } from "@/shared/model";
 
 /**
  * Validates the hierarchical relationship between locations.

@@ -1,5 +1,4 @@
-import { cache } from "react";
-import { getAllServices, getServiceBySlug } from "@/app/lib/data-access";
+import { getAllServices, getServiceBySlug } from "@/entities/service/server";
 import { loadDirectoryPageData } from "./factory";
 
 /**
@@ -8,11 +7,8 @@ import { loadDirectoryPageData } from "./factory";
  * @returns An object containing the service entity.
  *          Returns undefined if the entity is not found.
  */
-export const getServicePageEntities = cache(async (serviceSlug: string) => {
-  const service = await getServiceBySlug(serviceSlug);
-  if (!service) return;
-  return { service };
-});
+export const getServicePageEntities = (serviceSlug: string) =>
+  getServiceBySlug(serviceSlug);
 
 /**
  * Fetches and aggregates all necessary data for the Service page route.
@@ -23,7 +19,7 @@ export const getServicePageEntities = cache(async (serviceSlug: string) => {
 export const getServicePageData = (serviceSlug: string) => {
   return loadDirectoryPageData(
     () => getServicePageEntities(serviceSlug),
-    ({ service }) => ({ serviceId: service?.id }),
+    (service) => ({ serviceId: service?.id }),
   );
 };
 

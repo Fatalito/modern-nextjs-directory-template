@@ -1,6 +1,5 @@
 import { parsePhoneNumber } from "awesome-phonenumber";
-import type { Contact } from "./schema";
-import { TELEGRAM_USERNAME_REGEX } from "./schema";
+import { type Contact, TELEGRAM_USERNAME_REGEX } from "@/shared/model";
 
 /**
  * Formats a phone number for UI display with proper international formatting.

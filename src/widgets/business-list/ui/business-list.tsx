@@ -1,6 +1,6 @@
-import type { Business } from "@/entities/business";
 import { BusinessCard } from "@/entities/business";
 import { pageContent, siteConfig } from "@/shared/config";
+import type { Business } from "@/shared/model";
 
 interface BusinessListProps {
   readonly businesses: Business[];

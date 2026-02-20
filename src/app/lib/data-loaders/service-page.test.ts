@@ -1,51 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  getAllBusinesses,
-  getAllLocations,
-  getAllServices,
-  getServiceBySlug,
-} from "@/app/lib/data-access";
-import { selectBusinessesByCriteria } from "@/entities/business";
+import * as businessEntities from "@/entities/business/server";
+import * as locationEntities from "@/entities/location/server";
+import * as serviceEntities from "@/entities/service/server";
+import { Category } from "@/shared/model";
 import {
   createBusiness,
   createLocation,
   createService,
-} from "@/shared/api/seed-factories";
+} from "@/shared/testing";
 import {
   getServicePageData,
   getServicePageDirectoryPaths,
   getServicePageEntities,
 } from "./service-page";
 
-vi.mock("@/app/lib/data-access", () => ({
-  getServiceBySlug: vi.fn(),
-  getAllBusinesses: vi.fn(),
-  getAllLocations: vi.fn(),
-  getAllServices: vi.fn(),
-}));
-
-vi.mock("@/entities/business", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/business")>();
+vi.mock("@/entities/business/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/business/server")>();
   return {
     ...actual,
-    selectBusinessesByCriteria: vi.fn(),
+    filterBusinesses: vi.fn(),
   };
 });
-
-vi.mock("react", () => {
+vi.mock("@/entities/location/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/location/server")>();
   return {
-    cache: <Args extends unknown[], Return>(
-      fn: (...args: Args) => Return,
-    ): ((...args: Args) => Return) => {
-      const tracker = vi.fn((...args: Args) => fn(...args));
-      let result: Return;
-      return (...args: Args): Return => {
-        if (tracker.mock.calls.length === 0) {
-          result = tracker(...args);
-        }
-        return result;
-      };
-    },
+    ...actual,
+    getAllLocations: vi.fn(),
+  };
+});
+vi.mock("@/entities/service/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/service/server")>();
+  return {
+    ...actual,
+    getAllServices: vi.fn(),
+    getServiceBySlug: vi.fn(),
   };
 });
 
@@ -63,18 +54,22 @@ describe("Service Page Loaders", () => {
 
   describe("getServicePageEntities", () => {
     it("should return the service entity for a valid slug", async () => {
-      vi.mocked(getServiceBySlug).mockResolvedValue(mockService);
+      vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(
+        mockService,
+      );
 
       const result = await getServicePageEntities("web-design");
 
-      expect(result).toEqual({ service: mockService });
-      expect(getServiceBySlug).toHaveBeenCalledWith("web-design");
+      expect(result).toEqual(mockService);
+      expect(serviceEntities.getServiceBySlug).toHaveBeenCalledWith(
+        "web-design",
+      );
     });
   });
 
   describe("getServicePageData", () => {
     it("should return undefined if the service is not found", async () => {
-      vi.mocked(getServiceBySlug).mockResolvedValue(undefined);
+      vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(undefined);
 
       const result = await getServicePageData("invalid-slug");
 
@@ -82,21 +77,32 @@ describe("Service Page Loaders", () => {
     });
 
     it("should aggregate all entities and filtered results", async () => {
-      vi.mocked(getServiceBySlug).mockResolvedValue(mockService);
-      vi.mocked(getAllBusinesses).mockResolvedValue([mockBusiness]);
-      vi.mocked(getAllLocations).mockResolvedValue([mockLocation]);
-      vi.mocked(getAllServices).mockResolvedValue([mockService]);
-      vi.mocked(selectBusinessesByCriteria).mockReturnValue([mockBusiness]);
+      vi.mocked(serviceEntities.getServiceBySlug).mockResolvedValue(
+        mockService,
+      );
+      vi.mocked(locationEntities.getAllLocations).mockResolvedValue([
+        mockLocation,
+      ]);
+      vi.mocked(serviceEntities.getAllServices).mockResolvedValue([
+        mockService,
+      ]);
+      vi.mocked(businessEntities.filterBusinesses).mockResolvedValue([
+        mockBusiness,
+      ]);
 
       const data = await getServicePageData("web-design");
 
       expect(data).toEqual({
-        entities: { service: mockService },
-        filters: { locations: [mockLocation], services: [mockService] },
+        entities: mockService,
+        filters: {
+          locations: [mockLocation],
+          services: [mockService],
+          categories: Category.options,
+        },
         results: [mockBusiness],
       });
 
-      expect(selectBusinessesByCriteria).toHaveBeenCalledWith([mockBusiness], {
+      expect(businessEntities.filterBusinesses).toHaveBeenCalledWith({
         serviceId: mockService.id,
       });
     });
@@ -104,7 +110,9 @@ describe("Service Page Loaders", () => {
 
   describe("getServicePageDirectoryPaths", () => {
     it("should map services to path segments", async () => {
-      vi.mocked(getAllServices).mockResolvedValue([mockService]);
+      vi.mocked(serviceEntities.getAllServices).mockResolvedValue([
+        mockService,
+      ]);
 
       const paths = await getServicePageDirectoryPaths();
 

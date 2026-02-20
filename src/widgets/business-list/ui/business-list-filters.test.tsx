@@ -1,6 +1,7 @@
+// @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { createLocation, createService } from "@/shared/api/seed-factories";
+import { createLocation, createService } from "@/shared/testing";
 import { BusinessListFilters } from "./business-list-filters";
 
 const france = createLocation({

@@ -8,7 +8,7 @@ import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
  * @returns Home page component with full business directory
  */
 export default async function Home() {
-  const { allBusinesses, filters } = await getBaseDirectoryData();
+  const { businesses, filters } = await getBaseDirectoryData();
 
   return (
     <BusinessDirectoryLayout
@@ -18,7 +18,7 @@ export default async function Home() {
       license={siteConfig.license}
       filters={<BusinessListFilters {...filters} />}
     >
-      <BusinessList businesses={allBusinesses} />
+      <BusinessList businesses={businesses} />
     </BusinessDirectoryLayout>
   );
 }

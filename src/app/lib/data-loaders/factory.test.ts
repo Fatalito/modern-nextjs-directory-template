@@ -6,34 +6,22 @@ import {
   type MockedFunction,
   vi,
 } from "vitest";
-import { selectBusinessesByCriteria } from "@/entities/business";
-import { createBusiness, createLocation } from "@/shared/api/seed-factories";
+import { createBusiness, createLocation } from "@/shared/testing";
 import { getBaseDirectoryData } from "./base";
 import { loadDirectoryPageData } from "./factory";
-
-vi.mock("@/entities/business", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/business")>();
-  return {
-    ...actual,
-    selectBusinessesByCriteria: vi.fn(),
-  };
-});
 
 vi.mock("./base", () => ({
   getBaseDirectoryData: vi.fn(),
 }));
 
-const mockedSelect = selectBusinessesByCriteria as MockedFunction<
-  typeof selectBusinessesByCriteria
->;
 const mockedBaseData = getBaseDirectoryData as MockedFunction<
   typeof getBaseDirectoryData
 >;
 
 describe("loadDirectoryPageData", () => {
   const mockBaseData = {
-    allBusinesses: [createBusiness({ name: "Test Biz" })],
-    filters: { locations: [], services: [] },
+    businesses: [createBusiness({ name: "Test Biz" })],
+    filters: { locations: [], services: [], categories: [] },
   };
 
   beforeEach(() => {
@@ -48,7 +36,7 @@ describe("loadDirectoryPageData", () => {
     const result = await loadDirectoryPageData(entityFetcher, criteriaBuilder);
 
     expect(result).toBeUndefined();
-    expect(mockedBaseData).toHaveBeenCalled();
+    expect(mockedBaseData).not.toHaveBeenCalled();
   });
 
   it("should return aggregated data when entities are found", async () => {
@@ -58,17 +46,15 @@ describe("loadDirectoryPageData", () => {
       locationId: entities.city.id,
     });
 
-    const mockResults = [createBusiness({ name: "biz-1" })];
-    mockedSelect.mockReturnValue(mockResults);
     const result = await loadDirectoryPageData(entityFetcher, criteriaBuilder);
 
     expect(result).toEqual({
       entities: mockEntities,
       filters: mockBaseData.filters,
-      results: mockResults,
+      results: mockBaseData.businesses,
     });
 
-    expect(mockedSelect).toHaveBeenCalledWith(mockBaseData.allBusinesses, {
+    expect(mockedBaseData).toHaveBeenCalledWith({
       locationId: mockEntities.city.id,
     });
   });

@@ -49,14 +49,18 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps
 
-      - name: Run E2E tests multiple times
+      - name: Run Performance Benchmark
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
-        run: npm run perf:e2e
+          REUSE_SERVER: 'true'
+        run: npx start-server-and-test 'npm start' http://localhost:3000 'npm run perf:e2e'
 
-      - name: Update baseline
+      - name: Update Playwright perf baseline
         run: npm run perf:baseline
+
+      - name: Update Lighthouse baseline
+        run: npm run perf:lighthouse:baseline
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
@@ -69,11 +73,12 @@ jobs:
             ## Performance Baseline Update
 
             Updated baseline metrics from CI environment.
-            
+
             - Runs: 3 iterations per test
             - Environment: ubuntu-latest
             - Node: 24
-            
+
             **Review checklist:**
-            - [ ] Values look reasonable for CI environment
+            - [ ] Playwright timing values (`perf-baseline.json`) look reasonable for CI environment
+            - [ ] Lighthouse scores (`lighthouse-baseline.json`) look reasonable
             - [ ] No unexpected changes from previous baseline

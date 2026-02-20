@@ -1,8 +1,9 @@
-export { createInMemoryDatabase, db } from "./database";
 export {
-  businessRepository,
-  locationRepository,
-  serviceRepository,
-  userRepository,
-} from "./repositories";
-export type { IDatabase } from "./types";
+  createRepository,
+  createSlugRepository,
+  type IBaseRepository,
+  type ISlugRepository,
+} from "./db/base-repository";
+export { type DB, db } from "./db/db";
+
+export * as schema from "./db/schema";

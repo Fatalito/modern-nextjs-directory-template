@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLocation } from "@/shared/api/seed-factories";
+import { createLocation } from "@/shared/testing";
 import {
   selectAllCountries,
   selectCitiesByCountry,
@@ -89,7 +89,7 @@ describe("Location Selectors", () => {
       expect(path).toBe("france/lyon");
     });
 
-    it("returns city slug for top-level location", () => {
+    it("returns country slug for top-level location", () => {
       const path = selectFullLocationPath(mockLocations, france.id);
 
       expect(path).toBe("france");

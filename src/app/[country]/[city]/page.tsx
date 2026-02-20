@@ -13,6 +13,7 @@ interface PageProps {
   readonly params: Promise<{ country: string; city: string }>;
 }
 
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 /**
@@ -20,7 +21,7 @@ export const dynamicParams = true;
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  return await getCityPageDirectoryPaths();
+  return getCityPageDirectoryPaths();
 }
 
 export async function generateMetadata({

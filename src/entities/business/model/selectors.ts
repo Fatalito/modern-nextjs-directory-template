@@ -1,5 +1,4 @@
-import type { Business } from "@/entities/business";
-import type { ContactChannel } from "@/entities/contact";
+import type { Business, ContactChannel } from "@/shared/model";
 
 /**
  * Find all businesses assigned to a specific user

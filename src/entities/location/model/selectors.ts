@@ -1,4 +1,4 @@
-import type { Location } from "@/entities/location";
+import type { Location } from "@/shared/model";
 
 /**
  * Filters locations to return only top-level countries (no parent).

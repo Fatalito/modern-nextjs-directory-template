@@ -1,28 +1,38 @@
+// @vitest-environment happy-dom
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { BusinessDirectoryLayout } from "./business-directory-layout";
 
 describe("BusinessDirectoryLayout", () => {
   it("renders title, description, filters, and children", () => {
+    const props = {
+      title: "Directory Title",
+      description: "Directory description",
+      filters: <div data-testid="filter-container">Filters UI</div>,
+      author: "Test Author",
+      license: "MIT",
+    };
+
     render(
-      <BusinessDirectoryLayout
-        title="Directory Title"
-        description="Directory description"
-        filters={<div>Filters UI</div>}
-        author="Test Author"
-        license="MIT"
-      >
-        <div>Directory content</div>
+      <BusinessDirectoryLayout {...props}>
+        <div data-testid="main-content">Directory content</div>
       </BusinessDirectoryLayout>,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Directory Title" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Directory description")).toBeInTheDocument();
-    expect(screen.getByText("Filters UI")).toBeInTheDocument();
-    expect(screen.getByText("Directory content")).toBeInTheDocument();
-    expect(screen.getByText(/Test Author/i)).toBeInTheDocument();
-    expect(screen.getByText(/MIT/i)).toBeInTheDocument();
+    const header = screen.getByRole("banner");
+    expect(header).toBeInTheDocument();
+    expect(header).toContainElement(screen.getByTestId("filter-container"));
+    expect(header).toContainElement(
+      screen.getByRole("heading", { level: 1, name: props.title }),
+    );
+    expect(header).toContainElement(screen.getByText(props.description));
+
+    const main = screen.getByRole("main");
+    expect(main).toBeInTheDocument();
+    expect(main).toContainElement(screen.getByTestId("main-content"));
+
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent(props.author);
+    expect(footer).toHaveTextContent(props.license);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLocation } from "@/shared/api/seed-factories";
+import { createLocation } from "@/shared/testing";
 import { isLocationChildOf } from "./validation";
 
 describe("Location Validation", () => {
