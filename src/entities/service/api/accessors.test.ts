@@ -4,7 +4,7 @@ import { createServiceRaw } from "@/shared/testing";
 import { getAllServices, getServiceById, getServiceBySlug } from "./accessors";
 
 describe("Service Accessors", () => {
-  let service: ReturnType<typeof createServiceRaw>;
+  let service!: ReturnType<typeof createServiceRaw>;
 
   beforeEach(async () => {
     service = createServiceRaw({

@@ -4,7 +4,7 @@ import { createUserRaw } from "@/shared/testing";
 import { getAllUsers, getUserById } from "./accessors";
 
 describe("User Accessors", () => {
-  let user: ReturnType<typeof createUserRaw>;
+  let user!: ReturnType<typeof createUserRaw>;
 
   beforeEach(async () => {
     user = createUserRaw({ name: "Test User" });

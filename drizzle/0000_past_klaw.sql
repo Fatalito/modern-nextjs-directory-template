@@ -25,7 +25,7 @@ CREATE TABLE `businesses` (
 	`directory_name` text NOT NULL,
 	`published_at` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
 	FOREIGN KEY (`manager_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`location_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE restrict
 );
@@ -33,6 +33,7 @@ CREATE TABLE `businesses` (
 CREATE UNIQUE INDEX `businesses_slug_unique` ON `businesses` (`slug`);--> statement-breakpoint
 CREATE INDEX `businesses_location_id_idx` ON `businesses` (`location_id`);--> statement-breakpoint
 CREATE INDEX `businesses_manager_id_idx` ON `businesses` (`manager_id`);--> statement-breakpoint
+CREATE INDEX `businesses_category_idx` ON `businesses` (`category`);--> statement-breakpoint
 CREATE TABLE `locations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`slug` text NOT NULL,
@@ -41,7 +42,7 @@ CREATE TABLE `locations` (
 	`type` text NOT NULL,
 	`iso_code` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
 	FOREIGN KEY (`parent_id`) REFERENCES `locations`(`id`) ON UPDATE no action ON DELETE restrict
 );
 --> statement-breakpoint
@@ -54,7 +55,7 @@ CREATE TABLE `services` (
 	`icon` text,
 	`description` text,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL
+	`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `services_slug_unique` ON `services` (`slug`);--> statement-breakpoint
@@ -67,7 +68,7 @@ CREATE TABLE `users` (
 	`role` text DEFAULT 'business_owner' NOT NULL,
 	`contacts` text NOT NULL,
 	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` text DEFAULT (CURRENT_TIMESTAMP) NOT NULL,
 	`last_login` text
 );
 --> statement-breakpoint

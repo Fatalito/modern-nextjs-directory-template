@@ -1,4 +1,3 @@
-import type { NewUser } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 import { type User, UserSchema } from "@/shared/model";
 
@@ -26,7 +25,7 @@ const getUserDefaults = () => ({
 /**
  * Raw Factory (Flat) - Includes passwordHash for DB seeding
  */
-export const createUserRaw = (overrides: Partial<NewUser> = {}): NewUser => ({
+export const createUserRaw = (overrides: Partial<User> = {}): User => ({
   ...getUserDefaults(),
   ...overrides,
 });
@@ -35,6 +34,6 @@ export const createUserRaw = (overrides: Partial<NewUser> = {}): NewUser => ({
  * Rich Factory (UI) - Matches UserSchema (usually excludes sensitive data)
  */
 const rawUserMock = (overrides: Partial<User> = {}): User =>
-  createUserRaw(overrides as Partial<NewUser>) as User;
+  createUserRaw(overrides) as User;
 
 export const createUser = createSafeFactory(UserSchema, rawUserMock);

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as businessEntities from "@/entities/business";
-import * as locationEntities from "@/entities/location";
-import * as serviceEntities from "@/entities/service";
-import { Category } from "@/shared/api";
+import * as businessEntities from "@/entities/business/server";
+import * as locationEntities from "@/entities/location/server";
+import * as serviceEntities from "@/entities/service/server";
+import { Category } from "@/shared/model";
 import {
   createBusiness,
   createLocation,
@@ -14,34 +14,30 @@ import {
   getServicePageEntities,
 } from "./service-page";
 
-vi.mock("@/entities/business", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/business")>();
+vi.mock("@/entities/business/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/business/server")>();
   return {
     ...actual,
     filterBusinesses: vi.fn(),
   };
 });
-vi.mock("@/entities/location", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/location")>();
+vi.mock("@/entities/location/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/location/server")>();
   return {
     ...actual,
     getAllLocations: vi.fn(),
   };
 });
-vi.mock("@/entities/service", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/service")>();
+vi.mock("@/entities/service/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/service/server")>();
   return {
     ...actual,
     getAllServices: vi.fn(),
     getServiceBySlug: vi.fn(),
   };
-});
-
-vi.mock("react", async () => {
-  const { createReactCacheMock } = await import(
-    "@/shared/testing/react-cache-mock"
-  );
-  return createReactCacheMock();
 });
 
 describe("Service Page Loaders", () => {
@@ -64,7 +60,7 @@ describe("Service Page Loaders", () => {
 
       const result = await getServicePageEntities("web-design");
 
-      expect(result).toEqual({ service: mockService });
+      expect(result).toEqual(mockService);
       expect(serviceEntities.getServiceBySlug).toHaveBeenCalledWith(
         "web-design",
       );
@@ -97,7 +93,7 @@ describe("Service Page Loaders", () => {
       const data = await getServicePageData("web-design");
 
       expect(data).toEqual({
-        entities: { service: mockService },
+        entities: mockService,
         filters: {
           locations: [mockLocation],
           services: [mockService],

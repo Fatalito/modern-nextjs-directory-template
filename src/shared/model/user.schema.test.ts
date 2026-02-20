@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createUser } from "@/shared/testing";
-import { UserSchema } from "./schema";
+import { UserSchema } from "./user.schema";
 
 describe("UserSchema", () => {
   it("validates a complete user", () => {

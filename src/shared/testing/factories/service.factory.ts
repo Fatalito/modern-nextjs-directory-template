@@ -1,4 +1,3 @@
-import type { NewService } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 import { type Service, ServiceSchema } from "@/shared/model";
 
@@ -16,9 +15,7 @@ const getServiceDefaults = () => ({
 /**
  * Raw Factory (Flat) - Use this for seeding and backend tests where you want a simple, flat object that matches the database schema.
  */
-export const createServiceRaw = (
-  overrides: Partial<NewService> = {},
-): NewService => {
+export const createServiceRaw = (overrides: Partial<Service> = {}): Service => {
   return {
     ...getServiceDefaults(),
     ...overrides,
@@ -29,6 +26,6 @@ export const createServiceRaw = (
  * Rich Factory (Nested) - Use this for frontend tests and anywhere you want the full nested structure with validation.
  */
 const rawServiceMock = (overrides: Partial<Service> = {}): Service =>
-  createServiceRaw(overrides as Partial<NewService>) as Service;
+  createServiceRaw(overrides) as Service;
 
 export const createService = createSafeFactory(ServiceSchema, rawServiceMock);

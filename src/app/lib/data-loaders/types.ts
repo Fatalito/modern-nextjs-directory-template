@@ -1,7 +1,9 @@
-import type { Business } from "@/entities/business";
-import type { Location } from "@/entities/location";
-import type { Service } from "@/entities/service";
-import type { CategoryValue } from "@/shared/api";
+import type {
+  Business,
+  CategoryValue,
+  Location,
+  Service,
+} from "@/shared/model";
 
 export interface DirectoryPageData<TEntities> {
   entities: TEntities;

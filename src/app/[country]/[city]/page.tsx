@@ -6,6 +6,7 @@ import {
   getCityPageEntities,
 } from "@/app/lib/data-loaders/city-page";
 import { pageContent, siteConfig } from "@/shared/config";
+import { safeGenerateStaticParams } from "@/shared/lib/generate-static-params";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -20,11 +21,7 @@ export const dynamicParams = true;
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  try {
-    return await getCityPageDirectoryPaths();
-  } catch {
-    return [];
-  }
+  return safeGenerateStaticParams(getCityPageDirectoryPaths, "City Page");
 }
 
 export async function generateMetadata({

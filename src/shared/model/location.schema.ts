@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { LocationType } from "@/shared/api";
-import { BaseEntitySchema, SlugSchema } from "@/shared/lib";
+import { BaseEntitySchema } from "./base-schema";
+import { LocationType } from "./enums";
+import { SlugSchema } from "./slug";
 
 export const BaseLocationShape = BaseEntitySchema.extend({
   // For a Country, parentId is null. For a City, it's the Country's UUID.

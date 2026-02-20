@@ -1,6 +1,11 @@
-import type { CategoryValue, NewBusiness } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
-import { type Business, BusinessSchema } from "@/shared/model";
+import {
+  type Business,
+  type BusinessRaw,
+  BusinessRawSchema,
+  BusinessSchema,
+  type CategoryValue,
+} from "@/shared/model";
 
 const MOCK_BUSINESS_IMAGES: Record<CategoryValue, string> = {
   retail:
@@ -34,15 +39,16 @@ const getBusinessDefaults = () => ({
 });
 
 /**
- * Raw Factory (Flat) - Use this for seeding and backend tests where you want a simple, flat object that matches the database schema.
+ * Raw Factory (Flat) - matches the Drizzle `businesses` table shape exactly.
+ * Validated against BusinessRawSchema. Use for seeding and integration tests.
  */
 export const createBusinessRaw = (
-  overrides: Partial<NewBusiness> = {},
-): NewBusiness => {
+  overrides: Partial<BusinessRaw> = {},
+): BusinessRaw => {
   const base = getBusinessDefaults();
   const id = overrides.id ?? base.id;
 
-  return {
+  return BusinessRawSchema.parse({
     ...base,
     id,
     managerId: crypto.randomUUID(),
@@ -50,7 +56,7 @@ export const createBusinessRaw = (
     directoryName: `folder-${id.slice(0, 8)}`,
     images: [getMockImage(overrides.category ?? "services")],
     ...overrides,
-  };
+  });
 };
 
 /**
@@ -59,13 +65,21 @@ export const createBusinessRaw = (
  * but not stored directly in the DB.
  */
 const rawBusinessMock = (overrides: Partial<Business> = {}): Business => {
-  const raw = createBusinessRaw(overrides as Partial<NewBusiness & Business>);
+  const { location, services, serviceIds, ...rawOverrides } = overrides;
+  const raw = createBusinessRaw({
+    ...rawOverrides,
+    ...(location ? { locationId: location.id } : {}),
+  });
 
   return {
     ...raw,
-    location: { id: raw.locationId, name: "Test City", slug: "test-city" },
-    serviceIds: [],
-    services: [],
+    location: location ?? {
+      id: raw.locationId,
+      name: "Test City",
+      slug: "test-city",
+    },
+    serviceIds: serviceIds ?? services?.map((s) => s.id) ?? [],
+    services: services ?? [],
   } as Business;
 };
 

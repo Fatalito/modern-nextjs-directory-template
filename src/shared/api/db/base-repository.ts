@@ -17,16 +17,21 @@ export interface ISlugRepository<T> extends IBaseRepository<T> {
 
 /**
  * Factory for a standard Drizzle repository (ID lookups).
- * Always returns the precise Drizzle row type — no unsafe casts.
- * Callers that need richer domain types (with relations) must override these methods.
+ * Pass a `parse` function to map raw Drizzle rows to a domain type at the boundary.
+ * Without `parse`, returns the raw Drizzle row type unchanged.
  */
-export const createRepository = <TTable extends TableWithId>(
+export const createRepository = <
+  TTable extends TableWithId,
+  TDomain = InferSelectModel<TTable>,
+>(
   db: DB,
   table: TTable,
-): IBaseRepository<InferSelectModel<TTable>> => ({
+  parse: (raw: InferSelectModel<TTable>) => TDomain = (r) =>
+    r as unknown as TDomain,
+): IBaseRepository<TDomain> => ({
   getAll: async () => {
     const results = await db.select().from(table);
-    return results as InferSelectModel<TTable>[];
+    return results.map(parse);
   },
 
   getById: async (id: string) => {
@@ -35,20 +40,25 @@ export const createRepository = <TTable extends TableWithId>(
       .from(table)
       .where(eq(table.id, id))
       .limit(1);
-    return result as InferSelectModel<TTable> | undefined;
+    return result ? parse(result) : undefined;
   },
 });
 
 /**
  * Factory for a Drizzle repository with slug support.
- * Always returns the precise Drizzle row type — no unsafe casts.
- * Callers that need richer domain types (with relations) must override these methods.
+ * Pass a `parse` function to map raw Drizzle rows to a domain type at the boundary.
+ * Without `parse`, returns the raw Drizzle row type unchanged.
  */
-export const createSlugRepository = <TTable extends TableWithSlug>(
+export const createSlugRepository = <
+  TTable extends TableWithSlug,
+  TDomain = InferSelectModel<TTable>,
+>(
   db: DB,
   table: TTable,
-): ISlugRepository<InferSelectModel<TTable>> => {
-  const base = createRepository(db, table);
+  parse: (raw: InferSelectModel<TTable>) => TDomain = (r) =>
+    r as unknown as TDomain,
+): ISlugRepository<TDomain> => {
+  const base = createRepository(db, table, parse);
 
   return {
     ...base,
@@ -58,7 +68,7 @@ export const createSlugRepository = <TTable extends TableWithSlug>(
         .from(table)
         .where(eq(table.slug, slug))
         .limit(1);
-      return result as InferSelectModel<TTable> | undefined;
+      return result ? parse(result) : undefined;
     },
   };
 };

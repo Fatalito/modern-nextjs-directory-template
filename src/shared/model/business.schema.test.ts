@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createBusiness } from "@/shared/testing";
-import { BusinessSchema } from "./schema";
+import { BusinessSchema } from "./business.schema";
 
 describe("BusinessSchema Validation", () => {
   it.each([

@@ -7,9 +7,20 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import type { Contact } from "@/shared/model";
+import type {
+  CategoryValue,
+  Contact,
+  LocationTypeValue,
+  UserRoleType,
+} from "@/shared/model";
 import { jsonColumn } from "./custom-types";
-import type { CategoryValue, LocationTypeValue, UserRoleType } from "./types";
+
+const updatedAtDefaults = {
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(CURRENT_TIMESTAMP)`)
+    .$onUpdateFn(() => new Date().toISOString()),
+};
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
@@ -21,7 +32,7 @@ export const users = sqliteTable("users", {
   contacts: jsonColumn<Contact[]>("contacts").notNull(),
 
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  ...updatedAtDefaults,
   lastLogin: text("last_login"),
 });
 
@@ -40,7 +51,7 @@ export const locations = sqliteTable(
     type: text("type").$type<LocationTypeValue>().notNull(),
     isoCode: text("iso_code"),
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+    ...updatedAtDefaults,
   },
   (t) => [
     uniqueIndex("locations_slug_parent_unique").on(t.slug, t.parentId),
@@ -55,7 +66,7 @@ export const services = sqliteTable("services", {
   icon: text("icon"),
   description: text("description"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  ...updatedAtDefaults,
 });
 
 export const businesses = sqliteTable(
@@ -88,11 +99,12 @@ export const businesses = sqliteTable(
     directoryName: text("directory_name").notNull(),
     publishedAt: text("published_at"),
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-    updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+    ...updatedAtDefaults,
   },
   (t) => [
     index("businesses_location_id_idx").on(t.locationId),
     index("businesses_manager_id_idx").on(t.managerId),
+    index("businesses_category_idx").on(t.category),
   ],
 );
 

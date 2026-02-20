@@ -26,7 +26,7 @@ describe("db", () => {
   });
 
   describe("logger", () => {
-    let consoleSpy: ReturnType<typeof vi.spyOn>;
+    let consoleSpy!: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
       consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});

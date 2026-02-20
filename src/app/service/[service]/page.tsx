@@ -6,6 +6,7 @@ import {
   getServicePageEntities,
 } from "@/app/lib/data-loaders/service-page";
 import { pageContent, siteConfig } from "@/shared/config";
+import { safeGenerateStaticParams } from "@/shared/lib/generate-static-params";
 import { BusinessDirectoryLayout } from "@/widgets/business-directory-layout";
 import { BusinessList, BusinessListFilters } from "@/widgets/business-list";
 
@@ -19,11 +20,7 @@ export const dynamicParams = true;
  * @returns Array of param objects for static page generation
  */
 export async function generateStaticParams() {
-  try {
-    return await getServicePageDirectoryPaths();
-  } catch {
-    return [];
-  }
+  return safeGenerateStaticParams(getServicePageDirectoryPaths, "Service Page");
 }
 
 export async function generateMetadata({
@@ -31,10 +28,9 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { service: serviceSlug } = await params;
 
-  const data = await getServicePageEntities(serviceSlug);
+  const service = await getServicePageEntities(serviceSlug);
 
-  const service = data?.service;
-  if (!data || !service) return pageContent.notFound.service;
+  if (!service) return pageContent.notFound.service;
 
   return pageContent.servicePage.metadata(service.name);
 }
@@ -47,8 +43,7 @@ export default async function ServicePage({ params }: PageProps) {
     notFound();
   }
 
-  const { entities, filters, results } = data;
-  const { service } = entities;
+  const { entities: service, filters, results } = data;
 
   return (
     <BusinessDirectoryLayout

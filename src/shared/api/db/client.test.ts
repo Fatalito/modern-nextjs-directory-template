@@ -7,8 +7,8 @@ describe("Database Client Sanity", () => {
     expect(result.rows[0].connection_test).toBe(1);
 
     const dbCheck = await client.execute("PRAGMA database_list");
-    const dbPath = dbCheck.rows[0].file as string;
+    const dbPath = dbCheck.rows[0].file;
 
-    expect(dbPath === "" || dbPath === null).toBe(true);
+    expect(dbPath).toBeFalsy();
   });
 });

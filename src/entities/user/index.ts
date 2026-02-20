@@ -1,3 +1,2 @@
-export { getAllUsers, getUserById } from "./api/accessors";
-export { UserRefSchema, UserSchema } from "./model/schema";
-export type { NewUser, User, UserRef } from "./model/types";
+// Server-only accessors (getAllUsers, getUserById)
+// are re-exported via "./server.ts" — import from "@/entities/user/server".

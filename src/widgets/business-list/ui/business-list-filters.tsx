@@ -1,7 +1,6 @@
 import Link from "next/link";
-import type { Location } from "@/entities/location";
 import { selectAllCountries, selectCitiesByCountry } from "@/entities/location";
-import type { Service } from "@/entities/service";
+import type { Location, Service } from "@/shared/model";
 import { Button } from "@/shared/ui";
 
 interface BusinessListFiltersProps {

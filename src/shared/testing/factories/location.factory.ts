@@ -1,4 +1,3 @@
-import type { NewLocation } from "@/shared/api";
 import { createSafeFactory, getBaseDefaults } from "@/shared/lib";
 import { type Location, LocationSchema } from "@/shared/model";
 
@@ -18,8 +17,8 @@ const getLocationDefaults = () => ({
  * Raw Factory (Flat) - Use this for seeding and backend tests where you want a simple, flat object that matches the database schema.
  */
 export const createLocationRaw = (
-  overrides: Partial<NewLocation> = {},
-): NewLocation => {
+  overrides: Partial<Location> = {},
+): Location => {
   return {
     ...getLocationDefaults(),
     ...overrides,
@@ -32,7 +31,7 @@ export const createLocationRaw = (
  * because it's a self-referencing table, but we keep the structure consistent.
  */
 const rawLocationMock = (overrides: Partial<Location> = {}): Location =>
-  createLocationRaw(overrides as Partial<NewLocation>) as Location;
+  createLocationRaw(overrides) as Location;
 
 export const createLocation = createSafeFactory(
   LocationSchema,
@@ -44,9 +43,9 @@ export const createLocation = createSafeFactory(
  * Use when tests need a valid location hierarchy without seeding the DB.
  */
 export const createCountryCityRaw = (
-  countryOverrides: Partial<NewLocation> = {},
-  cityOverrides: Partial<NewLocation> = {},
-) => {
+  countryOverrides: Partial<Location> = {},
+  cityOverrides: Partial<Location> = {},
+): { country: Location; city: Location } => {
   const country = createLocationRaw({
     slug: "uk",
     name: "United Kingdom",

@@ -6,9 +6,11 @@ import {
   type InferSelectModel,
   type SQL,
 } from "drizzle-orm";
-import type { CategoryValue, DB } from "@/shared/api";
-import { createSlugRepository, schema } from "@/shared/api";
-import type { Business } from "../model/types";
+import { createSlugRepository, type DB, schema } from "@/shared/api";
+import type { Business, CategoryValue } from "@/shared/model";
+import { mapToBusiness } from "../model/mapper";
+
+const DEFAULT_POPULAR_PATHS_LIMIT = 500;
 
 type BaseBusiness = InferSelectModel<typeof schema.businesses>;
 
@@ -26,16 +28,16 @@ const WITH_BUSINESS_RELATIONS = {
   businessServices: { with: { service: true } },
 } as const;
 
-export const createBusinessRepository = (db: DB) => {
-  const base = createSlugRepository(db, schema.businesses);
-  const mapToBusiness = ({
-    businessServices: bs,
-    ...rest
-  }: BusinessWithRelations): Business => ({
-    ...rest,
+const adapt = ({ businessServices: bs, ...rest }: BusinessWithRelations) =>
+  mapToBusiness(rest, {
     services: bs.map((entry) => entry.service),
     serviceIds: bs.map((entry) => entry.serviceId),
+    location: rest.location,
+    manager: rest.manager,
   });
+
+export const createBusinessRepository = (db: DB) => {
+  const base = createSlugRepository(db, schema.businesses);
 
   return {
     ...base,
@@ -44,14 +46,14 @@ export const createBusinessRepository = (db: DB) => {
         where: eq(schema.businesses.id, id),
         with: WITH_BUSINESS_RELATIONS,
       });
-      return result ? mapToBusiness(result) : undefined;
+      return result ? adapt(result) : undefined;
     },
 
     getAll: async (): Promise<Business[]> => {
       const results = await db.query.businesses.findMany({
         with: WITH_BUSINESS_RELATIONS,
       });
-      return results.map(mapToBusiness);
+      return results.map(adapt);
     },
     getBySlug: async (slug: string): Promise<Business | undefined> => {
       const result = await db.query.businesses.findFirst({
@@ -61,7 +63,7 @@ export const createBusinessRepository = (db: DB) => {
 
       if (!result) return undefined;
 
-      return mapToBusiness(result);
+      return adapt(result);
     },
     filters: async (params: {
       category?: CategoryValue;
@@ -96,9 +98,9 @@ export const createBusinessRepository = (db: DB) => {
         where: filters.length > 0 ? and(...filters) : undefined,
         with: WITH_BUSINESS_RELATIONS,
       });
-      return results.map(mapToBusiness);
+      return results.map(adapt);
     },
-    getPopularPaths: async (limit = 500) => {
+    getPopularPaths: async (limit = DEFAULT_POPULAR_PATHS_LIMIT) => {
       const parentLocations = aliasedTable(schema.locations, "parent");
 
       return db

@@ -1,27 +1,39 @@
 import { aliasedTable, and, eq, isNull } from "drizzle-orm";
-import type { DB } from "@/shared/api";
-import { createSlugRepository, schema } from "@/shared/api";
+import { createSlugRepository, type DB, schema } from "@/shared/api";
+import { type Location, LocationSchema } from "@/shared/model";
 
 export const createLocationRepository = (db: DB) => {
-  const base = createSlugRepository(db, schema.locations);
+  const base = createSlugRepository(db, schema.locations, (r) =>
+    LocationSchema.parse(r),
+  );
 
   return {
     ...base,
-    getAllCountries: async () =>
-      await db.query.locations.findMany({
+
+    getAllCountries: async (): Promise<Location[]> => {
+      const results = await db.query.locations.findMany({
         where: and(
           isNull(schema.locations.parentId),
           eq(schema.locations.type, "country"),
         ),
-      }),
-    getCitiesByCountry: async (countryId: string) =>
-      await db.query.locations.findMany({
+      });
+      return results.map((r) => LocationSchema.parse(r));
+    },
+
+    getCitiesByCountry: async (countryId: string): Promise<Location[]> => {
+      const results = await db.query.locations.findMany({
         where: and(
           eq(schema.locations.parentId, countryId),
           eq(schema.locations.type, "city"),
         ),
-      }),
-    getCityAndCountryBySlugs: async (citySlug: string, countrySlug: string) => {
+      });
+      return results.map((r) => LocationSchema.parse(r));
+    },
+
+    getCityAndCountryBySlugs: async (
+      citySlug: string,
+      countrySlug: string,
+    ): Promise<{ city: Location; country: Location } | undefined> => {
       const parentLocations = aliasedTable(schema.locations, "parent");
 
       const [result] = await db
@@ -46,8 +58,12 @@ export const createLocationRepository = (db: DB) => {
 
       if (!result) return undefined;
 
-      return result;
+      return {
+        city: LocationSchema.parse(result.city),
+        country: LocationSchema.parse(result.country),
+      };
     },
+
     getCityCountryDirectoryPaths: async (limit = 1000) => {
       const parentLocations = aliasedTable(schema.locations, "parent");
 

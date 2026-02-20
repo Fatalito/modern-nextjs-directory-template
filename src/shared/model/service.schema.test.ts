@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createService } from "@/shared/testing";
-import { ServiceSchema } from "./schema";
+import { ServiceSchema } from "./service.schema";
 
 describe("ServiceSchema", () => {
   it("validates a complete service", () => {

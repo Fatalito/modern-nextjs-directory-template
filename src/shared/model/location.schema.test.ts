@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createLocation } from "@/shared/testing";
-import { LocationSchema } from "./schema";
+import { LocationSchema } from "./location.schema";
 
 describe("LocationSchema", () => {
   const location = createLocation();

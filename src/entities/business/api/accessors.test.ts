@@ -14,15 +14,18 @@ import {
 } from "./accessors";
 
 describe("Business Accessors", () => {
-  let user: ReturnType<typeof createUserRaw>;
-  let country: ReturnType<typeof createCountryCityRaw>["country"];
-  let city: ReturnType<typeof createCountryCityRaw>["city"];
-  let service: ReturnType<typeof createServiceRaw>;
-  let business: ReturnType<typeof createBusinessRaw>;
+  let user!: ReturnType<typeof createUserRaw>;
+  let country!: ReturnType<typeof createCountryCityRaw>["country"];
+  let city!: ReturnType<typeof createCountryCityRaw>["city"];
+  let service!: ReturnType<typeof createServiceRaw>;
+  let business!: ReturnType<typeof createBusinessRaw>;
 
   beforeEach(async () => {
     user = createUserRaw();
-    ({ country, city } = createCountryCityRaw());
+    ({ country, city } = createCountryCityRaw(
+      { name: "uk", slug: "uk" },
+      { name: "london", slug: "london" },
+    ));
     service = createServiceRaw({ slug: "web-design" });
     business = createBusinessRaw({
       name: "Test Cafe",

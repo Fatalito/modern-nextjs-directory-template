@@ -70,20 +70,24 @@ describe("ContactSchema Validation", () => {
   });
 
   describe("Discriminated union behavior", () => {
-    it("should enforce channel-specific validation", () => {
-      const phoneResult = ContactSchema.safeParse({
-        channel: "phone",
-        locale: "en",
-        value: "@username",
-      });
-      expect(phoneResult.success).toBe(false);
-
-      const whatsappResult = ContactSchema.safeParse({
-        channel: "whatsapp",
-        locale: "en",
-        value: "@username",
-      });
-      expect(whatsappResult.success).toBe(false);
+    it.each([
+      [
+        "phone with null label is accepted",
+        { channel: "phone", locale: "en", value: "1234567890", label: null },
+        true,
+      ],
+      [
+        "phone rejects non-phone value",
+        { channel: "phone", locale: "en", value: "@username" },
+        false,
+      ],
+      [
+        "whatsapp rejects non-phone value",
+        { channel: "whatsapp", locale: "en", value: "@username" },
+        false,
+      ],
+    ] as const)("%s", (_, input, expected) => {
+      expect(ContactSchema.safeParse(input).success).toBe(expected);
     });
   });
 });

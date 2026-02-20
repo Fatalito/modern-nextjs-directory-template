@@ -1,9 +1,23 @@
 {
   "name": "modern-nextjs-directory-template",
   "version": "0.1.0",
+  "description": "A modern, scalable Next.js directory template built with Feature-Sliced Design, Drizzle ORM, and React 19.",
+  "keywords": [
+    "nextjs",
+    "directory",
+    "template",
+    "feature-sliced-design",
+    "drizzle-orm",
+    "react19",
+    "tailwindcss",
+    "typescript"
+  ],
   "license": "Apache-2.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "clean": "rm -rf .next next-env.d.ts",
     "clean:all": "npm run clean && rm -rf node_modules coverage playwright-report test-results tsconfig.tsbuildinfo",
@@ -52,10 +66,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.2",
+    "@biomejs/biome": "2.4.3",
     "@cyclonedx/cyclonedx-npm": "^4.1.2",
     "@playwright/test": "^1.58.2",
-    "@storybook/addon-mcp": "^0.2.3",
+    "@storybook/addon-mcp": "^0.3.1",
     "@storybook/nextjs-vite": "^10.2.10",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/dom": "^10.4.1",

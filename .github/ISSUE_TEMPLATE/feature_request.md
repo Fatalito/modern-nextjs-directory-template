@@ -32,10 +32,10 @@ assignees: ''
 <details>
 <summary><b>View Implementation Details</b></summary>
 
-#### 1. Architecture & Strategy
-#### 2. Persistence & Data Fetching
-#### 3. Folder/Code Migration
-#### 4. QA & Automation
+## 1. Architecture & Strategy
+## 2. Persistence & Data Fetching
+## 3. Folder/Code Migration
+## 4. QA & Automation
 </details>
 
 ---

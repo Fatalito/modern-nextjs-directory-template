@@ -1,7 +1,2 @@
-export {
-  getAllServices,
-  getServiceById,
-  getServiceBySlug,
-} from "./api/accessors";
-export { ServiceRefSchema, ServiceSchema } from "./model/schema";
-export type { NewService, Service, ServiceRef } from "./model/types";
+// Server-only accessors (getAllServices, getServiceBySlug, getServiceById)
+// are re-exported via "./server.ts" — import from "@/entities/service/server".

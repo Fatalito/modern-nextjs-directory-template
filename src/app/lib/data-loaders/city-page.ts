@@ -1,8 +1,7 @@
-import { cache } from "react";
 import {
   getCityAndCountryBySlugs,
   getCityCountryDirectoryPaths,
-} from "@/entities/location";
+} from "@/entities/location/server";
 import { loadDirectoryPageData } from "./factory";
 
 /**
@@ -12,15 +11,8 @@ import { loadDirectoryPageData } from "./factory";
  * @returns An object containing the country and city entities.
  *         Returns undefined if the city is not a child of the country or if any of the entities are not found.
  */
-export const getCityPageEntities = cache(
-  async (countrySlug: string, citySlug: string) => {
-    const countryAndCity = await getCityAndCountryBySlugs(
-      citySlug,
-      countrySlug,
-    );
-    return countryAndCity;
-  },
-);
+export const getCityPageEntities = (countrySlug: string, citySlug: string) =>
+  getCityAndCountryBySlugs(citySlug, countrySlug);
 
 /**
  * Fetches and aggregates all necessary data for the City page route.
@@ -28,12 +20,10 @@ export const getCityPageEntities = cache(
  * @param citySlug - The slug of the city.
  * @returns An object containing the entities, filters, and results for the City page.
  */
-export const getCityPageData = (countrySlug: string, citySlug: string) => {
-  return loadDirectoryPageData(
+export const getCityPageData = (countrySlug: string, citySlug: string) =>
+  loadDirectoryPageData(
     () => getCityPageEntities(countrySlug, citySlug),
     ({ city }) => ({ locationId: city?.id }),
   );
-};
 
-export const getCityPageDirectoryPaths = async () =>
-  getCityCountryDirectoryPaths();
+export const getCityPageDirectoryPaths = () => getCityCountryDirectoryPaths();

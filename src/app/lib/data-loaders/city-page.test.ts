@@ -1,19 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import * as businessEntities from "@/entities/business";
-import * as locationEntities from "@/entities/location";
+import * as businessEntities from "@/entities/business/server";
+import * as locationEntities from "@/entities/location/server";
 import { createBusiness, createLocation } from "@/shared/testing";
 import { getCityPageData, getCityPageDirectoryPaths } from "./city-page";
 
-vi.mock("@/entities/business", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/business")>();
+vi.mock("@/entities/business/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/business/server")>();
   return {
     ...actual,
     filterBusinesses: vi.fn(),
   };
 });
 
-vi.mock("@/entities/location", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/entities/location")>();
+vi.mock("@/entities/location/server", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/entities/location/server")>();
   return {
     ...actual,
     getAllLocations: vi.fn(),
@@ -22,19 +24,13 @@ vi.mock("@/entities/location", async (importOriginal) => {
   };
 });
 
-const mockCountry = {
-  ...createLocation({ slug: "uk", name: "United Kingdom" }),
-  isoCode: null as string | null,
-};
-const mockCity = {
-  ...createLocation({
-    slug: "london",
-    name: "London",
-    type: "city",
-    parentId: mockCountry.id,
-  }),
-  isoCode: null as string | null,
-};
+const mockCountry = createLocation({ slug: "uk", name: "United Kingdom" });
+const mockCity = createLocation({
+  slug: "london",
+  name: "London",
+  type: "city",
+  parentId: mockCountry.id,
+});
 
 describe("City Page Data Loader", () => {
   beforeEach(() => {

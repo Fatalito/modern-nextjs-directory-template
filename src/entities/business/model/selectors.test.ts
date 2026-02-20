@@ -69,25 +69,13 @@ describe("Business Selectors", () => {
       }),
     ];
 
-    it("should handle all filter combinations", () => {
-      const withBothFilters = selectBusinessesByCriteria(list, {
-        serviceId: service.id,
-        locationId: location.id,
-      });
-      expect(withBothFilters).toHaveLength(1);
-
-      const withServiceFilter = selectBusinessesByCriteria(list, {
-        serviceId: service.id,
-      });
-      expect(withServiceFilter).toHaveLength(2);
-
-      const withLocationFilter = selectBusinessesByCriteria(list, {
-        locationId: location.id,
-      });
-      expect(withLocationFilter).toHaveLength(2);
-
-      const withoutFilters = selectBusinessesByCriteria(list, {});
-      expect(withoutFilters).toHaveLength(3);
+    it.each([
+      ["both filters", { serviceId: service.id, locationId: location.id }, 1],
+      ["service filter only", { serviceId: service.id }, 2],
+      ["location filter only", { locationId: location.id }, 2],
+      ["no filters", {}, 3],
+    ])("%s → %i result(s)", (_, criteria, expected) => {
+      expect(selectBusinessesByCriteria(list, criteria)).toHaveLength(expected);
     });
   });
 });

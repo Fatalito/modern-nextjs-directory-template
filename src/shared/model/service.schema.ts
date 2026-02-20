@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { BaseEntitySchema, SlugSchema } from "@/shared/lib";
+import { BaseEntitySchema } from "./base-schema";
+import { SlugSchema } from "./slug";
 
 export const ServiceSchema = BaseEntitySchema.extend({
   name: z.string().min(2),

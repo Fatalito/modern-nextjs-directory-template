@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4a8db7e9-8add-4031-8fb8-b059e7ce78d7",
+  "id": "dd85a806-640b-4da4-8cb9-ff77356ae41a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "business_services": {
@@ -187,7 +187,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(CURRENT_TIMESTAMP)"
         }
       },
       "indexes": {
@@ -204,6 +204,11 @@
         "businesses_manager_id_idx": {
           "name": "businesses_manager_id_idx",
           "columns": ["manager_id"],
+          "isUnique": false
+        },
+        "businesses_category_idx": {
+          "name": "businesses_category_idx",
+          "columns": ["category"],
           "isUnique": false
         }
       },
@@ -290,7 +295,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(CURRENT_TIMESTAMP)"
         }
       },
       "indexes": {
@@ -372,7 +377,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(CURRENT_TIMESTAMP)"
         }
       },
       "indexes": {
@@ -454,7 +459,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
+          "default": "(CURRENT_TIMESTAMP)"
         },
         "last_login": {
           "name": "last_login",

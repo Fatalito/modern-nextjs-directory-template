@@ -4,7 +4,7 @@ import { createUserRaw } from "@/shared/testing";
 import { userRepository } from "./index";
 
 describe("User Repository", () => {
-  let user: ReturnType<typeof createUserRaw>;
+  let user!: ReturnType<typeof createUserRaw>;
   beforeEach(async () => {
     user = createUserRaw();
     await db.insert(schema.users).values([user]);

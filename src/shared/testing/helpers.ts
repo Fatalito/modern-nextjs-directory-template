@@ -1,54 +1,47 @@
-import type { NewBusiness, NewService } from "@/shared/api";
-import { db, schema } from "@/shared/api";
+import type { BusinessRaw, Service } from "@/shared/model";
 import { createBusinessRaw } from "./factories/business.factory";
 import { createCountryCityRaw } from "./factories/location.factory";
 import { createServiceRaw } from "./factories/service.factory";
 import { createUserRaw } from "./factories/user.factory";
 
-type SeedOverrides = {
-  business?: Partial<NewBusiness>;
-  service?: Partial<NewService>;
+type BaseBusinessOptions = {
+  business?: Partial<BusinessRaw>;
+  service?: Partial<Service>;
   // Passing these IDs signals that we should reuse existing context
   userId?: string;
   locationId?: string;
 };
+
 /**
- * Seeds a standard directory environment.
- * Perfect for integration tests that need a pre-existing user, location, and business.
+ * Creates a standard directory environment as raw DB-ready objects.
+ * When userId or locationId are provided, skips creating those entities.
+ * The caller is responsible for inserting the returned objects.
  */
-export const seedBaseBusiness = async (overrides: SeedOverrides = {}) => {
-  return await db.transaction(async (tx) => {
-    let userId = overrides.userId;
-    if (!userId) {
-      const user = createUserRaw();
-      await tx.insert(schema.users).values(user);
-      userId = user.id;
-    }
+export const createBaseBusiness = (options: BaseBusinessOptions = {}) => {
+  let user: ReturnType<typeof createUserRaw> | null = null;
+  let userId: string;
+  if (options.userId) {
+    userId = options.userId;
+  } else {
+    user = createUserRaw();
+    userId = user.id;
+  }
 
-    let locationId = overrides.locationId;
-    if (!locationId) {
-      const locations = createCountryCityRaw();
-      const city = locations.city;
-      const country = locations.country;
-      await tx.insert(schema.locations).values([country, city]);
-      locationId = city.id;
-    }
+  let locations: ReturnType<typeof createCountryCityRaw> | null = null;
+  let locationId: string;
+  if (options.locationId) {
+    locationId = options.locationId;
+  } else {
+    locations = createCountryCityRaw();
+    locationId = locations.city.id;
+  }
 
-    const service = createServiceRaw(overrides.service);
-    await tx.insert(schema.services).values(service);
-
-    const business = createBusinessRaw({
-      managerId: userId,
-      locationId: locationId,
-      ...overrides.business,
-    });
-    await tx.insert(schema.businesses).values(business);
-
-    await tx.insert(schema.businessServices).values({
-      businessId: business.id,
-      serviceId: service.id,
-    });
-
-    return { userId, locationId, service, business };
+  const service = createServiceRaw(options.service);
+  const business = createBusinessRaw({
+    managerId: userId,
+    locationId,
+    ...options.business,
   });
+
+  return { user, locations, userId, locationId, service, business };
 };

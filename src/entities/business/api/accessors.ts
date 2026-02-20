@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { FilterCriteria } from "@/shared/api";
+import type { FilterCriteria } from "@/shared/model";
 import { businessRepository } from "./index";
 
 /**

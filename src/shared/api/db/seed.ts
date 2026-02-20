@@ -12,14 +12,12 @@ import * as schema from "./schema";
 export async function seed() {
   console.log("🌱 Starting Drizzle Seed...");
 
-  // 1. Users
   const user = createUserRaw({
     name: "Fatalito",
     email: "fatalito@directory.com",
     role: "agent",
   });
 
-  // 2. Locations
   const { country: france, city: paris } = createCountryCityRaw(
     { slug: "france", name: "France" },
     { slug: "paris", name: "Paris" },
@@ -32,7 +30,6 @@ export async function seed() {
   });
   const { country: uk, city: london } = createCountryCityRaw();
 
-  // 3. Services
   const webDesign = createServiceRaw({
     name: "Web Design",
     slug: "web-design",
@@ -50,7 +47,6 @@ export async function seed() {
     slug: "consulting",
   });
 
-  // 4. Businesses
   const techStudio = createBusinessRaw({
     name: "My Tech Studio",
     slug: "my-tech-studio",
@@ -113,7 +109,6 @@ export async function seed() {
       .values([techStudio, lilakIt, namasteRestaurant])
       .onConflictDoNothing();
 
-    // 5. Join Table
     await tx
       .insert(schema.businessServices)
       .values([

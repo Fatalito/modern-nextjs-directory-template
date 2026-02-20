@@ -68,8 +68,11 @@ jobs:
       - name: Build Storybook
         run: npm run storybook:build
 
-      - name: Push DB Schema & Seed
-        run: npm run db:push && npm run db:seed
+      - name: Push DB Schema
+        run: npm run db:push
+
+      - name: Seed DB Schema 
+        run: npm run db:seed
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

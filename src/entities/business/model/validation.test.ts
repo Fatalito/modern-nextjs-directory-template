@@ -3,8 +3,8 @@ import { createBusiness, createLocation } from "@/shared/testing";
 import { isBusinessLocationValid } from "./validation";
 
 describe("isBusinessLocationValid", () => {
-  let country: ReturnType<typeof createLocation>;
-  let city: ReturnType<typeof createLocation>;
+  let country!: ReturnType<typeof createLocation>;
+  let city!: ReturnType<typeof createLocation>;
 
   beforeEach(() => {
     country = createLocation({ type: "country" });
@@ -15,25 +15,25 @@ describe("isBusinessLocationValid", () => {
     {
       should: "reject undefined",
       expected: false,
-      bLocId: () => city?.id,
+      bLocId: () => city.id,
       loc: () => undefined,
     },
     {
       should: "reject country types",
       expected: false,
-      bLocId: () => country?.id,
+      bLocId: () => country.id,
       loc: () => country,
     },
     {
       should: "reject ID mismatches",
       expected: false,
-      bLocId: () => country?.id,
+      bLocId: () => country.id,
       loc: () => city,
     },
     {
       should: "accept matching city",
       expected: true,
-      bLocId: () => city?.id,
+      bLocId: () => city.id,
       loc: () => city,
     },
   ])("$should", ({ expected, bLocId, loc }) => {

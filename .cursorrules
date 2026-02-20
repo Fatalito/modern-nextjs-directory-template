@@ -1,60 +1,116 @@
 # AI Instructions & Project Rules
 
-You are an expert AI assistant working on a scalable **Next.js** project.
-These rules must be followed in every response, code generation, and refactoring task.
+This file is the single source of truth for coding rules.
+Both **Claude Code** and **Cursor** read it (`CLAUDE.md` is a symlink to this file).
 
-## ⚠️ Critical Checklist (Most Overlooked)
+---
 
-Before generating code, verify:
-1. **Write test first**: Write failing test → minimal pass → refactor green
-2. **FSD Public APIs**: Import only via public API; no internal paths; UI uses public API
-3. **Be DRY**: Refactor repeated logic; keep responses concise
-4. **Type Reuse**: Export types from schemas (no duplicate type definitions)
-5. **Single Responsibility**: Each module/factory does one thing
-6. **Schema Compliance**: Embedded schemas match constraints; mock/seed data uses valid UUIDs
-7. **Biome Compliance**: Format and organise imports before presenting code
+## Commands (Claude Code)
 
-## 1. Project Stack & Architecture
+| Task | Command |
+|------|---------|
+| Dev server | `npm run dev` |
+| Build | `npm run build` |
+| Typecheck | `npm run typecheck` |
+| Lint + fix | `npm run lint:fix` |
+| All unit tests | `npm run test` |
+| Single test file | `npx vitest run path/to/file.test.ts` |
+| Watch tests | `npm run test:unit:watch` |
+| Coverage (80% threshold) | `npm run test:coverage` |
+| E2E tests | `npm run test:e2e` |
+| DB push migrations | `npm run db:push` |
+| DB seed | `npm run db:seed` |
+| DB studio (GUI) | `npm run db:studio` |
+| Storybook | `npm run storybook` |
+| Perf check | `npm run perf:check` |
 
-- **Framework:** Next.js 16+ (App Router, Server Components).
-- **Runtime:** Node.js v24 (verify via `.nvmrc`).
-- **Language:** TypeScript (Strict mode).
-- **Styling:** Tailwind CSS v4 & Shadcn UI.
-- **Linting & Formatting:** Biome (Use `biome check` and `biome format`).
-- **Testing:**
-  - **Unit:** Vitest (React Testing Library).
-  - **E2E/Integration:** Playwright.
-- **Architecture:**
-  - **Structure:** Feature-Sliced Design (FSD).
-    - `src/shared`: Reusable low-level code (ui kit, libs, api).
-    - `src/entities`: Business entities (e.g., user, post).
-    - `src/features`: User interactions (e.g., login, like-post).
-    - `src/widgets`: Compositional blocks (e.g., header, sidebar).
-    - `src/views`: Composition of widgets for specific routes.
-    - `src/app`: App-wide settings, styles, and routing.
-  - **Routing:** Multi-Zones strategy with Route Groups for isolation: `(listing)`, `(dashboard)`, `(blog)`, `(admin)`.
+> **Last step of any global change:** run `npm run lint:fix` to satisfy Biome import ordering.
 
-## 2. Coding Style: Strict Functional Programming
+---
 
-- **Pure Functions:** Prefer pure functions. Side effects must be isolated.
-- **Function Declarations for UI**: `export function ComponentName() { ... }` for React components (better stack traces, automatic displayName).
-- **Arrow Functions for Logic**: `const logicName = () => { ... }` for utilities, event handlers, hooks, internal logic.
-- **NO Classes**: Forbidden. Use Composition and Functional Mixins instead.
-- **Factories over Classes**:
-  - Use **Factory Functions** (e.g., `createService`) to generate stateful/complex objects.
-  - Use **Closures** within factories to maintain private state.
-  - Always define explicit return types for the "Contract."
+## 1. Project Snapshot
 
-### Example: Factory Pattern
+**Stack:** Next.js 16 (App Router, React Compiler enabled), React 19, TypeScript strict, Tailwind CSS v4, Shadcn/UI, Drizzle ORM + libsql, Zod, t3-oss/env-nextjs, Biome, Vitest + React Testing Library, Playwright, Lighthouse, Storybook, Node.js v24.
+
+**Architecture: Feature-Sliced Design (FSD)**
+
+```
+src/
+├── app/              # Next.js routing and pages
+│   └── lib/data-loaders/  # Route-specific data fetchers
+├── shared/           # Reusable low-level code
+│   ├── api/db/       # Drizzle schema, base repository, custom types
+│   ├── config/       # Site config, env validation (t3-oss/env), security policies
+│   ├── lib/          # Utilities (cn, validation, security, schema utils)
+│   ├── model/        # Cross-entity Zod schemas (Contact, Category…)
+│   ├── testing/      # Test factories and helpers
+│   └── ui/           # Shared UI components
+├── entities/         # Domain models: business, location, service, user, contact
+├── widgets/          # Compositional blocks (business-list, directory-layout)
+└── views/            # Page compositions
+```
+
+**Routes:** `[country]/[city]/page.tsx`, `[country]/[city]/[service]/page.tsx`, `service/[service]/page.tsx`.
+**Route Groups:** `(listing)`, `(dashboard)`, `(blog)`, `(admin)`.
+**Deployment:** `NEXT_OUTPUT_MODE=serverless|static|standalone` (see `.env.example`).
+
+---
+
+## 2. Safety Rules
+
+### ⚠️ Dual-Barrel Rule (FSD Public APIs)
+
+Every entity exposes **two entry points only**. Never import from internal paths.
+
+| Entry point | Used by | Contains |
+|-------------|---------|----------|
+| `@/entities/xxx` (`index.ts`) | Client components, widgets, views | UI, selectors, validation — no DB/Node.js imports |
+| `@/entities/xxx/server` (`server.ts`) | Data loaders, Server Components | React-cached accessors backed by the repository |
+
+```ts
+// ✅ Correct
+import { BusinessCard } from "@/entities/business";
+import { filterBusinesses } from "@/entities/business/server";
+
+// ❌ Violates FSD — leaks DB code into client bundles and breaks Storybook
+import { filterBusinesses } from "@/entities/business/api/accessors";
+import { BusinessSchema } from "@/entities/business/model/schema";
+```
+
+### Critical Checklist
+
+Before generating or modifying code, verify:
+
+1. **TDD** — write failing test → minimal pass → refactor green
+2. **FSD Public APIs** — import via `index.ts` (browser-safe) or `server.ts` (server-only) — never deep paths like `@/entities/xxx/api/accessors`
+3. **DRY** — refactor repeated logic; extract shared patterns
+4. **Type Reuse** — export types from Zod schemas; no duplicate type definitions
+5. **Single Responsibility** — each module/factory does one thing
+6. **Schema Compliance** — mock/seed data uses valid UUIDs and validates against schemas
+
+---
+
+## 3. Coding Standards
+
+**Strict functional programming — no classes.** Use factory functions, composition, and closures.
+
+- **Named exports for components:** `export function BusinessCard() { ... }` (better stack traces, automatic displayName)
+- **Arrow functions for logic:** `const logicName = () => { ... }` for utilities, hooks, event handlers
+- **No default exports** except Next.js files (`page.tsx`, `layout.tsx`)
+- **No `useMemo`/`useCallback`/`React.memo`** — React Compiler handles this
+- **No `forwardRef`** — use React 19's `ref` prop
+- **Server Components by default** — `'use client'` only when hooks/DOM events needed
+
+### Factory Pattern
+
 ```typescript
 type CounterService = {
   increment: () => void;
   getCount: () => number;
 };
 
-const createCounterService = (initialValue: number = 0): CounterService => {
+const createCounterService = (initialValue = 0): CounterService => {
   let count = initialValue; // Private state via closure
-
   return {
     increment: () => { count += 1; },
     getCount: () => count,
@@ -62,95 +118,111 @@ const createCounterService = (initialValue: number = 0): CounterService => {
 };
 ```
 
-## 3. SOLID Principles (Functional Adaptation)
+- **`create...`** — returns an interface the caller controls: `createService() → { start, stop }`
+- **`start...`** — fire-and-forget background process: `startHealthServer()`
+- Always define explicit return types as the "contract"
 
-- **OCP:** Extend via composition, not modification.
-- **LSP:** Interfaces must be interchangeably implemented.
-- **ISP:** Return small, focused interfaces.
-- **DIP:** **Inject dependencies** as arguments. **Never** instantiate inside factory.
+### Dependency Injection (DIP)
 
 ```typescript
-// ❌ BAD - Internal coupling
+// ❌ Internal coupling — never instantiate inside a factory
 const createUserService = () => {
   const db = createDatabase();
 };
 
-// ✅ GOOD - Dependency injection
-const createUserService = (db: Database) => {
-  // ...
-};
+// ✅ Inject dependencies as arguments
+const createUserService = (db: Database) => { ... };
 ```
 
-## 4. Naming Conventions
+### Naming
 
-### Factory Functions
-- **`create...`**: Returns interface caller uses to control behavior. Example: `createService()` → `{ start, stop }`
-- **`start...`**: Fire-and-forget background process. Example: `startHealthServer()`
+| Scope | Convention |
+|-------|-----------|
+| Files | `kebab-case` |
+| Functions, variables | `camelCase` |
+| Types, schemas, components | `PascalCase` |
+| Compile-time constants | `SCREAMING_SNAKE_CASE` |
 
-### Files & Identifiers
-- **kebab-case**: Files (`user-profile.tsx`, `auth-service.ts`)
-- **camelCase**: Functions, runtime constants
-- **SCREAMING_SNAKE_CASE**: Compile-time patterns (regex, config literals)
-- **PascalCase**: Types, Components, Zod Schemas
+### Imports
 
-## 5. Development Workflow
+- **Absolute `@/`** for cross-boundary imports
+- **Relative** only for same-directory siblings
+- Never import entity internals — use `index.ts` (browser-safe) or `server.ts` (server-only)
 
-- **Atomic Commits:** Small, focused on single feature/fix.
+```ts
+// ✅
+import { cn } from "@/shared/lib/utils"
+import { BusinessCard } from "@/entities/business"
+import type { Business } from "./schema"   // same-directory sibling
 
-## 6. Code Quality
+// ❌
+import { Business } from "@/entities/business/model/schema"
+```
 
-- **Naming Over Comments**: Use expressive names, extract magic values to constants, avoid numbered comments
-- **Avoid Default Exports**: Only use when framework requires (Next.js `page.tsx`, `layout.tsx`)
-- **Decouple Tests**: Use explicit test data, not shared config imports
-- **License**: Apache 2.0
+### Other
 
-## 7. React Patterns
-
-- **No React Import for JSX**: Automatic transform enabled
-- **React Compiler Enabled**: Don't use `useMemo`/`useCallback`/`React.memo` unless external library requires stable identity
-- **Server Components Default**: Use `'use client'` only for hooks/DOM events
-- **Typography**: `text-balance` for headings (h1-h3), `text-pretty` for body text
-
-### Component Structure
-- **Named Function Exports**: `export function BusinessCard({ name }: Props) { ... }`
-- **No forwardRef**: Use React 19's `ref` prop directly
-- **Shadcn/UI**: Refactor to match Biome formatting
-
-**Import Rules:**
-- **Absolute (`@/`)**: Cross-boundary (different entities/layers/shared)
-  - ✅ `import { Contact } from "@/entities/contact"`
-  - ✅ `import { cn } from "@/shared/lib/utils"`
-- **Relative**: Same-directory siblings within same layer
-  - ✅ `import type { Contact } from "./schema"`
-  - ❌ Never for cross-entity imports
-
-### State & Data
-- **URL State**: Prefer `searchParams` over global client state
-- **Mutations**: Use Server Actions
-- **i18n**: All user-facing strings via `next-intl`, hardcoded strings forbidden
-
-## 8. FSD Public APIs (Gatekeeper Pattern)
-
-**⚠️ Every FSD layer MUST export via `index.ts`**
-
-### Entity Public API Must Export:
-- Types and schemas from `./model/schema`
-- Selectors from `./model/selectors` (if exist)
-- Validation from `./model/validation` (if exist)
-- UI components from `./ui/` (if exist)
-
-### Additional FSD Rules:
-- **Metadata**: Never hardcode in `layout.tsx`/`page.tsx` - pull from `@/shared/config`
-- **Semantic HTML**: Clear hierarchy with `<header>`, `<main>`, `<footer>`
-
-## 9. AI Behavior
-
-- **Context Awareness**: Analyse tech stack intersections, identify conflicts proactively
-- **Precision**: Use exact technical terms (`camelCase` not "camel case"), disambiguate overloaded terms
-- **Code Consistency**: Adhere strictly to style guide including semicolons, spacing
-- **Proactive Adaptation**: If pattern conflicts with config, propose safer adaptation for this environment
+- **Naming over comments** — expressive names, extract magic values to named constants; avoid numbered comments
+- **Semantic HTML** — `<header>`, `<main>`, `<footer>` hierarchy
+- **Typography** — `text-balance` for h1–h3, `text-pretty` for body text
+- **State** — prefer `searchParams` over global client state; Server Actions for mutations
+- **Metadata** — never hardcode in `layout.tsx`/`page.tsx` — pull from `@/shared/config`
+- **Commits** — atomic, focused on single feature/fix
 
 ---
 
-**Remember: Quality, Consistency, and Maintainability are paramount.**
+## 4. Entity Pattern
 
+Each entity (e.g., `src/entities/business/`) follows:
+
+```
+model/schema.ts      # Zod schemas — single source of truth for types
+model/types.ts       # TypeScript types extracted from schemas
+model/selectors.ts   # Drizzle query builders
+model/mapper.ts      # Domain mapper: (raw: XxxRaw, joins: XxxJoins) => Xxx, calls XxxSchema.parse()
+model/validation.ts  # Validation logic
+api/*-repository.ts  # Repository factory (CRUD + custom methods)
+api/accessors.ts     # React-cached accessor functions (server-only)
+ui/                  # React components
+index.ts             # Browser-safe public API (UI, selectors, validation — no DB/Node.js)
+server.ts            # Server-only public API (re-exports from api/accessors.ts)
+```
+
+### Repository Pattern
+
+Base factories in `src/shared/api/db/base-repository.ts`:
+
+- `createRepository(db, table, parse?)` — basic CRUD; pass `(r) => XxxSchema.parse(r)` to validate at the DB boundary
+- `createSlugRepository(db, table, parse?)` — adds `getBySlug()`
+
+Entity repositories extend these with domain-specific methods (e.g., `createBusinessRepository(db)` adds `filters()`, `getPopularPaths()`).
+
+### Data Loaders
+
+`src/app/lib/data-loaders/` — route-specific loaders using `loadDirectoryPageData(entityFetcher, criteriaBuilder)`.
+
+---
+
+## 5. Testing Strategy
+
+### Two-Tier Factories (`src/shared/testing/factories/`)
+
+- **`createRaw()`** — flat DB-compatible objects for repository/integration tests
+- **`create()`** — rich nested objects validated against Zod schemas, for component/page tests
+
+`vitest.setup.ts` runs DB migrations and clears all tables between tests.
+
+### Rules
+
+- **TDD** — failing test first, minimal code to pass, refactor green
+- **Decouple tests** — explicit test data, not shared config imports
+- **`beforeEach` variables** — use definite assignment assertion `!`:
+
+```ts
+// ✅ Correct — TypeScript knows it's always set before the first it()
+let service!: ReturnType<typeof createServiceRaw>;
+
+// ❌ Wrong — widens type and hides missing initialiser
+let service: ReturnType<typeof createServiceRaw>;
+```
+
+Use `?.` only on genuine optionals (e.g., query results that can return `undefined`), never on `beforeEach`-assigned variables.

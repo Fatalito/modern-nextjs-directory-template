@@ -1,7 +1,6 @@
-import { cache } from "react";
-import { getPopularPaths } from "@/entities/business";
-import { getCityAndCountryBySlugs } from "@/entities/location";
-import { getServiceBySlug } from "@/entities/service";
+import { getPopularPaths } from "@/entities/business/server";
+import { getCityAndCountryBySlugs } from "@/entities/location/server";
+import { getServiceBySlug } from "@/entities/service/server";
 import { loadDirectoryPageData } from "./factory";
 
 /**
@@ -12,18 +11,20 @@ import { loadDirectoryPageData } from "./factory";
  * @returns An object containing the country, city, and service entities.
  *         Returns undefined if the city is not a child of the country or if any of the entities are not found.
  */
-export const getLocationServicePageEntities = cache(
-  async (countrySlug: string, citySlug: string, serviceSlug: string) => {
-    const [countryAndCity, service] = await Promise.all([
-      getCityAndCountryBySlugs(citySlug, countrySlug),
-      getServiceBySlug(serviceSlug),
-    ]);
+export const getLocationServicePageEntities = async (
+  countrySlug: string,
+  citySlug: string,
+  serviceSlug: string,
+) => {
+  const [countryAndCity, service] = await Promise.all([
+    getCityAndCountryBySlugs(citySlug, countrySlug),
+    getServiceBySlug(serviceSlug),
+  ]);
 
-    if (!countryAndCity || !service) return;
+  if (!countryAndCity || !service) return;
 
-    return { ...countryAndCity, service };
-  },
-);
+  return { ...countryAndCity, service };
+};
 
 /**
  * Fetches all necessary data for the location-service page, including the core entities (country, city, service),
@@ -38,16 +39,14 @@ export const getLocationServicePageData = (
   countrySlug: string,
   citySlug: string,
   serviceSlug: string,
-) => {
-  return loadDirectoryPageData(
+) =>
+  loadDirectoryPageData(
     () => getLocationServicePageEntities(countrySlug, citySlug, serviceSlug),
     ({ city, service }) => ({
       locationId: city?.id,
       serviceId: service?.id,
     }),
   );
-};
 
-export const getPopularLocationServicePaths = async (limit = 500) => {
-  return getPopularPaths(limit);
-};
+export const getPopularLocationServicePaths = (limit = 500) =>
+  getPopularPaths(limit);

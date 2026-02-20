@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { UserRole } from "@/shared/api";
-import { BaseEntitySchema } from "@/shared/lib";
+import { BaseEntitySchema } from "./base-schema";
 import { ContactSchema } from "./contact.schema";
+import { UserRole } from "./enums";
 
 export const UserSchema = BaseEntitySchema.extend({
   name: z.string().min(2),

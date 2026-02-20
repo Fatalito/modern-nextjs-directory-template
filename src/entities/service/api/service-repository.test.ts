@@ -4,7 +4,7 @@ import { createServiceRaw } from "@/shared/testing";
 import { serviceRepository } from "./index";
 
 describe("Service Repository", () => {
-  let service: ReturnType<typeof createServiceRaw>;
+  let service!: ReturnType<typeof createServiceRaw>;
 
   beforeEach(async () => {
     service = createServiceRaw();

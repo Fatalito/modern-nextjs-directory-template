@@ -1,4 +1,4 @@
-import type { FilterCriteria } from "@/shared/api";
+import type { FilterCriteria } from "@/shared/model";
 import { getBaseDirectoryData } from "./base";
 import type { DirectoryPageData } from "./types";
 

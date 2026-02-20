@@ -2,7 +2,7 @@ import { cn } from "@/shared/lib";
 
 interface CopyrightProps {
   readonly author?: string;
-  readonly year?: number | string;
+  readonly year?: number;
   readonly license?: string;
   readonly className?: string;
 }

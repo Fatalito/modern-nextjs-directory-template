@@ -1,21 +1,48 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { seedBaseBusiness } from "@/shared/testing/helpers";
+import { db, schema } from "@/shared/api";
+import { createBaseBusiness } from "@/shared/testing";
 import { businessRepository } from "./index";
 
+type BizContext = ReturnType<typeof createBaseBusiness>;
+
 describe("Business Repository", () => {
-  let bizA: Awaited<ReturnType<typeof seedBaseBusiness>>;
-  let bizB: Awaited<ReturnType<typeof seedBaseBusiness>>;
+  let bizA!: BizContext;
+  let bizB!: BizContext;
 
   beforeEach(async () => {
-    bizA = await seedBaseBusiness({
+    bizA = createBaseBusiness({
       business: { name: "Tech Studio", slug: "tech-studio", category: "tech" },
       service: { name: "WebDesign", slug: "web-design" },
     });
-    bizB = await seedBaseBusiness({
+    await db.transaction(async (tx) => {
+      const { user, locations, service, business } = bizA;
+      if (user) await tx.insert(schema.users).values(user);
+      if (locations) {
+        await tx
+          .insert(schema.locations)
+          .values([locations.country, locations.city]);
+      }
+      await tx.insert(schema.services).values(service);
+      await tx.insert(schema.businesses).values(business);
+      await tx.insert(schema.businessServices).values({
+        businessId: business.id,
+        serviceId: service.id,
+      });
+    });
+
+    bizB = createBaseBusiness({
       business: { name: "London Plumbers", slug: "london-plumbers" },
       service: { name: "Plumbing", slug: "plumbing" },
       locationId: bizA.locationId,
       userId: bizA.userId,
+    });
+    await db.transaction(async (tx) => {
+      await tx.insert(schema.services).values(bizB.service);
+      await tx.insert(schema.businesses).values(bizB.business);
+      await tx.insert(schema.businessServices).values({
+        businessId: bizB.business.id,
+        serviceId: bizB.service.id,
+      });
     });
   });
 
