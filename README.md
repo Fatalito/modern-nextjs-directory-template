@@ -27,7 +27,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 npm install
 
 # Set up environment variables
-cp .env.example .env.local
+cp .env.example .env
 
 # Set up the database
 npm run db:generate   # generate migrations from schema
@@ -39,6 +39,66 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## 🗄️ Database
+
+The project uses **Drizzle ORM** with **libsql**: a local SQLite file in development and a managed [Turso](https://turso.tech) database in production. The connection is determined by `DATABASE_URL`:
+
+| `DATABASE_URL` value | Mode |
+|---|---|
+| `file:./sqlite.db` (default) | Local SQLite file |
+| `libsql://…turso.io` | Remote Turso database |
+
+For turso, install the CLI and create an account:
+
+```bash
+curl -sSfL https://get.tur.so/install.sh | bash
+turso auth login
+```
+
+See the [Turso quickstart](https://docs.turso.tech/quickstart) for full documentation.
+
+### Provisioning
+
+```bash
+# One-time setup: creates the Turso database and prints DATABASE_URL + DATABASE_AUTH_TOKEN
+npm run infra:setup
+```
+
+Copy the printed values into `.env`, then push the schema:
+
+```bash
+npm run db:push
+npm run db:seed
+```
+
+Also add the same values to Vercel (Environment Variables) and GitHub (Secrets) for CI/CD.
+
+### Free plan locations
+
+The default location is `aws-eu-west-1` (Ireland). All locations available on the free plan:
+
+| ID | Location |
+|----|----------|
+| `aws-ap-northeast-1` | AWS AP NorthEast (Tokyo) |
+| `aws-ap-south-1` | AWS AP South (Mumbai) |
+| `aws-eu-west-1` | AWS EU West (Ireland) — **default** |
+| `aws-us-east-1` | AWS US East (Virginia) |
+| `aws-us-east-2` | AWS US East (Ohio) |
+| `aws-us-west-2` | AWS US West (Oregon) |
+
+Run `turso db locations` to get the current list. Override the default in `infra/turso.conf.sh` or via env var:
+
+```bash
+TURSO_REGION=aws-us-east-1 npm run infra:setup
+```
+
+### Token rotation
+
+```bash
+# Mints a new token and prints it — update Vercel/GitHub Secrets, then revoke the old one
+npm run infra:rotate-token
+```
 
 ## Commands
 
@@ -143,14 +203,18 @@ This file serves as the single source of truth for SEO, metadata, and global con
 Copy the example file to get started:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
+
+`.env` is gitignored — never commit credentials. `.env.example` is the committed template.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_APP_URL` | Base URL of the deployment (required for SEO/OG images) | `http://localhost:3000` |
 | `NEXT_OUTPUT_MODE` | Build output format (see Deployment Configuration) | `serverless` |
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
+| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso | `file:./sqlite.db` |
+| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint | — |
 
 ## 🚀 Deployment Configuration
 

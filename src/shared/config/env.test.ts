@@ -62,4 +62,34 @@ describe("Env Validation Logic", () => {
       );
     });
   });
+
+  describe("DATABASE_URL", () => {
+    it("is optional and absent by default", () => {
+      const result = serverSchema.parse({});
+      expect(result.DATABASE_URL).toBeUndefined();
+    });
+
+    it("accepts a valid URL", () => {
+      const url = "libsql://test-db.aws-eu-west-1.turso.io";
+      expect(serverSchema.parse({ DATABASE_URL: url }).DATABASE_URL).toBe(url);
+    });
+
+    it("rejects a non-URL string", () => {
+      expect(() => serverSchema.parse({ DATABASE_URL: "not-a-url" })).toThrow();
+    });
+  });
+
+  describe("DATABASE_AUTH_TOKEN", () => {
+    it("is optional and absent by default", () => {
+      const result = serverSchema.parse({});
+      expect(result.DATABASE_AUTH_TOKEN).toBeUndefined();
+    });
+
+    it("accepts any string value", () => {
+      const token = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.test";
+      expect(
+        serverSchema.parse({ DATABASE_AUTH_TOKEN: token }).DATABASE_AUTH_TOKEN,
+      ).toBe(token);
+    });
+  });
 });
