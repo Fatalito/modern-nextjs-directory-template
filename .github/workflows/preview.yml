@@ -9,10 +9,11 @@ concurrency:
 
 jobs:
   build:
-    name: Build Preview
+    name: Build & Deploy Preview
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write
     env:
       TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
       TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
@@ -40,9 +41,16 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
+      - name: Cache npm
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-vercel
+          restore-keys: ${{ runner.os }}-npm-
+
       - name: Install dependencies
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
+        run: npm ci --prefer-offline --no-audit --ignore-scripts
 
       - name: Cache Next.js build
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -78,49 +86,15 @@ jobs:
           bash scripts/infra/turso-setup.sh --suffix "$SUFFIX"
 
       - name: Pull Vercel environment
-        run: npx vercel pull --yes --environment=preview --token=$VERCEL_TOKEN 
+        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=$VERCEL_TOKEN 
 
       - name: Build project
-        run: npx vercel build
-
-      - name: Upload prebuilt output
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: vercel-output-pr-${{ github.event.pull_request.number }}
-          path: .vercel/output
-          include-hidden-files: true
-          retention-days: 1
-
-  deploy:
-    name: Deploy Preview
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      VERCEL_TELEMETRY_DISABLED: 1
-    steps:
-      - name: Cache npm (speeds up npx vercel)
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-vercel
-          restore-keys: ${{ runner.os }}-npm-
-
-      - name: Download prebuilt output
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
-        with:
-          name: vercel-output-pr-${{ github.event.pull_request.number }}
-          path: .vercel/output
+        run: ./node_modules/.bin/vercel build
 
       - name: Deploy to Vercel
         id: deploy
         run: |
-          url=$(npx vercel deploy --prebuilt --token=$VERCEL_TOKEN --yes)
+          url=$(./node_modules/.bin/vercel deploy --prebuilt --token=$VERCEL_TOKEN --yes)
           echo "url=$url" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
