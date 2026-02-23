@@ -88,6 +88,7 @@ jobs:
         with:
           name: vercel-output-pr-${{ github.event.pull_request.number }}
           path: .vercel/output
+          include-hidden-files: true
           retention-days: 1
 
   deploy:
