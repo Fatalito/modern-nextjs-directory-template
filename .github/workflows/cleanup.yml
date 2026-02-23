@@ -1,0 +1,41 @@
+name: PR Cleanup
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: cleanup-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    name: Delete PR Database
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Cache Turso CLI
+        id: turso-cli-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/turso
+          key: ${{ runner.os }}-turso-cli
+
+      - name: Install Turso CLI
+        if: steps.turso-cli-cache.outputs.cache-hit != 'true'
+        run: curl -sSfL https://get.turso.io/install.sh | bash
+
+      - name: Add Turso CLI to PATH
+        run: echo "$HOME/.local/share/turso" >> $GITHUB_PATH
+
+      - name: Delete PR database
+        run: |
+          bash scripts/infra/turso-teardown.sh \
+            --suffix "pr-${{ github.event.pull_request.number }}" \
+            --force

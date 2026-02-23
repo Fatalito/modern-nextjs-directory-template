@@ -1,0 +1,132 @@
+name: PR Deployment
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Extract Node version
+        id: nvmrc
+        run: echo "version=$(cat .nvmrc)" >> $GITHUB_OUTPUT
+
+      - name: Set up Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: ${{ steps.nvmrc.outputs.version }}
+
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Cache Next.js build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Cache Turso CLI
+        id: turso-cli-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.local/share/turso
+          key: ${{ runner.os }}-turso-cli
+
+      - name: Install Turso CLI
+        if: steps.turso-cli-cache.outputs.cache-hit != 'true'
+        run: curl -sSfL https://get.turso.io/install.sh | bash
+
+      - name: Add Turso CLI to PATH
+        run: echo "$HOME/.local/share/turso" >> $GITHUB_PATH
+
+      - name: Fork Turso DB for PR
+        env:
+          TURSO_REGION: ${{ vars.TURSO_REGION }}
+        run: |
+          SUFFIX="pr-${{ github.event.pull_request.number }}"
+          # Destroy stale fork from a previous push (idempotent — tolerates "not found")
+          bash scripts/infra/turso-teardown.sh --suffix "$SUFFIX" --force || true
+          # Create fresh fork; script writes DATABASE_URL + DATABASE_AUTH_TOKEN to $GITHUB_ENV
+          bash scripts/infra/turso-setup.sh --suffix "$SUFFIX"
+
+      - name: Pull Vercel environment
+        run: npx vercel pull --yes --environment=preview
+
+      - name: Build project
+        run: npx vercel build
+
+      - name: Upload prebuilt output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: vercel-output-pr-${{ github.event.pull_request.number }}
+          path: .vercel/output
+          retention-days: 1
+
+  deploy:
+    name: Deploy Preview
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Cache npm (speeds up npx vercel)
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-vercel
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Download prebuilt output
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: vercel-output-pr-${{ github.event.pull_request.number }}
+          path: .vercel/output
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          url=$(npx vercel deploy --prebuilt)
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with preview URL
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 **Preview deployed**: ${{ steps.deploy.outputs.url }}'
+            })

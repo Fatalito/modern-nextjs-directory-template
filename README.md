@@ -61,18 +61,15 @@ See the [Turso quickstart](https://docs.turso.tech/quickstart) for full document
 ### Provisioning
 
 ```bash
-# One-time setup: creates the Turso database and prints DATABASE_URL + DATABASE_AUTH_TOKEN
+# One-time setup: creates the Turso database and update .env with DATABASE_URL + DATABASE_AUTH_TOKEN
 npm run infra:setup
-```
-
-Copy the printed values into `.env`, then push the schema:
-
-```bash
 npm run db:push
 npm run db:seed
 ```
 
-Also add the same values to Vercel (Environment Variables) and GitHub (Secrets) for CI/CD.
+### API token
+
+For CI deployment, (generate an API token)[https://app.turso.tech/api-tokens] and store it in .env TURSO_API_TOKEN
 
 ### Free plan locations
 
@@ -99,6 +96,53 @@ TURSO_REGION=aws-us-east-1 npm run infra:setup
 # Mints a new token and prints it — update Vercel/GitHub Secrets, then revoke the old one
 npm run infra:rotate-token
 ```
+## Vercel Deployment
+
+### Linking the Project
+
+Before syncing environment variables or deploying, link your local project to Vercel:
+
+```bash
+vercel link
+```
+Follow the prompts to select the correct Vercel project and team.
+
+### Syncing Environment Variables
+
+Use:
+
+```bash
+npm run infra:sync-vercel
+```
+This script interactively syncs your `.env` variables to Vercel environments (development, preview, production). Tokens are marked as sensitive in production. See the script for details.
+
+
+### API token
+
+For CI deployment, (generate an API token)[https://vercel.com/account/settings/tokens] and store it in .env VERCEL_TOKEN
+
+
+## CI/CD & Environment Management
+
+## PR Preview Deployments
+
+Pull requests to `main` automatically deploy a preview to Vercel and fork a Turso DB for isolated testing. See `.github/workflows/preview.yml` for details. The preview URL is posted as a comment on the PR.
+
+## PR Cleanup
+
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database to avoid resource leaks.
+
+## Environment Variable Sync
+
+Use the provided scripts to sync your local `.env` to cloud environments:
+
+- `npm run infra:sync-vercel` — Syncs `.env` to selected Vercel environments (development, preview, production). Skips `VERCEL_*` vars and marks tokens as sensitive in production. Interactive selection.
+- `npm run infra:sync-github` — Syncs `.env` to GitHub Actions (tokens as secrets, others as variables). Also uploads Vercel project IDs from `.vercel/project.json` if present.
+
+See `scripts/infra/sync-vercel-env.sh` and `scripts/infra/sync-github-env.sh` for implementation.
+
+
+---
 
 ## Commands
 
@@ -123,6 +167,8 @@ npm run infra:rotate-token
 | DB push migrations | `npm run db:push` |
 | DB seed | `npm run db:seed` |
 | DB studio (GUI) | `npm run db:studio` |
+| Sync .env to Vercel envs | `npm run infra:sync-vercel` |
+| Sync .env to GitHub Actions | `npm run infra:sync-github` |
 | Storybook | `npm run storybook` |
 | Storybook build | `npm run storybook:build` |
 | Perf check | `npm run perf:check` |
