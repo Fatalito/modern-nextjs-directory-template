@@ -61,7 +61,7 @@ jobs:
 
       - name: Install Turso CLI
         if: steps.turso-cli-cache.outputs.cache-hit != 'true'
-        run: curl -sSfL https://get.turso.io/install.sh | bash
+        run: curl -sSfL https://get.tur.so/install.sh | bash
 
       - name: Add Turso CLI to PATH
         run: echo "$HOME/.local/share/turso" >> $GITHUB_PATH
