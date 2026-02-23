@@ -12,7 +12,7 @@ export const serverSchema = z.object({
   NEXT_OUTPUT_MODE: z
     .enum(["serverless", "static", "standalone"])
     .default("serverless"),
-  DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.url().optional(),
   DATABASE_AUTH_TOKEN: z.string().optional(),
 });
 
