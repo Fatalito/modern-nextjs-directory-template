@@ -12,7 +12,7 @@ jobs:
     name: Delete PR Resources
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pages: write
     env:
       TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       
-      - name: Cache Turso CLI
+      - name: Restore/Save Turso CLI
         id: turso-cli-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:

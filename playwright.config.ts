@@ -46,14 +46,14 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: !process.env.BASE_URL
-    ? {
+  webServer: process.env.BASE_URL
+    ? undefined
+    : {
         command: process.env.CI
           ? CI_WEB_SERVER_COMMAND
           : LOCAL_WEB_SERVER_COMMAND,
         url: "http://localhost:3000",
         reuseExistingServer: !process.env.CI || !!process.env.REUSE_SERVER,
         timeout: 120000,
-      }
-    : undefined,
+      },
 });

@@ -32,7 +32,7 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
 
-      - name: Cache node_modules
+      - name: Restore/Save node_modules
         id: node-modules-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
@@ -43,7 +43,7 @@ jobs:
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --ignore-scripts --prefer-offline --no-audit
 
-      - name: Cache Next.js Build
+      - name: Restore/Save Next.js Build
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: .next/cache

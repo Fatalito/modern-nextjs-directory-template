@@ -11,6 +11,8 @@ jobs:
   build:
     name: Build & Deploy Preview
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble # Use the version matching your package.json
     permissions:
       contents: read
       pull-requests: write
@@ -25,20 +27,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Cache node_modules
+      - name: Restore/Save node_modules
         id: node-modules-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
-      - name: Cache npm
+      - name: Restore/Save npm
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.npm
@@ -49,7 +45,7 @@ jobs:
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci --prefer-offline --no-audit --ignore-scripts
 
-      - name: Cache Next.js build
+      - name: Restore/Save Next.js build
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: .next/cache
@@ -58,16 +54,18 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
             ${{ runner.os }}-nextjs-
 
-      - name: Cache Turso CLI
+      - name: Restore/Save Turso CLI
         id: turso-cli-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/.local/share/turso
+          path: ~/.turso
           key: ${{ runner.os }}-turso-cli
 
       - name: Install Turso CLI
         if: steps.turso-cli-cache.outputs.cache-hit != 'true'
-        run: curl -sSfL https://get.tur.so/install.sh | bash
+        run: |
+          apt-get update && apt-get install -y xz-utils
+          curl -sSfL https://get.tur.so/install.sh | bash
 
       - name: Add Turso CLI to PATH
         run: echo "$HOME/.turso" >> $GITHUB_PATH
@@ -94,28 +92,12 @@ jobs:
           url=$(./node_modules/.bin/vercel deploy --prebuilt --token=$VERCEL_TOKEN --yes)
           echo "url=$url" >> $GITHUB_OUTPUT
 
-      - name: Cache Playwright Browsers
-        id: playwright-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Install Playwright System Dependencies
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
-
       - name: Run Functional E2E Tests
         env:
           BASE_URL: ${{ steps.deploy.outputs.url }}
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
-          VVERCEL_AUTOMATION_BYPASS_SECRETN: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: npm run test:e2e 2>&1 | tee playwright-e2e.txt
 
       - name: Upload Playwright Report
@@ -196,6 +178,15 @@ jobs:
           script: |
             const fs = require('fs');
             
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const marker = "## 🚀 Preview & Test Report";
+
+            const comments = await github.rest.issues.listComments({
+              owner, repo, issue_number
+            });
+            const prReportComment = comments.data.find(c => c.body.includes(marker));
+
             const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : 'No E2E logs found.';
             const e2eTail = e2eRaw.trim().split('\n').slice(-15).join('\n');
             
@@ -204,10 +195,11 @@ jobs:
             const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
 
             const body = `
-            ## 🚀 Preview & Test Report
+            ${marker}
             
             **Preview URL**: ${process.env.DEPLOY_URL}
-            
+            **Last Updated**: ${new Date().toUTCString()}
+
             <details>
             <summary>🧪 **Functional E2E Results** (Last 15 lines)</summary>
             
@@ -223,10 +215,12 @@ jobs:
             ${lhBody}
             `;
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body.trim()
-            });
-
+            if (prReportComment) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: botComment.id, body: body.trim()
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: body.trim()
+              });
+            }

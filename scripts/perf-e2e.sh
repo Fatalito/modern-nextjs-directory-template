@@ -9,4 +9,4 @@ rm -rf test-results/
 mkdir -p test-results
 
 echo "Running E2E tests and capturing metrics..."
-npx playwright test -g '@perf' --repeat-each=3 --workers=1
+npx playwright test -g '@perf' --repeat-each=5 --workers=1
