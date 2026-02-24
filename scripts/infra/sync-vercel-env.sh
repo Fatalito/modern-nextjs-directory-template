@@ -69,7 +69,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   for env_name in "${selected_envs[@]}"; do
     echo -e "$INFO  → $name [$env_name]"
     flags="--force"
-    [[ "$env_name" = "production" && "$name" == *TOKEN* ]] && flags="$flags --sensitive"
+    [[ "$env_name" = "production" && ( "$name" == *SECRET* || "$name" == *TOKEN* ) ]] && flags="$flags --sensitive"
     printf '%s' "$value" | vercel env add "$name" "$env_name" $flags >/dev/null 2>&1 \
       || echo -e "$WARN     Failed to set $name in $env_name (skipping)"
   done

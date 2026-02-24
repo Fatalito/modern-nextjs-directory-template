@@ -31,7 +31,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   [[ -z "$line" || "$line" == \#* ]] && continue
   name="${line%%=*}"
   value="${line#*=}"
-  if [[ "$name" == *TOKEN* ]]; then
+  if [[ "$name" == *SECRET* || "$name" == *TOKEN* ]]; then
     echo -e "$INFO  → $name [secret]"
     gh secret set "$name" --body "$value"
   else

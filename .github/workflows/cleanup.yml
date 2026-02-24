@@ -9,22 +9,23 @@ concurrency:
 
 jobs:
   cleanup:
-    name: Delete PR Database
+    name: Delete PR Resources
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pages: write
     env:
       TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
       TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
+      
       - name: Cache Turso CLI
         id: turso-cli-cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
-          path: ~/.local/share/turso
+          path: ~/.turso
           key: ${{ runner.os }}-turso-cli
 
       - name: Install Turso CLI
@@ -39,3 +40,19 @@ jobs:
           bash scripts/infra/turso-teardown.sh \
             --suffix "pr-${{ github.event.pull_request.number }}" \
             --force
+
+      - name: Remove Vercel Preview
+        run: npx vercel rm ${{ github.event.pull_request.head.ref }} --token=${{ secrets.VERCEL_TOKEN }} --yes || true
+
+      - name: Delete Storybook Preview
+        run: |
+          mkdir ./empty-dir
+
+      - name: Sync Empty Folder to Storybook Preview
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./empty-dir 
+          destination_dir: pr-${{ github.event.pull_request.number }}
+          publish_branch: gh-pages
+          keep_files: true

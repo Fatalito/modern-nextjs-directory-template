@@ -3,7 +3,10 @@ import path from "node:path";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
 
-const TARGET_URL = process.env.LIGHTHOUSE_URL || "http://127.0.0.1:3000";
+const TARGET_URL = process.env.BASE_URL || "http://127.0.0.1:3000";
+const VERCEL_AUTOMATION_BYPASS_SECRET =
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
 const SCORES_PATH = path.join(
   process.cwd(),
   "test-results",
@@ -23,86 +26,30 @@ async function run() {
       output: "json",
       onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
       maxWaitForLoad: 30000,
+      extraHeaders: VERCEL_AUTOMATION_BYPASS_SECRET
+        ? { "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET }
+        : {},
     });
 
     const toPercent = (score) =>
       typeof score === "number" ? Math.round(score * 100) : 0;
 
-    // 1. Get Scores
     const cats = lhr.categories;
-    const scores = [
-      { name: "Performance", score: toPercent(cats.performance?.score) },
-      { name: "Accessibility", score: toPercent(cats.accessibility?.score) },
-      {
-        name: "Best Practices",
-        score: toPercent(cats["best-practices"]?.score),
-      },
-      { name: "SEO", score: toPercent(cats.seo?.score) },
-    ];
 
-    // 2. Persist scores for comparison
     fs.mkdirSync(path.dirname(SCORES_PATH), { recursive: true });
     fs.writeFileSync(
       SCORES_PATH,
       JSON.stringify(
         {
-          performance: scores[0].score,
-          accessibility: scores[1].score,
-          "best-practices": scores[2].score,
-          seo: scores[3].score,
+          performance: toPercent(cats.performance?.score),
+          accessibility: toPercent(cats.accessibility?.score),
+          "best-practices": toPercent(cats["best-practices"]?.score),
+          seo: toPercent(cats.seo?.score),
         },
         null,
         2,
       ),
     );
-
-    // 3. Get Top 3 Recommendations (Opportunities)
-    const opportunities = Object.values(lhr.audits)
-      .filter(
-        (audit) =>
-          audit.details &&
-          audit.details.type === "opportunity" &&
-          typeof audit.score === "number" &&
-          audit.score < 1,
-      )
-      .sort(
-        (a, b) =>
-          (b.details.overallSavingsMs || 0) - (a.details.overallSavingsMs || 0),
-      )
-      .slice(0, 3);
-
-    // 4. Build Markdown
-    console.log(`### 🔦 Lighthouse Audit\n`);
-    console.log(`| Category | Score |`);
-    console.log(`| :--- | :---: |`);
-    scores.forEach((s) => {
-      let icon;
-      if (s.score >= 90) {
-        icon = "✅";
-      } else if (s.score >= 50) {
-        icon = "⚠️";
-      } else {
-        icon = "❌";
-      }
-
-      console.log(`| ${s.name} | ${s.score} ${icon} |`);
-    });
-
-    if (opportunities.length > 0) {
-      console.log(
-        `\n<details><summary>💡 <b>Opportunities to Improve</b></summary>\n`,
-      );
-      opportunities.forEach((opp) => {
-        const savings = Math.round(opp.details.overallSavingsMs || 0);
-        const savingsText = savings > 0 ? ` (Est. Savings: ${savings}ms)` : "";
-
-        console.log(
-          `- **${opp.title}**: ${opp.description.split("[")[0]}${savingsText}`,
-        );
-      });
-      console.log(`\n</details>`);
-    }
-    console.log(`\n---\n`);
   } catch (error) {
     console.error("❌ Lighthouse Audit Failed:", error);
     process.exitCode = 1;

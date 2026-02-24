@@ -25,14 +25,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Extract Node version
-        id: nvmrc
-        run: echo "version=$(cat .nvmrc)" >> $GITHUB_OUTPUT
-
       - name: Set up Node.js
         uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
-          node-version: ${{ steps.nvmrc.outputs.version }}
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
       - name: Cache node_modules
         id: node-modules-cache
@@ -97,13 +94,139 @@ jobs:
           url=$(./node_modules/.bin/vercel deploy --prebuilt --token=$VERCEL_TOKEN --yes)
           echo "url=$url" >> $GITHUB_OUTPUT
 
-      - name: Comment PR with preview URL
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Run Functional E2E Tests
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: '1'
+          VVERCEL_AUTOMATION_BYPASS_SECRETN: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npm run test:e2e 2>&1 | tee playwright-e2e.txt
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Run Performance Benchmark
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          NODE_ENV: production
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: npm run perf:e2e 2>&1 | tee perf-e2e.txt
+
+      - name: Compare Performance Metrics
+        run: npm run perf:compare 2>&1 | tee perf-report.md
+
+      - name: Compare Lighthouse Scores
+        run: npm run perf:lighthouse:compare 2>&1 | tee lighthouse-report.md
+
+      - name: Upload Performance Metrics
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-metrics
+          path: test-results/**/perf-metrics.jsonl
+          retention-days: 30
+
+      - name: Upload Performance Summary (JSON)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: perf-summary
+          path: test-results/perf-summary.json
+          retention-days: 30
+
+      - name: Upload Lighthouse Scores
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lighthouse-scores
+          path: test-results/lighthouse-scores.json
+          retention-days: 30
+
+      - name: Upload Playwright Text Output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-e2e
+          path: playwright-e2e.txt
+          retention-days: 30
+
+      - name: Upload Performance Benchmark Output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-e2e
+          path: perf-e2e.txt
+          retention-days: 30
+
+      - name: Upload Lighthouse Report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-report
+          path: lighthouse-report.md
+          retention-days: 30
+      
+      - name: 💬 PR Report
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
+            const fs = require('fs');
+            
+            const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : 'No E2E logs found.';
+            const e2eTail = e2eRaw.trim().split('\n').slice(-15).join('\n');
+            
+            const perfBody = fs.existsSync('perf-report.md') ? fs.readFileSync('perf-report.md', 'utf8') : '_Performance report missing._';
+            
+            const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
+
+            const body = `
+            ## 🚀 Preview & Test Report
+            
+            **Preview URL**: ${process.env.DEPLOY_URL}
+            
+            <details>
+            <summary>🧪 **Functional E2E Results** (Last 15 lines)</summary>
+            
+            \`\`\`text
+            ${e2eTail}
+            \`\`\`
+            </details>
+            
+            ### ⚡ Performance Benchmark
+            ${perfBody}
+            
+            ### 🔦 Lighthouse Scores
+            ${lhBody}
+            `;
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 **Preview deployed**: ${{ steps.deploy.outputs.url }}'
-            })
+              body: body.trim()
+            });
+

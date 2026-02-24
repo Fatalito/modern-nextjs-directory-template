@@ -106,13 +106,15 @@ Before syncing environment variables or deploying, link your local project to Ve
 vercel link
 ```
 Follow the prompts to select the correct Vercel project and team.
+It will create a `.vercel` directory with the project configuration.
+VERCEL_ORG_ID and VERCEL_PROJECT_ID are extracted from this config for use in the sync scripts and CI/CD workflows.
 
 ### Syncing Environment Variables
 
 Use:
 
 ```bash
-npm run infra:sync-vercel
+npm run infra:sync:vercel
 ```
 This script interactively syncs your `.env` variables to Vercel environments (development, preview, production). Tokens are marked as sensitive in production. See the script for details.
 
@@ -121,6 +123,9 @@ This script interactively syncs your `.env` variables to Vercel environments (de
 
 For CI deployment, (generate an API token)[https://vercel.com/account/settings/tokens] and store it in .env VERCEL_TOKEN
 
+### Vercel Protection bypass
+
+To Allow CI PR perf and end to end testing workflows to bypass Vercel's protection mechanisms, go to  your project settings > Deployment Protection and either disable it or generate a bypass secret and add it to your .env as VERCEL_AUTOMATION_BYPASS_SECRET. The CI workflows will send this secret as a header in requests to the preview deployment.
 
 ## CI/CD & Environment Management
 
@@ -130,14 +135,14 @@ Pull requests to `main` automatically deploy a preview to Vercel and fork a Turs
 
 ## PR Cleanup
 
-When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database to avoid resource leaks.
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercle preview and the storybook pr page to avoid resource leaks.
 
 ## Environment Variable Sync
 
 Use the provided scripts to sync your local `.env` to cloud environments:
 
-- `npm run infra:sync-vercel` — Syncs `.env` to selected Vercel environments (development, preview, production). Skips `VERCEL_*` vars and marks tokens as sensitive in production. Interactive selection.
-- `npm run infra:sync-github` — Syncs `.env` to GitHub Actions (tokens as secrets, others as variables). Also uploads Vercel project IDs from `.vercel/project.json` if present.
+- `npm run infra:sync:vercel` — Syncs `.env` to selected Vercel environments (development, preview, production). Skips `VERCEL_*` vars and marks tokens as sensitive in production. Interactive selection.
+- `npm run infra:sync:github` — Syncs `.env` to GitHub Actions (tokens as secrets, others as variables). Also uploads Vercel project IDs from `.vercel/project.json` if present.
 
 See `scripts/infra/sync-vercel-env.sh` and `scripts/infra/sync-github-env.sh` for implementation.
 
@@ -167,8 +172,8 @@ See `scripts/infra/sync-vercel-env.sh` and `scripts/infra/sync-github-env.sh` fo
 | DB push migrations | `npm run db:push` |
 | DB seed | `npm run db:seed` |
 | DB studio (GUI) | `npm run db:studio` |
-| Sync .env to Vercel envs | `npm run infra:sync-vercel` |
-| Sync .env to GitHub Actions | `npm run infra:sync-github` |
+| Sync .env to Vercel envs | `npm run infra:sync:vercel` |
+| Sync .env to GitHub Actions | `npm run infra:sync:github` |
 | Storybook | `npm run storybook` |
 | Storybook build | `npm run storybook:build` |
 | Perf check | `npm run perf:check` |
@@ -261,6 +266,12 @@ cp .env.example .env
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
 | `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso | `file:./sqlite.db` |
 | `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint | — |
+| `TURSO_API_TOKEN` | Turso API token for CI/PR DB forking and cleanup | Generate at app.turso.tech |
+| `VERCEL_TOKEN` | Vercel deploy token for CI/preview/cleanup workflows | Generate at vercel.com |
+| `VERCEL_ORG_ID` | Vercel organization ID (used by preview workflow) | Extracted from vercel/ and set by sync script |
+| `VERCEL_PROJECT_ID` | Vercel project ID (used by preview workflow) | Extracted from vercel/ and set by sync script |
+| `BUILD_URL` | Target url for e2e and perf tests (used in CI, E2E, and reporting) | `http://localhost:3000` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Set to `1` to bypass certain checks or validation in CI/CD (if needed) | — |
 
 ## 🚀 Deployment Configuration
 

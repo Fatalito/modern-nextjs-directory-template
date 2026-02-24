@@ -2,9 +2,7 @@
 set -e
 set -o pipefail
 
-if [ "$CI" != "true" ]; then
-  echo "🚀 Running performance check locally..."
-fi
+echo "Running performance check against: ${BASE_URL:-http://localhost:3000}"
 
 echo "Cleaning old test results..."
 rm -rf test-results/

@@ -54,8 +54,8 @@
     "infra:setup": "bash scripts/infra/turso-setup.sh",
     "infra:teardown": "bash scripts/infra/turso-teardown.sh",
     "infra:rotate-token": "bash scripts/infra/turso-rotate-token.sh",
-    "infra:sync-vercel": "bash scripts/infra/sync-vercel-env.sh",
-    "infra:sync-github": "bash scripts/infra/sync-github-env.sh",
+    "infra:sync:vercel": "bash scripts/infra/sync-vercel-env.sh",
+    "infra:sync:github": "bash scripts/infra/sync-github-env.sh",
     "postinstall": "lefthook install"
   },
   "dependencies": {

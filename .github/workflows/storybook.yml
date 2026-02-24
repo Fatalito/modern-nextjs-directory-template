@@ -1,0 +1,101 @@
+name: Storybook
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Storybook
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      ENABLE_HSTS: "false"
+      # bypass unneeded vars validation during CI
+      SKIP_ENV_VALIDATION: "true"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: npm ci --ignore-scripts --prefer-offline --no-audit
+
+      - name: Cache Next.js Build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+      
+      - name: Build Storybook
+        id: build-step
+        run: |
+          # Define the path and URL
+          REPO_NAME="${{ github.event.repository.name }}"
+          OWNER="${{ github.repository_owner }}"
+
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            export DEST="pr-${{ github.event.number }}"
+          else
+            export DEST="."
+          fi
+
+          if [ "$DEST" == "." ]; then
+            PREVIEW_URL="https://$OWNER.github.io/$REPO_NAME/"
+          else
+            PREVIEW_URL="https://$OWNER.github.io/$REPO_NAME/$DEST/"
+          fi
+
+          echo "url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+          echo "dest=$DEST" >> $GITHUB_OUTPUT
+
+          npm run storybook:build -- -o ./storybook-static/$DEST
+        
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./storybook-static
+          keep_files: true 
+          publish_branch: gh-pages
+
+      - name: 💬 Comment Storybook Link
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🎨 **Storybook Preview Ready**: [Click here to view](${{ steps.build-step.outputs.url }})'
+            })
