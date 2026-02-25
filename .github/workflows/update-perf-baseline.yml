@@ -18,36 +18,25 @@ permissions:
 jobs:
   update-baseline:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     steps:
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup Node
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+      - name: Checkout & Bootstrap
+        uses: ./.github/actions/bootstrap
         with:
-          node-version: 24
-          cache: npm
+          install-node: 'false'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Restore/Save Next.js Build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
 
       - name: Build application
         run: npm run build
-
-      - name: Restore/Save Playwright browsers
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-
-      - name: Install Playwright system deps
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
 
       - name: Run Performance Benchmark
         env:
@@ -74,9 +63,8 @@ jobs:
 
             Updated baseline metrics from CI environment.
 
-            - Runs: 3 iterations per test
+            - Runs: 5 iterations per test
             - Environment: ubuntu-latest
-            - Node: 24
 
             **Review checklist:**
             - [ ] Playwright timing values (`perf-baseline.json`) look reasonable for CI environment

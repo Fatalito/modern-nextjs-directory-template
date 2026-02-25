@@ -23,35 +23,9 @@ jobs:
       # bypass unneeded vars validation during CI
       SKIP_ENV_VALIDATION: "true"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout & Setup Node.js
+        uses: ./.github/actions/bootstrap
 
-      - name: Set up Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Restore/Save node_modules
-        id: node-modules-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts --prefer-offline --no-audit
-
-      - name: Restore/Save Next.js Build
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
-            ${{ runner.os }}-nextjs-
-      
       - name: OWASP Dependency Audit
         run: npm run security:audit
 
@@ -60,6 +34,12 @@ jobs:
       
       - name: Execute Tests & Coverage
         run: npm run test:coverage
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: coverage-report
+          path: coverage/coverage-summary.json
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
@@ -75,10 +55,3 @@ jobs:
         with:
           name: cyclonedx-sbom
           path: build/reports/bom.json
-
-      - name: 💬 PR Coverage Comment
-        uses: davelosert/vitest-coverage-report-action@2500dafcee7dd64f85ab689c0b83798a8359770e # v2.9.3
-        if: github.event_name == 'pull_request'
-        with:
-          json-summary-path: ./coverage/coverage-summary.json
-        

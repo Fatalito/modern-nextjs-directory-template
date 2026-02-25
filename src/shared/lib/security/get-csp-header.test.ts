@@ -8,6 +8,7 @@ describe("getCspHeader", () => {
     expect(header).not.toContain("'unsafe-eval'");
     expect(header).not.toContain("nonce-");
     expect(header).not.toContain("ws://localhost");
+    expect(header).not.toContain("vercel.live");
   });
 
   it("includes unsafe-eval and websockets in development", () => {
@@ -15,5 +16,14 @@ describe("getCspHeader", () => {
     expect(header).toContain("'unsafe-inline'");
     expect(header).toContain("'unsafe-eval'");
     expect(header).toContain("ws://localhost:*");
+  });
+
+  it("allows vercel.live script and connect sources in Vercel preview", () => {
+    const header = getCspHeader("production", "preview");
+    expect(header).toContain(
+      "script-src 'self' 'unsafe-inline' https://vercel.live",
+    );
+    expect(header).toContain("connect-src 'self' https://vercel.live");
+    expect(header).not.toContain("'unsafe-eval'");
   });
 });

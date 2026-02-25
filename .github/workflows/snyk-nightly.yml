@@ -22,30 +22,19 @@ jobs:
     name: Snyk Dependency Audit
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout & Setup Node.js
+        uses: ./.github/actions/bootstrap
         with:
-          ref: main
+          checkout-ref: main
 
-      - name: Extract Node Version
-        id: nvmrc
-        run: echo "version=$(cat .nvmrc)" >> $GITHUB_OUTPUT
-
-      - name: Set up Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version: ${{ steps.nvmrc.outputs.version }}
-
-      - name: Restore/Save node_modules
-        id: node-modules-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
+      - name: Verify Snyk token
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::error title=SNYK_TOKEN not configured::Snyk nightly scans require a token. Sign up at https://snyk.io, generate a token, add it to .env as SNYK_TOKEN, then re-run: npm run infra:sync:github"
+            exit 1
+          fi
 
       - name: Snyk Security Scan
         uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # v6.2.0

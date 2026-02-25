@@ -12,7 +12,7 @@ jobs:
     name: Build & Deploy Preview
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.58.2-noble # Use the version matching your package.json
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
     permissions:
       contents: read
       pull-requests: write
@@ -24,26 +24,10 @@ jobs:
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       VERCEL_TELEMETRY_DISABLED: 1
     steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Restore/Save node_modules
-        id: node-modules-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - name: Checkout & Bootstrap
+        uses: ./.github/actions/bootstrap
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Restore/Save npm
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-vercel
-          restore-keys: ${{ runner.os }}-npm-
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --prefer-offline --no-audit --ignore-scripts
+          install-node: 'false'
 
       - name: Restore/Save Next.js build
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
@@ -54,31 +38,19 @@ jobs:
             ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
             ${{ runner.os }}-nextjs-
 
-      - name: Restore/Save Turso CLI
-        id: turso-cli-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
         with:
-          path: ~/.turso
-          key: ${{ runner.os }}-turso-cli
+          install-xz-utils: 'true'
 
-      - name: Install Turso CLI
-        if: steps.turso-cli-cache.outputs.cache-hit != 'true'
-        run: |
-          apt-get update && apt-get install -y xz-utils
-          curl -sSfL https://get.tur.so/install.sh | bash
-
-      - name: Add Turso CLI to PATH
-        run: echo "$HOME/.turso" >> $GITHUB_PATH
-
-      - name: Fork Turso DB for PR
+      - name: Provision PR Turso DB
+        # turso-setup.sh is idempotent: if the DB already exists for this PR
+        # (i.e. a second commit was pushed), creation is skipped and only a new
+        # short-lived auth token is minted. The DB is destroyed by cleanup.yml
+        # when the PR is closed.
         env:
           TURSO_REGION: ${{ vars.TURSO_REGION }}
-        run: |
-          SUFFIX="pr-${{ github.event.pull_request.number }}"
-          # Destroy stale fork from a previous push (idempotent — tolerates "not found")
-          bash scripts/infra/turso-teardown.sh --suffix "$SUFFIX" --force || true
-          # Create fresh fork; script writes DATABASE_URL + DATABASE_AUTH_TOKEN to $GITHUB_ENV
-          bash scripts/infra/turso-setup.sh --suffix "$SUFFIX"
+        run: bash scripts/infra/turso-setup.sh --suffix "pr-${{ github.event.pull_request.number }}"
 
       - name: Pull Vercel environment
         run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=$VERCEL_TOKEN 
@@ -169,36 +141,50 @@ jobs:
           path: lighthouse-report.md
           retention-days: 30
       
+      - name: Download Coverage Report
+        # Cross-workflow download: the coverage artifact lives in the ci.yml run,
+        # not this one. dawidd6/action-download-artifact searches across workflow runs.
+        # continue-on-error guards the race where ci.yml is still in progress.
+        continue-on-error: true
+        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
+        with:
+          workflow: ci.yml
+          name: coverage-report
+          path: coverage/
+          commit: ${{ github.event.pull_request.head.sha }}
+          if_no_artifact_found: warn
+
       - name: 💬 PR Report
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          STORYBOOK_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/"
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const fs = require('fs');
-            
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
             const marker = "## 🚀 Preview & Test Report";
 
-            const comments = await github.rest.issues.listComments({
-              owner, repo, issue_number
-            });
-            const prReportComment = comments.data.find(c => c.body.includes(marker));
+            let coverageTag = "_No coverage report found._";
+            if (fs.existsSync('./coverage/coverage-summary.json')) {
+              const summary = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+              const total = summary.total;
+              coverageTag = `Statements: **${total.statements.pct}%** | Branches: **${total.branches.pct}%** | Functions: **${total.functions.pct}%** | Lines: **${total.lines.pct}%**`;
+            }
 
             const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : 'No E2E logs found.';
             const e2eTail = e2eRaw.trim().split('\n').slice(-15).join('\n');
-            
             const perfBody = fs.existsSync('perf-report.md') ? fs.readFileSync('perf-report.md', 'utf8') : '_Performance report missing._';
-            
             const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
 
             const body = `
             ${marker}
             
-            **Preview URL**: ${process.env.DEPLOY_URL}
-            **Last Updated**: ${new Date().toUTCString()}
+            | Resource | Link / Status |
+            | :--- | :--- |
+            | **Live Preview** | [View Deployment](${process.env.DEPLOY_URL})|
+            | **Storybook** | [View Components](${process.env.STORYBOOK_URL}) |
+            | **Unit Tests** | ${coverageTag} |
 
             <details>
             <summary>🧪 **Functional E2E Results** (Last 15 lines)</summary>
@@ -213,11 +199,21 @@ jobs:
             
             ### 🔦 Lighthouse Scores
             ${lhBody}
+
+            ---
+            _Updated at: ${new Date().toUTCString()}_
             `;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number
+            });
+            const prReportComment = comments.find(c => c.body.includes(marker));
 
             if (prReportComment) {
               await github.rest.issues.updateComment({
-                owner, repo, comment_id: botComment.id, body: body.trim()
+                owner, repo, comment_id: prReportComment.id, body: body.trim()
               });
             } else {
               await github.rest.issues.createComment({

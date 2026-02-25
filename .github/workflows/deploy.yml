@@ -1,0 +1,136 @@
+name: Deploy — Production
+on:
+  # Auto-deploy after CI passes on main. Storybook runs in parallel — we gate
+  # on it inside the job rather than using a second workflow_run trigger (which
+  # would fire on either workflow completing, not both).
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  # Manual trigger (e.g. first deploy after infra:setup + infra:sync:github)
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never cancel an in-flight production deploy
+
+jobs:
+  deploy:
+    name: Deploy to Vercel Production
+    # Skip if triggered by workflow_run that failed
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Wait for Storybook to complete
+        # Storybook runs in parallel with CI on push to main. We poll for its
+        # run on the same SHA and wait up to 10 min before proceeding.
+        # Skipped for workflow_dispatch (manual deploy — operator knows best).
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TARGET_SHA="${{ github.event.workflow_run.head_sha }}"
+          echo "Waiting for Storybook run on $TARGET_SHA..."
+
+          # Poll up to 10 minutes (20 × 30 s) for the run to appear
+          RUN_ID=""
+          for i in $(seq 1 20); do
+            RUN_ID=$(gh run list --workflow=storybook.yml --branch=main \
+              --json headSha,databaseId \
+              --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" \
+              | head -1)
+            [ -n "$RUN_ID" ] && break
+            echo "  Run not found yet — retry $i/20 in 30 s..."
+            sleep 30
+          done
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::warning::Storybook run not found for $TARGET_SHA — proceeding without gate"
+          else
+            gh run watch "$RUN_ID" --exit-status
+          fi
+
+      - name: Checkout & Setup Node.js
+        uses: ./.github/actions/bootstrap
+        with:
+          # Pin to the exact SHA that CI verified (falls back to github.sha for workflow_dispatch)
+          checkout-ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Restore/Save Next.js build cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Pull Vercel environment (production)
+        run: ./node_modules/.bin/vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Push database credentials to Vercel production
+        # GitHub Secrets are the single source of truth for DB credentials.
+        # We push them fresh on every deploy so Vercel always has the current values.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+        run: |
+          printf '%s' "$DATABASE_URL" | \
+            ./node_modules/.bin/vercel env add DATABASE_URL production --force --token=${{ secrets.VERCEL_TOKEN }}
+          printf '%s' "$DATABASE_AUTH_TOKEN" | \
+            ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project
+        run: ./node_modules/.bin/vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          url=$(./node_modules/.bin/vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Health check
+        # Retry for up to 2 minutes — Vercel's edge propagation can take a few seconds.
+        run: |
+          FULL_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          EXPECTED="${FULL_SHA:0:7}"
+          URL="${{ steps.deploy.outputs.url }}/api/health"
+          echo "Health-checking $URL (expecting sha=$EXPECTED) ..."
+
+          HEADERS_FILE=$(mktemp)
+          for i in $(seq 1 12); do
+            BODY=$(curl -sf -D "$HEADERS_FILE" "$URL" || echo '{}')
+            STATUS=$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+            if [ "$STATUS" = "ok" ]; then
+              DEPLOYED=$(grep -i "^x-commit-sha:" "$HEADERS_FILE" | tr -d '\r' | awk '{print $2}')
+              # Only reject if the header is a real SHA (7 hex chars) and it mismatches
+              if [[ "$DEPLOYED" =~ ^[0-9a-f]{7}$ ]] && [ "$DEPLOYED" != "$EXPECTED" ]; then
+                rm -f "$HEADERS_FILE"
+                echo "::error::SHA mismatch — expected $EXPECTED, got $DEPLOYED"
+                exit 1
+              fi
+              rm -f "$HEADERS_FILE"
+              echo "  DB reachable, sha=${DEPLOYED:-unknown} — deployment healthy"
+              exit 0
+            fi
+            echo "  status=${STATUS:-unreachable} — retry $i/12 in 10 s..."
+            sleep 10
+          done
+          rm -f "$HEADERS_FILE"
+          echo "::error::Health check failed after 2 minutes (last response: $BODY)"
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Production deployed to ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY

@@ -27,35 +27,9 @@ jobs:
       # bypass unneeded vars validation during CI
       SKIP_ENV_VALIDATION: "true"
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Checkout & Setup Node.js
+        uses: ./.github/actions/bootstrap
 
-      - name: Set up Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Restore/Save node_modules
-        id: node-modules-cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
-
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts --prefer-offline --no-audit
-
-      - name: Restore/Save Next.js Build
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
-            ${{ runner.os }}-nextjs-
-      
       - name: Build Storybook
         id: build-step
         run: |
@@ -87,15 +61,3 @@ jobs:
           publish_dir: ./storybook-static
           keep_files: true 
           publish_branch: gh-pages
-
-      - name: 💬 Comment Storybook Link
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🎨 **Storybook Preview Ready**: [Click here to view](${{ steps.build-step.outputs.url }})'
-            })
