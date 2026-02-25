@@ -56,10 +56,21 @@ jobs:
         run: bash scripts/infra/turso-setup.sh --suffix "pr-${{ github.event.pull_request.number }}"
 
       - name: Pull Vercel environment
-        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=$VERCEL_TOKEN 
+        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+
+      - name: Inject PR Turso credentials into Vercel env
+        # vercel pull overwrites .vercel/.env.preview.local with the project's stored env
+        # (which has DATABASE_URL=file:./sqlite.db). Override with the PR Turso URL set by turso-setup.sh.
+        run: |
+          echo "DATABASE_URL (before): $(grep '^DATABASE_URL=' .vercel/.env.preview.local || echo '(not set)')"
+          sed -i '/^DATABASE_URL=/d;/^DATABASE_AUTH_TOKEN=/d' .vercel/.env.preview.local
+          printf 'DATABASE_URL=%s\nDATABASE_AUTH_TOKEN=%s\n' "$DATABASE_URL" "$DATABASE_AUTH_TOKEN" >> .vercel/.env.preview.local
+          echo "DATABASE_URL (after):  $(grep '^DATABASE_URL=' .vercel/.env.preview.local)"
 
       - name: Build project
-        run: ./node_modules/.bin/vercel build --build-env DATABASE_URL=$DATABASE_URL --build-env DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN
+        run: |
+          echo "DATABASE_URL for build: $(grep '^DATABASE_URL=' .vercel/.env.preview.local)"
+          ./node_modules/.bin/vercel build
 
       - name: Deploy to Vercel
         id: deploy
