@@ -87,6 +87,7 @@ jobs:
           retention-days: 30
 
       - name: Run Performance Benchmark
+        if: ${{ !cancelled() }}
         env:
           BASE_URL: ${{ steps.deploy.outputs.url }}
           NODE_ENV: production
@@ -94,9 +95,11 @@ jobs:
         run: npm run perf:e2e 2>&1 | tee perf-e2e.txt
 
       - name: Compare Performance Metrics
+        if: ${{ !cancelled() }}
         run: npm run perf:compare 2>&1 | tee perf-report.md
 
       - name: Compare Lighthouse Scores
+        if: ${{ !cancelled() }}
         run: npm run perf:lighthouse:compare 2>&1 | tee lighthouse-report.md
 
       - name: Upload Performance Metrics

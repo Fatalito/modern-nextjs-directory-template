@@ -13,7 +13,6 @@
     "typescript"
   ],
   "license": "Apache-2.0",
-  "type": "module",
   "private": true,
   "engines": {
     "node": ">=24"
@@ -27,7 +26,6 @@
     "db:studio": "drizzle-kit studio",
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "echo '{\"type\":\"commonjs\"}' > .next/server/package.json",
     "start": "next start",
     "start:clean": "npm run clean && npm run build && npm run start",
     "typecheck": "tsc --noEmit",
