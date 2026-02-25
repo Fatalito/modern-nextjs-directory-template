@@ -19,6 +19,9 @@ async function run() {
   try {
     chrome = await launch({
       chromeFlags: ["--headless", "--disable-gpu", "--no-sandbox"],
+      ...(process.env.CHROME_PATH
+        ? { chromePath: process.env.CHROME_PATH }
+        : {}),
     });
 
     const { lhr } = await lighthouse(
