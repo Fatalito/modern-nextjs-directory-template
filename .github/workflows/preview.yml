@@ -1,4 +1,4 @@
-name: PR Deployment
+name: PR Deploy
 on:
   pull_request:
     branches: [main]
@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build & Deploy Preview
+    name: Preview Build & Deploy 
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.58.2-noble

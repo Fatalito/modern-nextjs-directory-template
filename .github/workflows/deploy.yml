@@ -1,4 +1,4 @@
-name: Deploy — Production
+name: Prod Deploy
 on:
   # Auto-deploy after CI passes on main. Storybook runs in parallel — we gate
   # on it inside the job rather than using a second workflow_run trigger (which
@@ -61,7 +61,7 @@ jobs:
           fi
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        
+
       - name: Setup Node.js & Install Dependencies
         uses: ./.github/actions/bootstrap
         with:
