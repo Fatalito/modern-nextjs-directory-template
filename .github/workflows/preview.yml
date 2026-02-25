@@ -94,8 +94,9 @@ jobs:
           BASE_URL: ${{ steps.deploy.outputs.url }}
           NODE_ENV: production
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          CHROME_PATH: /usr/bin/google-chrome
-        run: npm run perf:e2e 2>&1 | tee perf-e2e.txt
+        run: |
+          export CHROME_PATH=$(find /ms-playwright -name chrome -path "*/chromium-*/chrome-linux64/chrome" -not -path "*headless*" -type f 2>/dev/null | head -1)
+          npm run perf:e2e 2>&1 | tee perf-e2e.txt
 
       - name: Compare Performance Metrics
         if: ${{ !cancelled() }}
