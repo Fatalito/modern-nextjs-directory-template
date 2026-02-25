@@ -1,15 +1,11 @@
-name: Bootstrap — Checkout, (optional) Node.js & Install Dependencies
+name: Bootstrap — (optional) Node.js & Install Dependencies
 description: >
-  Checks out the repository, optionally sets up Node.js from .nvmrc,
+  Optionally sets up Node.js from .nvmrc,
   restores/saves the node_modules cache, and runs npm ci when the cache is cold.
   Set install-node to 'false' for jobs running inside the Playwright Docker
   container (mcr.microsoft.com/playwright), which already ships with Node 24.
 
 inputs:
-  checkout-ref:
-    description: Git ref to checkout. Defaults to the event's triggering ref.
-    required: false
-    default: ''
   install-node:
     description: >
       Run actions/setup-node. Set to 'false' when the job container already
@@ -20,11 +16,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        ref: ${{ inputs.checkout-ref }}
-
     - name: Set up Node.js
       if: inputs.install-node == 'true'
       uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
