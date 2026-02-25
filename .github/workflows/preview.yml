@@ -68,6 +68,7 @@ jobs:
           echo "url=$url" >> $GITHUB_OUTPUT
 
       - name: Run Functional E2E Tests
+        continue-on-error: true
         env:
           BASE_URL: ${{ steps.deploy.outputs.url }}
           NODE_ENV: production

@@ -272,7 +272,7 @@ if [ -n "$REPO" ]; then
 {
   "required_status_checks": {
     "strict": false,
-    "contexts": ["Verify & Build"]
+    "contexts": ["Verify / Test, Scan & Generate SBOM"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": null,
@@ -285,7 +285,7 @@ BPEOF
   else
     echo -e "$WARN Could not enable branch protection (requires GitHub Pro or org repo)."
     echo "  Enable manually: Settings → Branches → Add rule for '$DEFAULT_BRANCH'"
-    echo "  → Require status check: 'Verify & Build'"
+    echo "  → Require status check: 'Verify / Test, Scan & Generate SBOM'"
   fi
   rm -f "$TMPJSON"
 
