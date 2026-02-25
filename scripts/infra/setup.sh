@@ -313,16 +313,18 @@ BPEOF
   fi
 
   # GitHub Pages for Storybook (gh-pages branch, root path)
-  PAGES_JSON=$(mktemp)
-  echo '{"source":{"branch":"gh-pages","path":"/"}}' > "$PAGES_JSON"
+  # POST creates Pages if they don't exist; PUT updates the source if they do.
+  # Both are attempted so this step is idempotent regardless of prior state.
   PAGES_OWNER=$(echo "$REPO" | cut -d/ -f1)
   PAGES_NAME=$(echo "$REPO" | cut -d/ -f2)
-  if gh api "repos/$REPO/pages" --method POST --input "$PAGES_JSON" > /dev/null 2>&1; then
-    echo -e "$SUCCESS GitHub Pages enabled — Storybook: https://${PAGES_OWNER}.github.io/${PAGES_NAME}/"
+  PAGES_SOURCE='{"source":{"branch":"gh-pages","path":"/"}}'
+  if gh api "repos/$REPO/pages" --method POST --input - <<< "$PAGES_SOURCE" > /dev/null 2>&1 || \
+     gh api "repos/$REPO/pages" --method PUT  --input - <<< "$PAGES_SOURCE" > /dev/null 2>&1; then
+    echo -e "$SUCCESS GitHub Pages set to gh-pages branch — Storybook: https://${PAGES_OWNER}.github.io/${PAGES_NAME}/"
   else
-    echo -e "$INFO GitHub Pages already configured or not available for this repo — skipping."
+    echo -e "$WARN Could not configure GitHub Pages."
+    echo "  Enable manually: Settings → Pages → Source → Deploy from branch → gh-pages → / (root)"
   fi
-  rm -f "$PAGES_JSON"
 else
   echo -e "$WARN Could not determine repo name — skipping GitHub repository configuration."
 fi

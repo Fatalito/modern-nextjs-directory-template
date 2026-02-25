@@ -1,4 +1,4 @@
-name: PR Deploy
+name: Preview
 on:
   pull_request:
     branches: [main]
@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   build:
-    name: Preview Build & Deploy 
+    name: Build & Deploy 
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.58.2-noble
@@ -73,7 +73,9 @@ jobs:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: npm run test:e2e 2>&1 | tee playwright-e2e.txt
+        run: |
+          npm run test:e2e 2>&1 | tee playwright-e2e.txt
+          exit "${PIPESTATUS[0]}"
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -175,23 +177,31 @@ jobs:
               coverageTag = `Statements: **${total.statements.pct}%** | Branches: **${total.branches.pct}%** | Functions: **${total.functions.pct}%** | Lines: **${total.lines.pct}%**`;
             }
 
-            const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : 'No E2E logs found.';
-            const e2eTail = e2eRaw.trim().split('\n').slice(-15).join('\n');
+            const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : '';
+            const passedMatch = e2eRaw.match(/(\d+) passed/);
+            const failedMatch = e2eRaw.match(/(\d+) failed/);
+            const e2ePassed = passedMatch ? parseInt(passedMatch[1]) : 0;
+            const e2eFailed = failedMatch ? parseInt(failedMatch[1]) : 0;
+            const e2eTag = !e2eRaw ? '_No E2E results._'
+              : e2eFailed > 0 ? `❌ **${e2eFailed} failed** · ${e2ePassed} passed`
+              : `✅ **${e2ePassed} passed**`;
+            const e2eTail = (e2eRaw || 'No E2E logs found.').trim().split('\n').slice(-15).join('\n');
             const perfBody = fs.existsSync('perf-report.md') ? fs.readFileSync('perf-report.md', 'utf8') : '_Performance report missing._';
             const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
 
             const body = `
             ${marker}
-            
+
             | Resource | Link / Status |
             | :--- | :--- |
             | **Live Preview** | [View Deployment](${process.env.DEPLOY_URL})|
             | **Storybook** | [View Components](${process.env.STORYBOOK_URL}) |
             | **Unit Tests** | ${coverageTag} |
+            | **E2E Tests** | ${e2eTag} |
 
             <details>
-            <summary>🧪 **Functional E2E Results** (Last 15 lines)</summary>
-            
+            <summary>🧪 E2E details (last 15 lines)</summary>
+
             \`\`\`text
             ${e2eTail}
             \`\`\`

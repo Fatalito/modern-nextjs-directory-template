@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Verify, Test, Scan & Generate SBOM
+    name: Test, Scan & Generate SBOM
     runs-on: ubuntu-latest
     permissions:
       contents: read

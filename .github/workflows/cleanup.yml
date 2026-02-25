@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   cleanup:
-    name: Delete PR Resources
+    name: Delete Turso DB, Vercel Preview & Storybook Preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
