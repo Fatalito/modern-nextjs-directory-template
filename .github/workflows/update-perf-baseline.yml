@@ -45,8 +45,9 @@ jobs:
         env:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
-          REUSE_SERVER: 'true'
-        run: npx start-server-and-test 'npm start' http://localhost:3000 'npm run perf:e2e'
+        run: |
+          export CHROME_PATH=$(bash scripts/find-chrome.sh)
+          npm run perf:e2e
 
       - name: Update Playwright perf baseline
         run: npm run perf:baseline

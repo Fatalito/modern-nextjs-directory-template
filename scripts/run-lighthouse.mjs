@@ -17,6 +17,15 @@ async function run() {
   let chrome;
 
   try {
+    await fetch(TARGET_URL, { signal: AbortSignal.timeout(5000) });
+  } catch {
+    console.log(
+      `❌ Server not reachable at ${TARGET_URL}. Ensure it is running before calling this script.`,
+    );
+    process.exit(1);
+  }
+
+  try {
     chrome = await launch({
       chromeFlags: ["--headless", "--disable-gpu", "--no-sandbox"],
       ...(process.env.CHROME_PATH
@@ -85,24 +94,32 @@ async function run() {
       }
     }
 
+    const scores = {
+      performance: toPercent(cats.performance?.score),
+      accessibility: toPercent(cats.accessibility?.score),
+      "best-practices": toPercent(cats["best-practices"]?.score),
+      seo: toPercent(cats.seo?.score),
+      suggestions,
+    };
+
     fs.mkdirSync(path.dirname(SCORES_PATH), { recursive: true });
-    fs.writeFileSync(
-      SCORES_PATH,
-      JSON.stringify(
-        {
-          performance: toPercent(cats.performance?.score),
-          accessibility: toPercent(cats.accessibility?.score),
-          "best-practices": toPercent(cats["best-practices"]?.score),
-          seo: toPercent(cats.seo?.score),
-          suggestions,
-        },
-        null,
-        2,
-      ),
+    fs.writeFileSync(SCORES_PATH, JSON.stringify(scores, null, 2));
+
+    const icon = (n) => (n >= 90 ? "✅" : n >= 50 ? "⚠️" : "❌");
+    console.log("\n📊 Lighthouse Scores");
+    console.log(
+      `  Performance:    ${scores.performance}  ${icon(scores.performance)}`,
     );
+    console.log(
+      `  Accessibility:  ${scores.accessibility}  ${icon(scores.accessibility)}`,
+    );
+    console.log(
+      `  Best Practices: ${scores["best-practices"]}  ${icon(scores["best-practices"])}`,
+    );
+    console.log(`  SEO:            ${scores.seo}  ${icon(scores.seo)}\n`);
   } catch (error) {
-    console.error("❌ Lighthouse Audit Failed:", error);
-    process.exitCode = 1;
+    console.error(`❌ Lighthouse Audit Failed: ${error?.message ?? error}`);
+    process.exit(1);
   } finally {
     chrome?.kill();
   }

@@ -103,8 +103,11 @@ jobs:
           NODE_ENV: production
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
-          export CHROME_PATH=$(find /ms-playwright -name chrome -path "*/chromium-*/chrome-linux64/chrome" -not -path "*headless*" -type f 2>/dev/null | head -1)
-          npm run perf:e2e 2>&1 | tee perf-e2e.txt
+          export CHROME_PATH=$(bash scripts/find-chrome.sh)
+          # Run Playwright perf tests and Lighthouse separately so Lighthouse always
+          # runs even when @perf tests fail.
+          bash scripts/perf-e2e.sh 2>&1 | tee perf-e2e.txt || true
+          node scripts/run-lighthouse.mjs
 
       - name: Compare Performance Metrics
         if: ${{ !cancelled() }}

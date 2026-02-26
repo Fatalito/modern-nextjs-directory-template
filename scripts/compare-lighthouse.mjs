@@ -119,8 +119,8 @@ const reportRegressions = (regressions) => {
 
 const runComparison = () => {
   if (!fs.existsSync(scoresPath)) {
-    logger.error(
-      `No Lighthouse scores found at ${scoresPath}. Run 'npm run perf:lighthouse' first.`,
+    logger.raw(
+      `_Lighthouse scores not found. Run \`npm run perf:lighthouse\` first._`,
     );
     process.exit(1);
   }
@@ -134,8 +134,8 @@ const runComparison = () => {
   }
 
   if (!fs.existsSync(baselinePath)) {
-    logger.error(
-      `No baseline found at ${baselinePath}. Run 'npm run perf:lighthouse:baseline' to create one.`,
+    logger.raw(
+      `_Lighthouse baseline not found. Run \`npm run perf:lighthouse:baseline\` to create one._`,
     );
     process.exit(1);
   }
@@ -156,6 +156,6 @@ const runComparison = () => {
 try {
   runComparison();
 } catch (err) {
-  logger.error(`Script failed: ${err.message}`);
+  logger.raw(`_Lighthouse comparison failed: ${err.message}_`);
   process.exit(1);
 }
