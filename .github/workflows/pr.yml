@@ -167,7 +167,7 @@ jobs:
         # By the time E2E + perf finish, the test job has usually uploaded coverage.
         # continue-on-error guards the unlikely race where it hasn't yet.
         continue-on-error: true
-        uses: actions/download-artifact@cc203385981b70ca67064d3c18b28fd6b5e5fe9b # v4.1.9
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: coverage-report
           path: coverage/
