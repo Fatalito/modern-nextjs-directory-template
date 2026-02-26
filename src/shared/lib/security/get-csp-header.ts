@@ -42,6 +42,7 @@ export const getCspHeader = (
       .filter(Boolean)
       .join(" "),
     "style-src": "'self' 'unsafe-inline'",
+    ...(isVercelPreview && { "frame-src": VERCEL_LIVE_HOST }),
   };
 
   return Object.entries(directives)

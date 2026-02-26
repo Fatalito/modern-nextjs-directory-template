@@ -111,11 +111,11 @@ jobs:
 
       - name: Compare Performance Metrics
         if: ${{ !cancelled() }}
-        run: npm run perf:compare 2>&1 | tee perf-report.md
+        run: node scripts/compare-perf.mjs 2>&1 | tee perf-report.md
 
       - name: Compare Lighthouse Scores
         if: ${{ !cancelled() }}
-        run: npm run perf:lighthouse:compare 2>&1 | tee lighthouse-report.md
+        run: node scripts/compare-lighthouse.mjs 2>&1 | tee lighthouse-report.md
 
       - name: Upload Performance Metrics
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -226,7 +226,6 @@ jobs:
             ### ⚡ Performance Benchmark
             ${perfBody}
 
-            ### 🔦 Lighthouse Scores
             ${lhBody}
 
             ---

@@ -18,12 +18,13 @@ describe("getCspHeader", () => {
     expect(header).toContain("ws://localhost:*");
   });
 
-  it("allows vercel.live script and connect sources in Vercel preview", () => {
+  it("allows vercel.live script, connect, and frame sources in Vercel preview", () => {
     const header = getCspHeader("production", "preview");
     expect(header).toContain(
       "script-src 'self' 'unsafe-inline' https://vercel.live",
     );
     expect(header).toContain("connect-src 'self' https://vercel.live");
+    expect(header).toContain("frame-src https://vercel.live");
     expect(header).not.toContain("'unsafe-eval'");
   });
 });
