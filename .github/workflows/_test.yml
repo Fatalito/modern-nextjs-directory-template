@@ -1,0 +1,44 @@
+name: _Test
+on:
+  workflow_call:
+    secrets:
+      sonar-token:
+        required: true
+
+jobs:
+  test:
+    name: Test, Scan & Generate SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      NODE_ENV: test
+      ENABLE_HSTS: "false"
+      SKIP_ENV_VALIDATION: "true"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js & Install Dependencies
+        uses: ./.github/actions/bootstrap
+
+      - name: Biome Lint & Format
+        run: npm run lint
+
+      - name: Execute Tests & Coverage
+        run: npm run test:coverage
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: coverage-report
+          path: coverage/coverage-summary.json
+
+      - name: Security Scan & Generate SBOM
+        uses: ./.github/actions/security-scan
+        with:
+          github-token: ${{ github.token }}
+          sonar-token: ${{ secrets.sonar-token }}

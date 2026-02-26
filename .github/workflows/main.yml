@@ -1,0 +1,28 @@
+name: Main
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/_test.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
+
+  storybook:
+    name: Deploy Storybook
+    uses: ./.github/workflows/_storybook.yml
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    with:
+      destination: .

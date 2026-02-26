@@ -1,15 +1,23 @@
-name: Preview
+name: PR
 on:
   pull_request:
     branches: [main]
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: pr-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build & Deploy 
+  test:
+    uses: ./.github/workflows/_test.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
+
+  preview:
+    name: Build & Deploy Preview
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.58.2-noble
@@ -153,22 +161,19 @@ jobs:
           name: lighthouse-report
           path: lighthouse-report.md
           retention-days: 30
-      
+
       - name: Download Coverage Report
-        # Cross-workflow download: the coverage artifact lives in the ci.yml run,
-        # not this one. dawidd6/action-download-artifact searches across workflow runs.
-        # continue-on-error guards the race where ci.yml is still in progress.
+        # test and preview run in parallel within the same workflow run.
+        # By the time E2E + perf finish, the test job has usually uploaded coverage.
+        # continue-on-error guards the unlikely race where it hasn't yet.
         continue-on-error: true
-        uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295 # v9
+        uses: actions/download-artifact@cc203385981b70ca67064d3c18b28fd6b5e5fe9b # v4.1.9
         with:
-          workflow: ci.yml
           name: coverage-report
           path: coverage/
-          commit: ${{ github.event.pull_request.head.sha }}
-          if_no_artifact_found: warn
 
       - name: 💬 PR Report
-        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        if: ${{ !cancelled() }}
         env:
           DEPLOY_URL: ${{ steps.deploy.outputs.url }}
           STORYBOOK_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/"
@@ -214,10 +219,10 @@ jobs:
             ${e2eTail}
             \`\`\`
             </details>
-            
+
             ### ⚡ Performance Benchmark
             ${perfBody}
-            
+
             ### 🔦 Lighthouse Scores
             ${lhBody}
 
@@ -241,3 +246,13 @@ jobs:
                 owner, repo, issue_number, body: body.trim()
               });
             }
+
+  storybook:
+    name: Deploy Storybook
+    uses: ./.github/workflows/_storybook.yml
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    with:
+      destination: pr-${{ github.event.pull_request.number }}

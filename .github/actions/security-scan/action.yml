@@ -1,0 +1,35 @@
+name: Security Scan & Generate SBOM
+description: >
+  Runs OWASP dependency audit, SonarCloud static analysis, and generates a
+  CycloneDX SBOM. Uploads the SBOM as a workflow artifact.
+
+inputs:
+  github-token:
+    description: GitHub token for SonarCloud PR decoration.
+    required: true
+  sonar-token:
+    description: SonarCloud authentication token.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: OWASP Dependency Audit
+      shell: bash
+      run: npm run security:audit
+
+    - name: SonarCloud Scan
+      uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        SONAR_TOKEN: ${{ inputs.sonar-token }}
+
+    - name: Generate SBOM (CycloneDX)
+      shell: bash
+      run: npm run security:sbom
+
+    - name: Upload SBOM Artifact
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      with:
+        name: cyclonedx-sbom
+        path: build/reports/bom.json

@@ -4,7 +4,7 @@ on:
   # on it inside the job rather than using a second workflow_run trigger (which
   # would fire on either workflow completing, not both).
   workflow_run:
-    workflows: [CI]
+    workflows: [Main]
     branches: [main]
     types: [completed]
   # Manual trigger (e.g. first deploy after infra:setup + infra:sync:github)
@@ -31,42 +31,11 @@ jobs:
       VERCEL_TELEMETRY_DISABLED: 1
 
     steps:
-      - name: Wait for Storybook to complete
-        # Storybook runs in parallel with CI on push to main. We poll for its
-        # run on the same SHA and wait up to 10 min before proceeding.
-        # Skipped for workflow_dispatch (manual deploy — operator knows best).
-        if: github.event_name == 'workflow_run'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TARGET_SHA="${{ github.event.workflow_run.head_sha }}"
-          echo "Waiting for Storybook run on $TARGET_SHA..."
-
-          # Poll up to 10 minutes (20 × 30 s) for the run to appear
-          RUN_ID=""
-          for i in $(seq 1 20); do
-            RUN_ID=$(gh run list --workflow=storybook.yml --branch=main \
-              --json headSha,databaseId \
-              --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" \
-              | head -1)
-            [ -n "$RUN_ID" ] && break
-            echo "  Run not found yet — retry $i/20 in 30 s..."
-            sleep 30
-          done
-
-          if [ -z "$RUN_ID" ]; then
-            echo "::warning::Storybook run not found for $TARGET_SHA — proceeding without gate"
-          else
-            gh run watch "$RUN_ID" --exit-status
-          fi
       - name: Checkout Code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup Node.js & Install Dependencies
         uses: ./.github/actions/bootstrap
-        with:
-          # Pin to the exact SHA that CI verified (falls back to github.sha for workflow_dispatch)
-          checkout-ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Restore/Save Next.js build cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3

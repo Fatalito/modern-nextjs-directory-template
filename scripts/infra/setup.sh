@@ -272,7 +272,7 @@ if [ -n "$REPO" ]; then
 {
   "required_status_checks": {
     "strict": false,
-    "contexts": ["Verify / Test, Scan & Generate SBOM"]
+    "contexts": ["test / Test, Scan & Generate SBOM", "Build & Deploy Preview"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": null,

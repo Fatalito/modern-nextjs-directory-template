@@ -148,7 +148,7 @@ npm run infra:rotate-token
 
 ### PR Preview Deployments
 
-Pull requests to `main` automatically deploy a preview to Vercel and fork a Turso DB for isolated testing. See `.github/workflows/preview.yml` for details. The preview URL is posted as a comment on the PR.
+Pull requests to `main` automatically deploy a preview to Vercel and fork a Turso DB for isolated testing. See `.github/workflows/pr.yml` for details. The preview URL is posted as a comment on the PR.
 
 ### PR Cleanup
 
@@ -168,13 +168,13 @@ npm run infra:sync:github
 |------|------|---------|
 | `DATABASE_URL` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
 | `DATABASE_AUTH_TOKEN` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
-| `TURSO_API_TOKEN` | Secret | `preview.yml` — forks DB per PR |
-| `VERCEL_TOKEN` | Secret | `deploy.yml`, `preview.yml`, `cleanup.yml` |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `preview.yml` — E2E + perf tests against protected deployments |
+| `TURSO_API_TOKEN` | Secret | `pr.yml` — forks DB per PR |
+| `VERCEL_TOKEN` | Secret | `deploy.yml`, `pr.yml`, `cleanup.yml` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `pr.yml` — E2E + perf tests against protected deployments |
 | `VERCEL_ORG_ID` | Secret | All Vercel CLI workflows |
 | `VERCEL_PROJECT_ID` | Secret | All Vercel CLI workflows |
-| `TURSO_DB_NAME` | Variable | `preview.yml`, `cleanup.yml` |
-| `TURSO_REGION` | Variable | `preview.yml` |
+| `TURSO_DB_NAME` | Variable | `pr.yml`, `cleanup.yml` |
+| `TURSO_REGION` | Variable | `pr.yml` |
 
 `SONAR_TOKEN` and `SNYK_TOKEN` are collected interactively by `infra:setup` (opens the browser to the token page, prompts for input, syncs via `gh secret set`). If you skipped them, add the values to `.env` and re-run `npm run infra:sync:github`.
 
@@ -190,7 +190,7 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 
 ### Production Deployments
 
-`deploy.yml` triggers automatically after `CI` passes on `main`, and can also be triggered manually. It:
+`deploy.yml` triggers automatically after `Main` passes on `main`, and can also be triggered manually. It:
 1. Pushes `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from GitHub Secrets to Vercel production
 2. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
 3. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
@@ -386,7 +386,7 @@ The CI pipeline caches two layers to minimise redundant work:
 | `node_modules` | `package-lock.json` hash | Skips `npm ci` entirely on cache hit |
 | `.next/cache` | lockfile + `src/**` hash | Speeds up incremental Turbopack compilation |
 
-Playwright browsers are not cached separately — the `mcr.microsoft.com/playwright` Docker image (used in `preview.yml` and `update-perf-baseline.yml`) ships with all browsers pre-installed.
+Playwright browsers are not cached separately — the `mcr.microsoft.com/playwright` Docker image (used in `pr.yml` and `update-perf-baseline.yml`) ships with all browsers pre-installed.
 
 ### CI Gatekeeper
 
