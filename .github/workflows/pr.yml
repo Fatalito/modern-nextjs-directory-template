@@ -201,7 +201,7 @@ jobs:
             const e2eTag = !e2eRaw ? '_No E2E results._'
               : e2eFailed > 0 ? `❌ **${e2eFailed} failed** · ${e2ePassed} passed`
               : `✅ **${e2ePassed} passed**`;
-            const e2eTail = (e2eRaw || 'No E2E logs found.').trim().split('\n').slice(-15).join('\n');
+            const e2eTail = (e2eRaw || 'No E2E logs found.').trim().split('\n').slice(-20).join('\n');
             const perfBody = fs.existsSync('perf-report.md') ? fs.readFileSync('perf-report.md', 'utf8') : '_Performance report missing._';
             const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
 
@@ -216,7 +216,7 @@ jobs:
             | **E2E Tests** | ${e2eTag} |
 
             <details>
-            <summary>🧪 E2E details (last 15 lines)</summary>
+            <summary>🧪 E2E details (last 20 lines)</summary>
 
             \`\`\`text
             ${e2eTail}
