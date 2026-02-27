@@ -28,7 +28,7 @@ jobs:
         uses: ./.github/actions/bootstrap
 
       - name: Build Storybook
-        run: npx storybook build -o "./storybook-static/${{ inputs.destination }}"
+        run: ./node_modules/.bin/storybook build -o "./storybook-static/${{ inputs.destination }}"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0

@@ -62,6 +62,11 @@ jobs:
             ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build project
+        # Sensitive env vars are not returned by `vercel pull`, so inject them
+        # explicitly here so the build can reach the database.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
         run: ./node_modules/.bin/vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
