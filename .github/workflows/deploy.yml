@@ -68,7 +68,7 @@ jobs:
         id: deploy
         run: |
           url=$(./node_modules/.bin/vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
-          echo "url=$url" >> $GITHUB_OUTPUT
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Health check
         # Retry for up to 2 minutes — Vercel's edge propagation can take a few seconds.
@@ -104,4 +104,4 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "### Production deployed to ${{ steps.deploy.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Production deployed to ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
