@@ -70,7 +70,12 @@ jobs:
         env:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
-        run: turso db shell "$TURSO_DB_NAME" ".dump" > "db-snapshot-${{ github.sha }}.sql"
+        run: |
+          turso db shell "$TURSO_DB_NAME" ".dump" > "db-snapshot-${{ github.sha }}.sql"
+          if [ ! -s "db-snapshot-${{ github.sha }}.sql" ]; then
+            echo "::error::Database snapshot is empty — aborting before migration"
+            exit 1
+          fi
 
       - name: Upload database snapshot
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

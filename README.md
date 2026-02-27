@@ -209,7 +209,7 @@ See [scripts/infra/sync-github-env.sh](scripts/infra/sync-github-env.sh) for imp
 
 **Destructive changes** (renaming or dropping a column/table) require the **expand-contract** pattern (also known as **Parallel Change**) across three PRs. Each step is independently rollback-safe because the previous state remains intact.
 
-```
+```text
 PR 1 — Expand
   • Add the new column alongside the old one (both exist in schema)
   • Code still reads and writes the old column only
