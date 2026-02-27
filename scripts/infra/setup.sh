@@ -143,6 +143,22 @@ collect_token "TURSO_API_TOKEN" \
   "https://app.turso.tech/settings/api-tokens" \
   "Turso API token — required by CI to fork the database per PR. Generate at app.turso.tech → Settings → API Tokens."
 
+# Auto-generate DB_SNAPSHOT_PASSPHRASE if not already set — no user action needed.
+if [ -z "$(get_env_var DB_SNAPSHOT_PASSPHRASE)" ]; then
+  GENERATED_PASSPHRASE=$(openssl rand -base64 32)
+  update_env_var "DB_SNAPSHOT_PASSPHRASE" "$GENERATED_PASSPHRASE"
+  local gh_err
+  if ! gh_err=$(gh secret set "DB_SNAPSHOT_PASSPHRASE" --body "$GENERATED_PASSPHRASE" 2>&1); then
+    echo -e "$WARN Could not sync DB_SNAPSHOT_PASSPHRASE to GitHub Secrets:"
+    [ -n "$gh_err" ] && echo "  $gh_err"
+    echo "  Re-run: npm run infra:sync:github"
+  else
+    echo -e "$SUCCESS DB_SNAPSHOT_PASSPHRASE generated and synced to GitHub Secrets."
+  fi
+else
+  echo -e "$INFO DB_SNAPSHOT_PASSPHRASE already set — skipping."
+fi
+
 # ── 2. Provision Turso production database ────────────────────────────────────
 echo ""
 echo -e "$STEP"

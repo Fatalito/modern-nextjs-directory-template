@@ -65,23 +65,30 @@ jobs:
             ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Snapshot database before migration
-        # Captures the pre-migration state as a SQL dump so it can be replayed
-        # locally if a destructive migration needs to be rolled back.
+        # Captures the pre-migration state as an AES-256 encrypted SQL dump.
+        # Decrypt locally with: openssl enc -d -aes-256-cbc -pbkdf2 -in <file>.enc -out restore.sql
         env:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+          DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |
-          turso db shell "$TURSO_DB_NAME" ".dump" > "db-snapshot-${{ github.sha }}.sql"
-          if [ ! -s "db-snapshot-${{ github.sha }}.sql" ]; then
+          SNAPSHOT_FILE="db-snapshot-${{ github.sha }}.sql"
+          turso db shell "$TURSO_DB_NAME" ".dump" > "$SNAPSHOT_FILE"
+          if [ ! -s "$SNAPSHOT_FILE" ]; then
             echo "::error::Database snapshot is empty — aborting before migration"
             exit 1
           fi
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "$SNAPSHOT_FILE" \
+            -out "${SNAPSHOT_FILE}.enc" \
+            -pass env:DB_SNAPSHOT_PASSPHRASE
+          rm -f "$SNAPSHOT_FILE"
 
       - name: Upload database snapshot
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: db-snapshot-${{ github.sha }}
-          path: db-snapshot-${{ github.sha }}.sql
+          path: db-snapshot-${{ github.sha }}.sql.enc
           retention-days: 30
 
       - name: Run database migrations

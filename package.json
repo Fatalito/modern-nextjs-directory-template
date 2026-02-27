@@ -20,6 +20,7 @@
   "scripts": {
     "clean": "rm -rf .next next-env.d.ts",
     "clean:all": "npm run clean && rm -rf node_modules coverage playwright-report test-results tsconfig.tsbuildinfo",
+    "db:decrypt-snapshot": "bash scripts/db-decrypt-snapshot.sh",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/shared/api/db/seed.ts",

@@ -9,6 +9,7 @@
 #   VERCEL_TOKEN                            ← for deployments
 #   VERCEL_AUTOMATION_BYPASS_SECRET         ← for bypassing Vercel protection in tests
 #   VERCEL_ORG_ID, VERCEL_PROJECT_ID        ← extracted from .vercel/project.json
+#   DB_SNAPSHOT_PASSPHRASE                  ← AES-256 key for pre-migration DB snapshots
 #
 # Variables (visible in UI):
 #   TURSO_DB_NAME, TURSO_REGION
@@ -76,6 +77,7 @@ echo -e "$INFO Syncing CI secrets..."
 push_secret "TURSO_API_TOKEN"                 "$(get_env_var TURSO_API_TOKEN)"
 push_secret "VERCEL_TOKEN"                    "$(get_env_var VERCEL_TOKEN)"
 push_secret "VERCEL_AUTOMATION_BYPASS_SECRET" "$(get_env_var VERCEL_AUTOMATION_BYPASS_SECRET)"
+push_secret "DB_SNAPSHOT_PASSPHRASE"          "$(get_env_var DB_SNAPSHOT_PASSPHRASE)"
 
 # ── Config variables ───────────────────────────────────────────────────────────
 echo -e "$INFO Syncing CI variables..."
