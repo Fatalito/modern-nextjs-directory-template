@@ -2,6 +2,8 @@
 
 A modern, scalable Next.js directory template designed with performance, maintainability, and developer experience in mind.
 
+**[Live demo →](https://modern-nextjs-directory-template.vercel.app)**
+
 ## Tech Stack
 
 | Layer | Technology |
