@@ -41,7 +41,7 @@ if [ -n "$SUFFIX" ]; then
 else
   TARGET_DB="$DB_NAME"  # prod
   SOURCE_DB=""
-  TOKEN_EXPIRY="none"   # non-expiring for production
+  TOKEN_EXPIRY="never"  # non-expiring for production
 fi
 
 # ── Prerequisites ─────────────────────────────────────────────────────────────

@@ -274,7 +274,7 @@ BPEOF
   else
     echo -e "$WARN Could not enable branch protection (requires GitHub Pro or org repo)."
     echo "  Enable manually: Settings → Branches → Add rule for '$DEFAULT_BRANCH'"
-    echo "  → Require status check: 'Verify / Test, Scan & Generate SBOM'"
+    echo "  → Require status checks: 'test / Test, Scan & Generate SBOM' and 'preview / Build & Deploy Preview'"
   fi
   rm -f "$TMPJSON"
 

@@ -4,7 +4,7 @@
 
 # Read a key's value from .env (returns empty string if missing or unset).
 get_env_var() {
-  grep -E "^${1}=" .env 2>/dev/null | head -1 | cut -d'=' -f2-
+  grep -m1 -E "^${1}=" .env 2>/dev/null | cut -d'=' -f2- || true
 }
 
 # Upsert a key=value line in .env, preserving all other content.

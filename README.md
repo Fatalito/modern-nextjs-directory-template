@@ -42,6 +42,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+<a id="prod-setup"></a>
 ## 🚀 First-time production setup (→ live)
 
 **Platforms used:** [Turso](https://turso.tech) (DB) · [Vercel](https://vercel.com) (hosting) · [SonarCloud](https://sonarcloud.io) (quality) · [Snyk](https://snyk.io) (security)
@@ -106,7 +107,7 @@ See the [Turso quickstart](https://docs.turso.tech/quickstart) for full document
 
 ### Provisioning
 
-See [First-time production setup](#first-time-production-setup-live) for the full onboarding flow. The relevant commands:
+See [First-time production setup](#prod-setup) for the full onboarding flow. The relevant commands:
 
 ```bash
 npm run infra:setup      # provision DB, link Vercel, configure GitHub, sync secrets, open PR
