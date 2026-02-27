@@ -14,7 +14,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 | **Styling** | Tailwind CSS v4 & Shadcn UI |
 | **Database** | Drizzle ORM + libsql (SQLite locally / Turso in production) |
 | **Validation** | Zod (schema-first, single source of truth for types) + t3-oss/env-nextjs (type-safe env) |
-| **Linting & Formatting** | Biome |
+| **Linting & Formatting** | Biome · markdownlint-cli2 · dotenv-linter · actionlint (CI) |
 | **Pre-commit Hooks** | Lefthook |
 | **Testing** | Vitest (unit), Playwright (E2E), Lighthouse (performance scoring) |
 | **Component Explorer** | Storybook |
@@ -104,7 +104,7 @@ See the [Turso quickstart](https://docs.turso.tech/quickstart) for full document
 
 ### Provisioning
 
-See [First-time production setup](#-first-time-production-setup---live) for the full onboarding flow. The relevant commands:
+See [First-time production setup](#first-time-production-setup-live) for the full onboarding flow. The relevant commands:
 
 ```bash
 npm run infra:setup      # provision DB, link Vercel, configure GitHub, sync secrets, open PR
@@ -215,6 +215,8 @@ See [scripts/infra/sync-github-env.sh](scripts/infra/sync-github-env.sh) for imp
 | Typecheck | `npm run typecheck` |
 | Lint | `npm run lint` |
 | Lint + fix | `npm run lint:fix` |
+| Lint Markdown | `npm run lint:md` |
+| Lint .env files | `npm run lint:env` |
 | All unit tests | `npm run test` |
 | Watch tests | `npm run test:unit:watch` |
 | Unit tests (Vitest UI) | `npm run test:unit:ui` |

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { siteConfig } from "@/shared/config";
-import { createServiceRaw } from "@/shared/testing";
+import { createService } from "@/shared/testing";
 
 vi.mock("@/entities/business/server", () => ({ getPopularPaths: vi.fn() }));
 vi.mock("@/entities/location/server", () => ({
@@ -65,7 +65,7 @@ describe("sitemap", () => {
   });
 
   it("includes service urls from getAllServices", async () => {
-    const service = createServiceRaw({ slug: "plumbing" });
+    const service = createService({ slug: "plumbing" });
     vi.mocked(getCityCountryDirectoryPaths).mockResolvedValue([]);
     vi.mocked(getPopularPaths).mockResolvedValue([]);
     vi.mocked(getAllServices).mockResolvedValue([service]);

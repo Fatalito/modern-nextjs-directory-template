@@ -1,0 +1,8 @@
+{
+  "config": {
+    "default": true,
+    "MD013": false, // Disable line length checks
+    "MD033": false // Allow inline HTML (useful for centering images/badges)
+  },
+  "ignores": ["node_modules", ".next", "CHANGELOG.md"]
+}

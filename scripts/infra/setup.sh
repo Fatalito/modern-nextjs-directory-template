@@ -56,19 +56,8 @@ fi
 echo -e "$SUCCESS All prerequisites found."
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-get_env_var() {
-  grep -E "^${1}=" .env 2>/dev/null | head -1 | cut -d'=' -f2-
-}
-
-update_env_var() {
-  local key="$1" value="$2" file=".env"
-  if grep -q "^${key}=" "$file" 2>/dev/null; then
-    local tmp; tmp=$(mktemp)
-    sed "s|^${key}=.*|${key}=${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
-  else
-    echo "${key}=${value}" >> "$file"
-  fi
-}
+# shellcheck source=lib/utils.sh
+source "$SCRIPT_DIR/lib/utils.sh"
 
 # open_browser <url> — cross-platform browser launcher
 open_browser() {

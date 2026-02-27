@@ -28,6 +28,23 @@ jobs:
       - name: Biome Lint & Format
         run: npm run lint
 
+      - name: Lint Markdown
+        run: npm run lint:md
+
+      - name: Lint .env files
+        run: |
+          curl -sSfL \
+            "https://github.com/dotenv-linter/dotenv-linter/releases/download/v3.3.0/dotenv-linter-linux-x86_64.tar.gz" \
+            | tar -xzf - -C /usr/local/bin dotenv-linter
+          npm run lint:env
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          curl -sSfL \
+            "https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz" \
+            | tar -xzf - -C /usr/local/bin actionlint
+          actionlint
+
       - name: Execute Tests & Coverage
         run: npm run test:coverage
 

@@ -73,17 +73,10 @@ DB_URL="$(turso db show "$TARGET_DB" --url)"
 echo -e "$INFO Creating auth token (expiry: $TOKEN_EXPIRY)..."
 DB_TOKEN="$(turso db tokens create "$TARGET_DB" --expiration "$TOKEN_EXPIRY")"
 
-# ── Write to .env ─────────────────────────────────────────────────────────────
-update_env_var() {
-  local key="$1" value="$2" file=".env"
-  if grep -q "^${key}=" "$file" 2>/dev/null; then
-    local tmp; tmp=$(mktemp)
-    sed "s|^${key}=.*|${key}=${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
-  else
-    echo "${key}=${value}" >> "$file"
-  fi
-}
+# shellcheck source=lib/utils.sh
+source "$SCRIPT_DIR/lib/utils.sh"
 
+# ── Write to .env ─────────────────────────────────────────────────────────────
 if [ -n "${GITHUB_ENV:-}" ]; then
   # Running in GitHub Actions — write to GITHUB_ENV for downstream steps
   echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"

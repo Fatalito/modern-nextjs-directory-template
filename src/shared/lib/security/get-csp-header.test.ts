@@ -24,7 +24,7 @@ describe("getCspHeader", () => {
       "script-src 'self' 'unsafe-inline' https://vercel.live",
     );
     expect(header).toContain("connect-src 'self' https://vercel.live");
-    expect(header).toContain("frame-src https://vercel.live");
+    expect(header).toContain("frame-src 'self' https://vercel.live");
     expect(header).not.toContain("'unsafe-eval'");
   });
 });

@@ -6,6 +6,15 @@ const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const VERCEL_AUTOMATION_BYPASS_SECRET =
   process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
+const isVercelHost = (() => {
+  try {
+    const { hostname } = new URL(BASE_URL);
+    return hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+})();
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -21,11 +30,12 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
     baseURL: BASE_URL,
-    extraHTTPHeaders: VERCEL_AUTOMATION_BYPASS_SECRET
-      ? {
-          "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET,
-        }
-      : {},
+    extraHTTPHeaders:
+      VERCEL_AUTOMATION_BYPASS_SECRET && isVercelHost
+        ? {
+            "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET,
+          }
+        : {},
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",

@@ -5,15 +5,18 @@ pre-commit:
     biome-check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
       run: npx @biomejs/biome check --write --no-errors-on-unmatched {staged_files} && git add {staged_files}
+    markdown-check:
+      glob: "**/*.md"
+      run: npx markdownlint-cli2 {staged_files}
+pre-push:
+  commands:
+    dotenv-check:
+      glob: ".env.example"
+      run: dotenv-linter {staged_files}
     coverage-gate:
       glob: "src/**/*.ts"
       run: >-
         npm run test:coverage &&
         node -e "const s=JSON.parse(require('fs').readFileSync('./coverage/coverage-summary.json','utf8'));const bad=Object.entries(s).filter(([k,v])=>k!=='total'&&v.lines.pct===0&&v.lines.total>0);if(bad.length){console.error('\n\u274C Coverage gate: 0% — add tests or exclude in vitest.config.ts:\n'+bad.map(([k])=>k).join('\n'));process.exit(1);}"
-
-pre-push:
-  commands:
-    tests:
-      run: npm run test:coverage
     typecheck:
       run: npm run typecheck

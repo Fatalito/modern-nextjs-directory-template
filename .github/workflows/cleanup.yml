@@ -32,8 +32,9 @@ jobs:
             --force
 
       - name: Remove Vercel Preview
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
           ENCODED_BRANCH=$(jq -rn --arg b "$BRANCH" '$b|@uri')
           DEPLOYMENT_IDS=$(curl -sf \
             -H "Authorization: Bearer $VERCEL_TOKEN" \

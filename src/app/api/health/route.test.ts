@@ -46,4 +46,17 @@ describe("GET /api/health", () => {
 
     expect((await response.json()).error).toBe("timeout");
   });
+
+  it("uses VERCEL_GIT_COMMIT_SHA for X-Commit-Sha when set", async () => {
+    process.env.VERCEL_GIT_COMMIT_SHA = "abc1234567890";
+    vi.resetModules();
+    try {
+      const { GET: freshGET } = await import("./route");
+      const response = await freshGET();
+      expect(response.headers.get("X-Commit-Sha")).toBe("abc1234");
+    } finally {
+      delete process.env.VERCEL_GIT_COMMIT_SHA;
+      vi.resetModules();
+    }
+  });
 });

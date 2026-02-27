@@ -46,7 +46,12 @@ jobs:
           NODE_ENV: production
           NEXT_TELEMETRY_DISABLED: '1'
         run: |
-          export CHROME_PATH=$(bash scripts/find-chrome.sh)
+          CHROME_PATH=$(bash scripts/find-chrome.sh)
+          if [ -z "$CHROME_PATH" ]; then
+            echo "::error::Could not determine Chrome path"
+            exit 1
+          fi
+          export CHROME_PATH
           npm run perf:e2e
 
       - name: Update Playwright perf baseline

@@ -20,6 +20,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 INFO="\033[34mINFO:\033[0m"
 SUCCESS="\033[32mSUCCESS:\033[0m"
 ERROR="\033[31mERROR:\033[0m"
@@ -41,9 +43,8 @@ if [ ! -f ".env" ]; then
 fi
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-get_env_var() {
-  grep -E "^${1}=" .env 2>/dev/null | head -1 | cut -d'=' -f2-
-}
+# shellcheck source=lib/utils.sh
+source "$SCRIPT_DIR/lib/utils.sh"
 
 push_secret() {
   local name="$1" value="$2"

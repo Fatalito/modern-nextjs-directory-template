@@ -15,9 +15,11 @@ const scoresPath = path.join(
 );
 const baselinePath = path.join(repoRoot, "lighthouse-baseline.json");
 
-const REGRESSION_THRESHOLD = Number(
-  process.env.LIGHTHOUSE_REGRESSION_THRESHOLD ?? 5,
-);
+const _parsedThreshold = Number(process.env.LIGHTHOUSE_REGRESSION_THRESHOLD);
+const REGRESSION_THRESHOLD =
+  Number.isFinite(_parsedThreshold) && _parsedThreshold >= 0
+    ? _parsedThreshold
+    : 5;
 const IS_UPDATE_MODE = process.env.UPDATE_LIGHTHOUSE_BASELINE === "1";
 
 const CATEGORIES = ["performance", "accessibility", "best-practices", "seo"];
@@ -156,6 +158,7 @@ const runComparison = () => {
 try {
   runComparison();
 } catch (err) {
-  logger.raw(`_Lighthouse comparison failed: ${err.message}_`);
+  const message = err?.message ?? String(err);
+  logger.raw(`_Lighthouse comparison failed: ${message}_`);
   process.exit(1);
 }

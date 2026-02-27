@@ -64,19 +64,21 @@ jobs:
         run: bash scripts/infra/turso-setup.sh --suffix "pr-${{ github.event.pull_request.number }}"
 
       - name: Pull Vercel environment
-        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
 
       - name: Build project
         run: ./node_modules/.bin/vercel build
 
       - name: Deploy to Vercel
         id: deploy
+        env:
+          PR_BRANCH: ${{ github.head_ref }}
         run: |
-          url=$(./node_modules/.bin/vercel deploy --prebuilt --token=$VERCEL_TOKEN --yes \
-            --meta gitBranch="${{ github.head_ref }}" \
+          url=$(./node_modules/.bin/vercel deploy --prebuilt --token="$VERCEL_TOKEN" --yes \
+            --meta gitBranch="$PR_BRANCH" \
             --env DATABASE_URL="$DATABASE_URL" \
             --env DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN")
-          echo "url=$url" >> $GITHUB_OUTPUT
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Run Functional E2E Tests
         shell: bash
@@ -104,7 +106,12 @@ jobs:
           NODE_ENV: production
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
-          export CHROME_PATH=$(bash scripts/find-chrome.sh)
+          CHROME_PATH=$(bash scripts/find-chrome.sh)
+          if [ -z "$CHROME_PATH" ]; then
+            echo "::error::Could not determine Chrome path"
+            exit 1
+          fi
+          export CHROME_PATH
           # Run Playwright perf tests and Lighthouse separately so Lighthouse always
           # runs even when @perf tests fail.
           bash scripts/perf-e2e.sh 2>&1 | tee perf-e2e.txt || true

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # DB infrastructure definitions
 # Sourced by all scripts/infra/*.sh scripts.
 # Edit here to change the DB name or region across all scripts.
