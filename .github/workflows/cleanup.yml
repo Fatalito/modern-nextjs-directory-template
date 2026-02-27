@@ -16,6 +16,8 @@ jobs:
     env:
       TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
       TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -30,7 +32,23 @@ jobs:
             --force
 
       - name: Remove Vercel Preview
-        run: npx vercel rm ${{ github.event.pull_request.head.ref }} --token=${{ secrets.VERCEL_TOKEN }} --yes || true
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          ENCODED_BRANCH=$(jq -rn --arg b "$BRANCH" '$b|@uri')
+          DEPLOYMENT_IDS=$(curl -sf \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&meta-gitBranch=$ENCODED_BRANCH&limit=50" \
+            | jq -r '.deployments[].uid' 2>/dev/null || true)
+          if [ -z "$DEPLOYMENT_IDS" ]; then
+            echo "No deployments found for branch $BRANCH — skipping."
+            exit 0
+          fi
+          for ID in $DEPLOYMENT_IDS; do
+            echo "Removing deployment $ID..."
+            curl -sf -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v13/deployments/$ID" || true
+          done
 
       - name: Delete Storybook Preview
         env:
