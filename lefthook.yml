@@ -8,6 +8,9 @@ pre-commit:
     markdown-check:
       glob: "**/*.md"
       run: npx markdownlint-cli2 {staged_files}
+    shell-check:
+      glob: "scripts/**/*.sh"
+      run: npx shellcheck -x {staged_files}
 pre-push:
   commands:
     dotenv-check:

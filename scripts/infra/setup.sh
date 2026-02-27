@@ -56,7 +56,7 @@ fi
 echo -e "$SUCCESS All prerequisites found."
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-# shellcheck source=lib/utils.sh
+# shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # open_browser <url> — cross-platform browser launcher
@@ -147,7 +147,7 @@ collect_token "TURSO_API_TOKEN" \
 if [ -z "$(get_env_var DB_SNAPSHOT_PASSPHRASE)" ]; then
   GENERATED_PASSPHRASE=$(openssl rand -base64 32)
   update_env_var "DB_SNAPSHOT_PASSPHRASE" "$GENERATED_PASSPHRASE"
-  local gh_err
+  gh_err=""
   if ! gh_err=$(gh secret set "DB_SNAPSHOT_PASSPHRASE" --body "$GENERATED_PASSPHRASE" 2>&1); then
     echo -e "$WARN Could not sync DB_SNAPSHOT_PASSPHRASE to GitHub Secrets:"
     [ -n "$gh_err" ] && echo "  $gh_err"
@@ -165,7 +165,7 @@ echo -e "$STEP"
 echo "  Step 2 of 7 — Provision Turso database"
 echo -e "$STEP"
 
-# shellcheck source=../../infra/turso.conf.sh
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/../../infra/turso.conf.sh"
 
 echo ""

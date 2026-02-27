@@ -14,7 +14,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 | **Styling** | Tailwind CSS v4 & Shadcn UI |
 | **Database** | Drizzle ORM + libsql (SQLite locally / Turso in production) |
 | **Validation** | Zod (schema-first, single source of truth for types) + t3-oss/env-nextjs (type-safe env) |
-| **Linting & Formatting** | Biome · markdownlint-cli2 · dotenv-linter · actionlint (CI) |
+| **Linting & Formatting** | Biome · markdownlint-cli2 · dotenv-linter · shellcheck · actionlint (CI) |
 | **Pre-commit Hooks** | Lefthook |
 | **Testing** | Vitest (unit), Playwright (E2E), Lighthouse (performance scoring) |
 | **Component Explorer** | Storybook |
@@ -239,7 +239,8 @@ Never rename a column in a single PR — `drizzle-kit push` will drop the old co
 # 1. Download db-snapshot-<sha>.sql.enc from the workflow run's artifacts panel
 # 2. Decrypt using the helper script (reads DB_SNAPSHOT_PASSPHRASE from .env)
 npm run db:decrypt-snapshot -- db-snapshot-<sha>.sql.enc
-# → outputs restore.sql
+# → outputs restore.sql (prompts before overwriting an existing file; use --force to skip)
+npm run db:decrypt-snapshot -- --force db-snapshot-<sha>.sql.enc  # non-interactive
 
 # 3. Replay against your database
 turso db shell <your-db-name> < restore.sql
@@ -270,6 +271,7 @@ turso db shell <your-db-name> < restore.sql
 | Lint + fix | `npm run lint:fix` |
 | Lint Markdown | `npm run lint:md` |
 | Lint .env files | `npm run lint:env` |
+| Lint shell scripts | `npm run lint:shell` |
 | All unit tests | `npm run test` |
 | Watch tests | `npm run test:unit:watch` |
 | Unit tests (Vitest UI) | `npm run test:unit:ui` |

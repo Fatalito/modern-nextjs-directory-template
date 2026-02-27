@@ -44,7 +44,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-# shellcheck source=lib/utils.sh
+# shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
 
 push_secret() {

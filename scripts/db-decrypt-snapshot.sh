@@ -2,7 +2,10 @@
 # Decrypt a pre-migration database snapshot downloaded from GitHub Actions artifacts.
 #
 # Usage:
-#   npm run db:decrypt-snapshot -- <path/to/db-snapshot-<sha>.sql.enc>
+#   npm run db:decrypt-snapshot -- [--force] <path/to/db-snapshot-<sha>.sql.enc>
+#
+# Options:
+#   --force   Overwrite restore.sql without prompting (also honoured via FORCE=1 env var)
 #
 # Requires DB_SNAPSHOT_PASSPHRASE in your .env (set automatically by infra:setup).
 # The decrypted SQL is written to restore.sql in the current directory.
@@ -13,14 +16,26 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/infra/lib/utils.sh"
 
-if [ "${1:-}" = "" ]; then
-  echo "Usage: npm run db:decrypt-snapshot -- <path/to/db-snapshot-<sha>.sql.enc>" >&2
+FORCE="${FORCE:-0}"
+
+# Parse --force flag
+POSITIONAL=()
+for arg in "$@"; do
+  case "$arg" in
+    --force) FORCE=1 ;;
+    *)       POSITIONAL+=("$arg") ;;
+  esac
+done
+
+if [ "${#POSITIONAL[@]}" -eq 0 ]; then
+  echo "Usage: npm run db:decrypt-snapshot -- [--force] <path/to/db-snapshot-<sha>.sql.enc>" >&2
   exit 1
 fi
 
-ENCRYPTED_FILE="$1"
+ENCRYPTED_FILE="${POSITIONAL[0]}"
 
 if [ ! -f "$ENCRYPTED_FILE" ]; then
   echo "Error: file not found: $ENCRYPTED_FILE" >&2
@@ -35,6 +50,19 @@ if [ -z "$PASSPHRASE" ]; then
 fi
 
 OUTPUT_FILE="restore.sql"
+
+if [ -f "$OUTPUT_FILE" ] && [ "$FORCE" != "1" ]; then
+  if [ -t 0 ]; then
+    read -r -p "$OUTPUT_FILE already exists. Overwrite? [y/N] " REPLY
+    case "$REPLY" in
+      [yY][eE][sS]|[yY]) ;;
+      *) echo "Aborted." >&2; exit 1 ;;
+    esac
+  else
+    echo "Error: $OUTPUT_FILE already exists. Re-run with --force to overwrite." >&2
+    exit 1
+  fi
+fi
 
 DB_SNAPSHOT_PASSPHRASE="$PASSPHRASE" \
   openssl enc -d -aes-256-cbc -pbkdf2 \

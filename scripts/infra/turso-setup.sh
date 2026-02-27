@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../../infra/turso.conf.sh
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/../../infra/turso.conf.sh"
 
 INFO="\033[34mINFO:\033[0m"
@@ -77,7 +77,7 @@ DB_URL="$(turso db show "$TARGET_DB" --url)"
 echo -e "$INFO Creating auth token (expiry: $TOKEN_EXPIRY)..."
 DB_TOKEN="$(turso db tokens create "$TARGET_DB" --expiration "$TOKEN_EXPIRY")"
 
-# shellcheck source=lib/utils.sh
+# shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ── Write to .env ─────────────────────────────────────────────────────────────
