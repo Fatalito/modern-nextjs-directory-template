@@ -95,7 +95,14 @@ collect_token() {
     return 0
   fi
   update_env_var "$name" "$token_value"
-  gh secret set "$name" --body "$token_value"
+  local gh_err
+  if ! gh_err=$(gh secret set "$name" --body "$token_value" 2>&1); then
+    remove_env_var "$name"
+    echo -e "$ERROR Failed to sync $name to GitHub Secrets:"
+    [ -n "$gh_err" ] && echo "  $gh_err"
+    echo "  Fix the issue above, then re-run: npm run infra:setup"
+    return 1
+  fi
   echo -e "$SUCCESS $name saved to .env and synced to GitHub Secrets."
 }
 

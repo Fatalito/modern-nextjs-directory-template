@@ -7,6 +7,15 @@ get_env_var() {
   grep -m1 -E "^${1}=" .env 2>/dev/null | cut -d'=' -f2- || true
 }
 
+# Remove a key=value line from .env (no-op if key is absent).
+remove_env_var() {
+  local key="$1" file=".env"
+  if grep -q "^${key}=" "$file" 2>/dev/null; then
+    local tmp; tmp=$(mktemp)
+    grep -v "^${key}=" "$file" > "$tmp" && mv "$tmp" "$file"
+  fi
+}
+
 # Upsert a key=value line in .env, preserving all other content.
 update_env_var() {
   local key="$1" value="$2" file=".env"
