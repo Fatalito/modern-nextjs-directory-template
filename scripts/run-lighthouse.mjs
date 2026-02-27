@@ -3,7 +3,10 @@ import path from "node:path";
 import { launch } from "chrome-launcher";
 import lighthouse from "lighthouse";
 
-const TARGET_URL = process.env.LIGHTHOUSE_URL || "http://127.0.0.1:3000";
+const TARGET_URL = process.env.BASE_URL || "http://127.0.0.1:3000";
+const VERCEL_AUTOMATION_BYPASS_SECRET =
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
 const SCORES_PATH = path.join(
   process.cwd(),
   "test-results",
@@ -14,98 +17,109 @@ async function run() {
   let chrome;
 
   try {
+    await fetch(TARGET_URL, { signal: AbortSignal.timeout(5000) });
+  } catch {
+    console.log(
+      `❌ Server not reachable at ${TARGET_URL}. Ensure it is running before calling this script.`,
+    );
+    process.exit(1);
+  }
+
+  try {
     chrome = await launch({
       chromeFlags: ["--headless", "--disable-gpu", "--no-sandbox"],
+      ...(process.env.CHROME_PATH
+        ? { chromePath: process.env.CHROME_PATH }
+        : {}),
     });
 
-    const { lhr } = await lighthouse(TARGET_URL, {
-      port: chrome.port,
-      output: "json",
-      onlyCategories: ["performance", "accessibility", "best-practices", "seo"],
-      maxWaitForLoad: 30000,
-    });
+    const { lhr } = await lighthouse(
+      TARGET_URL,
+      {
+        port: chrome.port,
+        output: "json",
+        onlyCategories: [
+          "performance",
+          "accessibility",
+          "best-practices",
+          "seo",
+        ],
+        maxWaitForLoad: 30000,
+        extraHeaders: VERCEL_AUTOMATION_BYPASS_SECRET
+          ? { "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET }
+          : {},
+      },
+      {
+        extends: "lighthouse:default",
+        settings: {
+          // Preview deployments set x-robots-tag: noindex intentionally.
+          // This audit is irrelevant in a CI/dev context — skip it.
+          skipAudits: ["is-crawlable"],
+        },
+      },
+    );
 
     const toPercent = (score) =>
       typeof score === "number" ? Math.round(score * 100) : 0;
 
-    // 1. Get Scores
     const cats = lhr.categories;
-    const scores = [
-      { name: "Performance", score: toPercent(cats.performance?.score) },
-      { name: "Accessibility", score: toPercent(cats.accessibility?.score) },
-      {
-        name: "Best Practices",
-        score: toPercent(cats["best-practices"]?.score),
-      },
-      { name: "SEO", score: toPercent(cats.seo?.score) },
-    ];
+    const audits = lhr.audits;
 
-    // 2. Persist scores for comparison
-    fs.mkdirSync(path.dirname(SCORES_PATH), { recursive: true });
-    fs.writeFileSync(
-      SCORES_PATH,
-      JSON.stringify(
-        {
-          performance: scores[0].score,
-          accessibility: scores[1].score,
-          "best-practices": scores[2].score,
-          seo: scores[3].score,
-        },
-        null,
-        2,
-      ),
-    );
+    // Collect failing audits per category for the suggestions block
+    const suggestions = {};
+    for (const [catKey, cat] of Object.entries(cats)) {
+      const failing = (cat.auditRefs ?? [])
+        .filter(({ id }) => {
+          const audit = audits[id];
+          return (
+            audit &&
+            audit.score !== null &&
+            audit.score < 1 &&
+            audit.scoreDisplayMode !== "notApplicable" &&
+            audit.scoreDisplayMode !== "informative"
+          );
+        })
+        .map(({ id }) => {
+          const { title, displayValue, score } = audits[id];
+          return {
+            title,
+            displayValue: displayValue ?? null,
+            score: Math.round(score * 100),
+          };
+        })
+        .sort((a, b) => a.score - b.score);
 
-    // 3. Get Top 3 Recommendations (Opportunities)
-    const opportunities = Object.values(lhr.audits)
-      .filter(
-        (audit) =>
-          audit.details &&
-          audit.details.type === "opportunity" &&
-          typeof audit.score === "number" &&
-          audit.score < 1,
-      )
-      .sort(
-        (a, b) =>
-          (b.details.overallSavingsMs || 0) - (a.details.overallSavingsMs || 0),
-      )
-      .slice(0, 3);
-
-    // 4. Build Markdown
-    console.log(`### 🔦 Lighthouse Audit\n`);
-    console.log(`| Category | Score |`);
-    console.log(`| :--- | :---: |`);
-    scores.forEach((s) => {
-      let icon;
-      if (s.score >= 90) {
-        icon = "✅";
-      } else if (s.score >= 50) {
-        icon = "⚠️";
-      } else {
-        icon = "❌";
+      if (failing.length > 0) {
+        suggestions[catKey] = failing;
       }
-
-      console.log(`| ${s.name} | ${s.score} ${icon} |`);
-    });
-
-    if (opportunities.length > 0) {
-      console.log(
-        `\n<details><summary>💡 <b>Opportunities to Improve</b></summary>\n`,
-      );
-      opportunities.forEach((opp) => {
-        const savings = Math.round(opp.details.overallSavingsMs || 0);
-        const savingsText = savings > 0 ? ` (Est. Savings: ${savings}ms)` : "";
-
-        console.log(
-          `- **${opp.title}**: ${opp.description.split("[")[0]}${savingsText}`,
-        );
-      });
-      console.log(`\n</details>`);
     }
-    console.log(`\n---\n`);
+
+    const scores = {
+      performance: toPercent(cats.performance?.score),
+      accessibility: toPercent(cats.accessibility?.score),
+      "best-practices": toPercent(cats["best-practices"]?.score),
+      seo: toPercent(cats.seo?.score),
+      suggestions,
+    };
+
+    fs.mkdirSync(path.dirname(SCORES_PATH), { recursive: true });
+    fs.writeFileSync(SCORES_PATH, JSON.stringify(scores, null, 2));
+
+    const icon = (n) => (n >= 90 ? "✅" : n >= 50 ? "⚠️" : "❌");
+    console.log("\n📊 Lighthouse Scores");
+    console.log(
+      `  Performance:    ${scores.performance}  ${icon(scores.performance)}`,
+    );
+    console.log(
+      `  Accessibility:  ${scores.accessibility}  ${icon(scores.accessibility)}`,
+    );
+    console.log(
+      `  Best Practices: ${scores["best-practices"]}  ${icon(scores["best-practices"])}`,
+    );
+    console.log(`  SEO:            ${scores.seo}  ${icon(scores.seo)}\n`);
   } catch (error) {
-    console.error("❌ Lighthouse Audit Failed:", error);
-    process.exitCode = 1;
+    console.error(`❌ Lighthouse Audit Failed: ${error?.message ?? error}`);
+    process.exit(1);
   } finally {
     chrome?.kill();
   }

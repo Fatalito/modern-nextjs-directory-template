@@ -2,6 +2,18 @@ import { defineConfig, devices } from "@playwright/test";
 
 const CI_WEB_SERVER_COMMAND = "npm run start";
 const LOCAL_WEB_SERVER_COMMAND = "npm run build && npm run start";
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const VERCEL_AUTOMATION_BYPASS_SECRET =
+  process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+
+const isVercelHost = (() => {
+  try {
+    const { hostname } = new URL(BASE_URL);
+    return hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+})();
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -17,7 +29,13 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
+    extraHTTPHeaders:
+      VERCEL_AUTOMATION_BYPASS_SECRET && isVercelHost
+        ? {
+            "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET,
+          }
+        : {},
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -38,10 +56,14 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: process.env.CI ? CI_WEB_SERVER_COMMAND : LOCAL_WEB_SERVER_COMMAND,
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI || !!process.env.REUSE_SERVER,
-    timeout: 120000,
-  },
+  webServer: process.env.BASE_URL
+    ? undefined
+    : {
+        command: process.env.CI
+          ? CI_WEB_SERVER_COMMAND
+          : LOCAL_WEB_SERVER_COMMAND,
+        url: "http://localhost:3000",
+        reuseExistingServer: !process.env.CI || !!process.env.REUSE_SERVER,
+        timeout: 120000,
+      },
 });

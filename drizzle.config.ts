@@ -1,14 +1,9 @@
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "drizzle-kit";
-import { DB_FILE_NAME } from "./src/shared/api/db/constants";
-
-const dbFileAbs = fileURLToPath(new URL(`./${DB_FILE_NAME}`, import.meta.url));
+import { connectionConfig } from "./src/shared/api/db/connection";
 
 export default defineConfig({
   schema: "./src/shared/api/db/schema.ts",
   out: "./drizzle",
   dialect: "turso",
-  dbCredentials: {
-    url: `file:${dbFileAbs}`,
-  },
+  dbCredentials: connectionConfig,
 });

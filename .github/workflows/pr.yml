@@ -1,0 +1,291 @@
+name: PR
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/_test.yml
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets:
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
+
+  forked-pr-notice:
+    name: Deployment skipped (fork)
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain required setup
+        run: |
+          echo "Preview deployment, E2E tests, and Storybook are skipped for forked PRs"
+          echo "because they require secrets that are not available to forks."
+          echo ""
+          echo "To enable full CI on your fork, run the interactive setup:"
+          echo ""
+          echo "  npm run infra:setup"
+          echo ""
+          echo "This will configure:"
+          echo "  • Vercel — link your fork, generate VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+          echo "  • Turso  — create a database, set TURSO_API_TOKEN, TURSO_DB_NAME, DATABASE_URL, DATABASE_AUTH_TOKEN"
+          echo ""
+          echo "The script syncs all secrets to GitHub Actions automatically."
+          echo "See the README (First-time production setup) for the full walkthrough."
+
+  preview:
+    name: Build & Deploy Preview
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js & Install Dependencies
+        uses: ./.github/actions/bootstrap
+        with:
+          install-node: 'false'
+
+      - name: Restore/Save Next.js build
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
+
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+        with:
+          install-xz-utils: 'true'
+
+      - name: Provision PR Turso DB
+        # turso-setup.sh is idempotent: if the DB already exists for this PR
+        # (i.e. a second commit was pushed), creation is skipped and only a new
+        # short-lived auth token is minted. The DB is destroyed by cleanup.yml
+        # when the PR is closed.
+        env:
+          TURSO_REGION: ${{ vars.TURSO_REGION }}
+        run: bash scripts/infra/turso-setup.sh --suffix "pr-${{ github.event.pull_request.number }}"
+
+      - name: Pull Vercel environment
+        run: ./node_modules/.bin/vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build project
+        run: ./node_modules/.bin/vercel build
+
+      - name: Deploy to Vercel
+        id: deploy
+        env:
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          url=$(./node_modules/.bin/vercel deploy --prebuilt --token="$VERCEL_TOKEN" --yes \
+            --meta gitBranch="$PR_BRANCH" \
+            --env DATABASE_URL="$DATABASE_URL" \
+            --env DATABASE_AUTH_TOKEN="$DATABASE_AUTH_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Run Functional E2E Tests
+        shell: bash
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: '1'
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          npm run test:e2e 2>&1 | tee playwright-e2e.txt
+          exit "${PIPESTATUS[0]}"
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Run Performance Benchmark
+        if: ${{ !cancelled() }}
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          NODE_ENV: production
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          CHROME_PATH=$(bash scripts/find-chrome.sh)
+          if [ -z "$CHROME_PATH" ]; then
+            echo "::error::Could not determine Chrome path"
+            exit 1
+          fi
+          export CHROME_PATH
+          # Run Playwright perf tests and Lighthouse separately so Lighthouse always
+          # runs even when @perf tests fail.
+          bash scripts/perf-e2e.sh 2>&1 | tee perf-e2e.txt || true
+          node scripts/run-lighthouse.mjs
+
+      - name: Compare Performance Metrics
+        if: ${{ !cancelled() }}
+        run: node scripts/compare-perf.mjs 2>&1 | tee perf-report.md
+
+      - name: Compare Lighthouse Scores
+        if: ${{ !cancelled() }}
+        run: node scripts/compare-lighthouse.mjs 2>&1 | tee lighthouse-report.md
+
+      - name: Upload Performance Metrics
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-metrics
+          path: test-results/**/perf-metrics.jsonl
+          retention-days: 30
+
+      - name: Upload Performance Summary (JSON)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: perf-summary
+          path: test-results/perf-summary.json
+          retention-days: 30
+
+      - name: Upload Lighthouse Scores
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: lighthouse-scores
+          path: test-results/lighthouse-scores.json
+          retention-days: 30
+
+      - name: Upload Playwright Text Output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-e2e
+          path: playwright-e2e.txt
+          retention-days: 30
+
+      - name: Upload Performance Benchmark Output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: perf-e2e
+          path: perf-e2e.txt
+          retention-days: 30
+
+      - name: Upload Lighthouse Report
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-report
+          path: lighthouse-report.md
+          retention-days: 30
+
+      - name: Download Coverage Report
+        # test and preview run in parallel within the same workflow run.
+        # By the time E2E + perf finish, the test job has usually uploaded coverage.
+        # continue-on-error guards the unlikely race where it hasn't yet.
+        continue-on-error: true
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: 💬 PR Report
+        if: ${{ !cancelled() }}
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          STORYBOOK_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-${{ github.event.pull_request.number }}/"
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = "## 🚀 Preview & Test Report";
+
+            let coverageTag = "_No coverage report found._";
+            if (fs.existsSync('./coverage/coverage-summary.json')) {
+              const summary = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+              const total = summary.total;
+              coverageTag = `Statements: **${total.statements.pct}%** | Branches: **${total.branches.pct}%** | Functions: **${total.functions.pct}%** | Lines: **${total.lines.pct}%**`;
+            }
+
+            const e2eRaw = fs.existsSync('playwright-e2e.txt') ? fs.readFileSync('playwright-e2e.txt', 'utf8') : '';
+            const passedMatch = e2eRaw.match(/(\d+) passed/);
+            const failedMatch = e2eRaw.match(/(\d+) failed/);
+            const e2ePassed = passedMatch ? parseInt(passedMatch[1]) : 0;
+            const e2eFailed = failedMatch ? parseInt(failedMatch[1]) : 0;
+            const e2eTag = !e2eRaw ? '_No E2E results._'
+              : e2eFailed > 0 ? `❌ **${e2eFailed} failed** · ${e2ePassed} passed`
+              : `✅ **${e2ePassed} passed**`;
+            const e2eTail = (e2eRaw || 'No E2E logs found.').trim().split('\n').slice(-20).join('\n');
+            const perfBody = fs.existsSync('perf-report.md') ? fs.readFileSync('perf-report.md', 'utf8') : '_Performance report missing._';
+            const lhBody = fs.existsSync('lighthouse-report.md') ? fs.readFileSync('lighthouse-report.md', 'utf8') : '_Lighthouse report missing._';
+
+            const body = `
+            ${marker}
+
+            | Resource | Link / Status |
+            | :--- | :--- |
+            | **Live Preview** | [View Deployment](${process.env.DEPLOY_URL})|
+            | **Storybook** | [View Components](${process.env.STORYBOOK_URL}) |
+            | **Unit Tests** | ${coverageTag} |
+            | **E2E Tests** | ${e2eTag} |
+
+            <details>
+            <summary>🧪 E2E details (last 20 lines)</summary>
+
+            \`\`\`text
+            ${e2eTail}
+            \`\`\`
+            </details>
+
+            ### ⚡ Performance Benchmark
+            ${perfBody}
+
+            ${lhBody}
+
+            ---
+            _Updated at: ${new Date().toUTCString()}_
+            `;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number
+            });
+            const prReportComment = comments.find(c => c.body.includes(marker));
+
+            if (prReportComment) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: prReportComment.id, body: body.trim()
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: body.trim()
+              });
+            }
+
+  storybook:
+    name: Deploy Storybook
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/_storybook.yml
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    with:
+      destination: pr-${{ github.event.pull_request.number }}

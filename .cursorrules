@@ -13,6 +13,8 @@ Both **Claude Code** and **Cursor** read it (`CLAUDE.md` is a symlink to this fi
 | Build | `npm run build` |
 | Typecheck | `npm run typecheck` |
 | Lint + fix | `npm run lint:fix` |
+| Lint Markdown | `npm run lint:md` |
+| Lint .env files | `npm run lint:env` |
 | All unit tests | `npm run test` |
 | Single test file | `npx vitest run path/to/file.test.ts` |
 | Watch tests | `npm run test:unit:watch` |

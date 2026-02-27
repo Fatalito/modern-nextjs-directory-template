@@ -5,5 +5,8 @@ const config: StorybookConfig = {
   addons: ["@storybook/addon-mcp"],
   framework: "@storybook/nextjs-vite",
   staticDirs: ["../public"],
+  core: {
+    disableTelemetry: true,
+  },
 };
 export default config;

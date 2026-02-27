@@ -2,6 +2,8 @@
 
 A modern, scalable Next.js directory template designed with performance, maintainability, and developer experience in mind.
 
+**[Live demo →](https://modern-nextjs-directory-template.vercel.app)**
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -12,7 +14,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 | **Styling** | Tailwind CSS v4 & Shadcn UI |
 | **Database** | Drizzle ORM + libsql (SQLite locally / Turso in production) |
 | **Validation** | Zod (schema-first, single source of truth for types) + t3-oss/env-nextjs (type-safe env) |
-| **Linting & Formatting** | Biome |
+| **Linting & Formatting** | Biome · markdownlint-cli2 · dotenv-linter · actionlint (CI) |
 | **Pre-commit Hooks** | Lefthook |
 | **Testing** | Vitest (unit), Playwright (E2E), Lighthouse (performance scoring) |
 | **Component Explorer** | Storybook |
@@ -27,7 +29,7 @@ A modern, scalable Next.js directory template designed with performance, maintai
 npm install
 
 # Set up environment variables
-cp .env.example .env.local
+cp .env.example .env
 
 # Set up the database
 npm run db:generate   # generate migrations from schema
@@ -39,6 +41,169 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+<a id="prod-setup"></a>
+## 🚀 First-time production setup (→ live)
+
+**Platforms used:** [Turso](https://turso.tech) (DB) · [Vercel](https://vercel.com) (hosting) · [SonarCloud](https://sonarcloud.io) (quality) · [Snyk](https://snyk.io) (security)
+
+> **Platform support:** The infra scripts (`scripts/infra/`) require **macOS or Linux**. Windows is not supported — use WSL2 if needed, but it is untested.
+
+### 1. Install CLIs and copy `.env`
+
+```bash
+curl -sSfL https://get.tur.so/install.sh | bash  # Turso
+npm i -g vercel                                    # Vercel
+brew install gh                                    # GitHub CLI (or https://cli.github.com)
+
+cp .env.example .env
+```
+
+### 2. Run setup
+
+```bash
+npm run infra:setup
+```
+
+This single command handles everything — it will prompt for any missing information:
+- Authenticates all CLIs (`turso`, `vercel`, `gh`)
+- Collects all tokens interactively (`VERCEL_TOKEN`, `TURSO_API_TOKEN`, `SONAR_TOKEN`, `SNYK_TOKEN`) — skipped if already in `.env` or GitHub Secrets
+- Creates the production Turso database, applies schema, and seeds it
+- Links the Vercel project and disables GitHub auto-deploy
+- Generates `VERCEL_AUTOMATION_BYPASS_SECRET` and configures deployment protection
+- Configures the GitHub repository: branch protection, Dependabot, auto-merge
+- Syncs all secrets and variables to GitHub Actions
+- Opens a `feature/initial-setup` PR
+
+After setup: all credentials live in **GitHub Secrets**. `.env` is restored to local SQLite — prod credentials are kept as comments so you can opt in deliberately; `npm run dev` is safe by default.
+
+### 3. Make CI pass and merge the PR
+
+CI must pass before you can merge — this is intentional. The pipeline checks lint, tests, coverage, and SonarCloud. If you skipped any tokens during `infra:setup`, add them to `.env` and re-run `npm run infra:sync:github` to sync without re-running the full setup.
+
+> **SonarCloud:** After the first successful analysis, go to your project → **Administration → Analysis Method** and select **CI-based analysis** to disable the native auto-scan (which would conflict with the CI integration).
+
+Once CI is green, **merge the PR** — `deploy.yml` triggers automatically and deploys to Vercel production. 🎉
+
+From this point on, every merge to `main` auto-deploys after CI passes, and every PR gets an isolated preview environment with a forked database.
+
+## 🗄️ Database
+
+The project uses **Drizzle ORM** with **libsql**: a local SQLite file in development and a managed [Turso](https://turso.tech) database in production. The connection is determined by `DATABASE_URL`:
+
+| `DATABASE_URL` value | Mode |
+|---|---|
+| `file:./sqlite.db` (default) | Local SQLite file |
+| `libsql://…turso.io` | Remote Turso database |
+
+For turso, install the CLI and create an account:
+
+```bash
+curl -sSfL https://get.tur.so/install.sh | bash
+turso auth login
+```
+
+See the [Turso quickstart](https://docs.turso.tech/quickstart) for full documentation.
+
+### Provisioning
+
+See [First-time production setup](#prod-setup) for the full onboarding flow. The relevant commands:
+
+```bash
+npm run infra:setup      # provision DB, link Vercel, configure GitHub, sync secrets, open PR
+```
+
+`db:push` and `db:seed` are run automatically by `infra:setup`.
+
+### API token
+
+For CI deployment, [generate an API token](https://app.turso.tech/api-tokens) and store it in .env as `TURSO_API_TOKEN`.
+
+### Free plan locations
+
+The default location is `aws-eu-west-1` (Ireland). All locations available on the free plan:
+
+| ID | Location |
+|----|----------|
+| `aws-ap-northeast-1` | AWS AP NorthEast (Tokyo) |
+| `aws-ap-south-1` | AWS AP South (Mumbai) |
+| `aws-eu-west-1` | AWS EU West (Ireland) — **default** |
+| `aws-us-east-1` | AWS US East (Virginia) |
+| `aws-us-east-2` | AWS US East (Ohio) |
+| `aws-us-west-2` | AWS US West (Oregon) |
+
+Run `turso db locations` to get the current list. Override the default in `infra/turso.conf.sh` or via env var:
+
+```bash
+TURSO_REGION=aws-us-east-1 npm run infra:setup
+```
+
+### Token rotation
+
+```bash
+# Mints a new token and prints it — update Vercel/GitHub Secrets, then revoke the old one
+npm run infra:rotate-token
+```
+
+## Vercel Deployment
+
+`infra:setup` collects `VERCEL_TOKEN` interactively and generates `VERCEL_AUTOMATION_BYPASS_SECRET` automatically. CI workflows send the bypass secret as a header so E2E and perf tests can access protected preview deployments.
+
+## CI/CD & Environment Management
+
+### PR Preview Deployments
+
+Pull requests to `main` automatically deploy a preview to Vercel and fork a Turso DB for isolated testing. See `.github/workflows/pr.yml` for details. The preview URL is posted as a comment on the PR.
+
+### PR Cleanup
+
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercel preview and the Storybook PR page to avoid resource leaks.
+
+### Environment Variable Sync
+
+**GitHub Actions is the single source of truth for all runtime secrets.** Deploy workflows push credentials to Vercel fresh on every deploy — nothing is stored permanently in Vercel's dashboard.
+
+Run once after initial setup (and again after any credential change):
+
+```bash
+npm run infra:sync:github
+```
+
+| Name | Kind | Used by |
+|------|------|---------|
+| `DATABASE_URL` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
+| `DATABASE_AUTH_TOKEN` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
+| `TURSO_API_TOKEN` | Secret | `pr.yml` — forks DB per PR |
+| `VERCEL_TOKEN` | Secret | `deploy.yml`, `pr.yml`, `cleanup.yml` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `pr.yml` — E2E + perf tests against protected deployments |
+| `VERCEL_ORG_ID` | Secret | All Vercel CLI workflows |
+| `VERCEL_PROJECT_ID` | Secret | All Vercel CLI workflows |
+| `TURSO_DB_NAME` | Variable | `pr.yml`, `cleanup.yml` |
+| `TURSO_REGION` | Variable | `pr.yml` |
+
+`SONAR_TOKEN` and `SNYK_TOKEN` are collected interactively by `infra:setup` (opens the browser to the token page, prompts for input, syncs via `gh secret set`). If you skipped them, add the values to `.env` and re-run `npm run infra:sync:github`.
+
+### Health Endpoint
+
+`GET /api/health` runs a `SELECT 1` against the production database and returns:
+
+```json
+{ "status": "ok", "db": "ok" }
+```
+
+The response includes an `X-Commit-Sha` header with the short SHA of the deployed commit. `deploy.yml` polls this endpoint after every deployment, verifies the SHA matches the just-deployed commit, and fails the workflow immediately if there's a mismatch — catching stale-deployment or DB connectivity issues before they go unnoticed.
+
+### Production Deployments
+
+`deploy.yml` triggers automatically after the **Main** workflow passes on `main`, and can also be triggered manually. It:
+1. Pushes `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from GitHub Secrets to Vercel production
+2. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
+3. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
+
+See [scripts/infra/sync-github-env.sh](scripts/infra/sync-github-env.sh) for implementation.
+
+
+---
 
 ## Commands
 
@@ -53,6 +218,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 | Typecheck | `npm run typecheck` |
 | Lint | `npm run lint` |
 | Lint + fix | `npm run lint:fix` |
+| Lint Markdown | `npm run lint:md` |
+| Lint .env files | `npm run lint:env` |
 | All unit tests | `npm run test` |
 | Watch tests | `npm run test:unit:watch` |
 | Unit tests (Vitest UI) | `npm run test:unit:ui` |
@@ -63,6 +230,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 | DB push migrations | `npm run db:push` |
 | DB seed | `npm run db:seed` |
 | DB studio (GUI) | `npm run db:studio` |
+| First-time production setup | `npm run infra:setup` |
+| Provision DB only | `npm run infra:setup:db` |
+| Full teardown (DB + Vercel + secrets) | `npm run infra:teardown` |
+| Teardown DB only | `npm run infra:teardown:db` |
+| Rotate DB token | `npm run infra:rotate-token` |
+| Sync CI vars to GitHub Actions | `npm run infra:sync:github` |
 | Storybook | `npm run storybook` |
 | Storybook build | `npm run storybook:build` |
 | Perf check | `npm run perf:check` |
@@ -143,14 +316,28 @@ This file serves as the single source of truth for SEO, metadata, and global con
 Copy the example file to get started:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
+
+`.env` is gitignored — never commit credentials. `.env.example` is the committed template.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_APP_URL` | Base URL of the deployment (required for SEO/OG images) | `http://localhost:3000` |
 | `NEXT_OUTPUT_MODE` | Build output format (see Deployment Configuration) | `serverless` |
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
+| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. Also synced to GitHub as `DATABASE_URL` secret; pushed to Vercel production by `deploy.yml` at deploy time | `file:./sqlite.db` |
+| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. Also synced to GitHub as `DATABASE_AUTH_TOKEN` secret; pushed to Vercel production by `deploy.yml` at deploy time | — |
+| `TURSO_API_TOKEN` | Turso API token for CI/PR DB forking and cleanup (`TURSO_API_TOKEN` secret in GitHub) | Generate at app.turso.tech |
+| `TURSO_DB_NAME` | Base name of the Turso database, without environment suffix (`TURSO_DB_NAME` variable in GitHub) | `modern-directory` |
+| `TURSO_REGION` | Turso primary location for new databases (`TURSO_REGION` variable in GitHub) | `aws-eu-west-1` |
+| `VERCEL_TOKEN` | Vercel deploy token for CI/preview/cleanup workflows (`VERCEL_TOKEN` secret in GitHub) | Generate at vercel.com |
+| `VERCEL_ORG_ID` | Vercel organization ID (`VERCEL_ORG_ID` secret in GitHub) | Extracted from `.vercel/` by sync script |
+| `VERCEL_PROJECT_ID` | Vercel project ID (`VERCEL_PROJECT_ID` secret in GitHub) | Extracted from `.vercel/` by sync script |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Bypass secret for Vercel Deployment Protection; allows CI to access preview deployments without auth | Auto-generated by `infra:setup` |
+| `BASE_URL` | Target URL for E2E and performance tests (set automatically in CI; override locally) | `http://localhost:3000` |
+| `SONAR_TOKEN` | SonarCloud authentication token (`SONAR_TOKEN` secret in GitHub) | Generate at sonarcloud.io |
+| `SNYK_TOKEN` | Snyk authentication token for nightly vulnerability scans (`SNYK_TOKEN` secret in GitHub) | Generate at snyk.io |
 
 ## 🚀 Deployment Configuration
 
@@ -199,13 +386,14 @@ npm run perf:compare
 
 ### CI Caching
 
-The CI pipeline caches three layers to minimise redundant work:
+The CI pipeline caches two layers to minimise redundant work:
 
 | Cache | Key | Benefit |
 |-------|-----|---------|
 | `node_modules` | `package-lock.json` hash | Skips `npm ci` entirely on cache hit |
 | `.next/cache` | lockfile + `src/**` hash | Speeds up incremental Turbopack compilation |
-| Playwright browsers | `package-lock.json` hash | Skips ~300 MB browser download; only system deps reinstalled |
+
+Playwright browsers are not cached separately — the `mcr.microsoft.com/playwright` Docker image (used in `pr.yml` and `update-perf-baseline.yml`) ships with all browsers pre-installed.
 
 ### CI Gatekeeper
 

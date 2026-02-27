@@ -1,0 +1,39 @@
+name: _Storybook
+on:
+  workflow_call:
+    inputs:
+      destination:
+        description: Subdirectory within storybook-static to build into (e.g. "pr-42" or ".").
+        required: true
+        type: string
+
+jobs:
+  storybook:
+    name: Deploy Storybook
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    env:
+      NODE_ENV: production
+      ENABLE_HSTS: "false"
+      SKIP_ENV_VALIDATION: "true"
+      STORYBOOK_DISABLE_TELEMETRY: "true"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js & Install Dependencies
+        uses: ./.github/actions/bootstrap
+
+      - name: Build Storybook
+        run: npx storybook build -o "./storybook-static/${{ inputs.destination }}"
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ github.token }}
+          publish_dir: ./storybook-static
+          keep_files: true
+          publish_branch: gh-pages

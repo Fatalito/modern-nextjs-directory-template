@@ -1,0 +1,34 @@
+name: Setup Turso CLI
+description: >
+  Installs the Turso CLI (cached) and adds ~/.turso to PATH.
+  Set install-xz-utils to 'true' for slim Docker images (e.g. Playwright container) that lack xz-utils.
+
+inputs:
+  install-xz-utils:
+    description: Install xz-utils before the Turso CLI installer (required in slim Docker containers).
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Restore/Save Turso CLI
+      id: turso-cli-cache
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      with:
+        path: ~/.turso
+        key: ${{ runner.os }}-turso-cli
+
+    - name: Install xz-utils
+      if: inputs.install-xz-utils == 'true' && steps.turso-cli-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: apt-get update && apt-get install -y xz-utils
+
+    - name: Install Turso CLI
+      if: steps.turso-cli-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: curl -sSfL https://get.tur.so/install.sh | bash
+
+    - name: Add Turso CLI to PATH
+      shell: bash
+      run: echo "$HOME/.turso" >> $GITHUB_PATH

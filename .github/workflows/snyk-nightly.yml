@@ -1,0 +1,45 @@
+name: Snyk Security Scan
+
+# Nightly dependency vulnerability scan against main.
+#
+# Runs on a schedule instead of per-PR because:
+# - CVEs are discovered daily, not per-commit
+# - Blocking PRs for pre-existing vulnerabilities is misleading
+# - npm audit handles "did this PR introduce a vuln" per-PR
+# - Snyk's value is monitoring the live dependency graph over time
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  snyk:
+    name: Snyk Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js & Install Dependencies
+        uses: ./.github/actions/bootstrap
+
+      - name: Verify Snyk token
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "::error title=SNYK_TOKEN not configured::Snyk nightly scans require a token. Sign up at https://snyk.io, generate a token, add it to .env as SNYK_TOKEN, then re-run: npm run infra:sync:github"
+            exit 1
+          fi
+
+      - name: Snyk Security Scan
+        uses: snyk/actions/node@9adf32b1121593767fc3c057af55b55db032dc04 # v6.2.0
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
