@@ -197,10 +197,54 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 
 `deploy.yml` triggers automatically after the **Main** workflow passes on `main`, and can also be triggered manually. It:
 1. Pushes `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from GitHub Secrets to Vercel production
-2. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
-3. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
+2. Runs `drizzle-kit push --force` against the production database (no-op when schema is unchanged)
+3. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
+4. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
 
 See [scripts/infra/sync-github-env.sh](scripts/infra/sync-github-env.sh) for implementation.
+
+### Schema Migrations
+
+`drizzle-kit push` is run automatically on every production deploy (step 2 above). For most changes — adding a column, adding a table — this is safe: the old code ignores the new columns while the deploy is in flight.
+
+**Destructive changes** (renaming or dropping a column/table) require the **expand-contract** pattern (also known as **Parallel Change**) across three PRs. Each step is independently rollback-safe because the previous state remains intact.
+
+```
+PR 1 — Expand
+  • Add the new column alongside the old one (both exist in schema)
+  • Code still reads and writes the old column only
+  • Deploy → migration adds new column, running code is unaffected
+  ✅ Rollback: revert PR, drop new column — no data loss
+
+PR 2 — Migrate reads
+  • Backfill new column from old (one-time data migration in code or seed)
+  • Code writes to BOTH columns, reads from the new one
+  • Deploy → both columns stay in sync during any overlap
+  ✅ Rollback: revert PR — old column still has all data, nothing lost
+
+PR 3 — Contract
+  • Remove old column from all reads and writes in code
+  • Remove old column from the Drizzle schema
+  • Deploy → migration drops the old column
+  ⚠️  Rollback after this point requires restoring a DB backup
+```
+
+Never rename a column in a single PR — `drizzle-kit push` will drop the old column and add a new empty one, losing all existing data.
+
+### Backups & Point-In-Time Recovery
+
+**`deploy.yml` automatically snapshots the database before every migration** and uploads the dump as a GitHub Actions artifact (retained 30 days, named `db-snapshot-<sha>`). Download it from the workflow run's artifacts panel to replay locally:
+
+```bash
+turso db shell <your-db-name> < db-snapshot-<sha>.sql
+```
+
+**Turso PITR** (available on Scaler plan and above) provides continuous journaling and lets you restore to any point in time directly from the [Turso dashboard](https://app.turso.tech) — no action required on your part. If your project handles real user data, enabling a paid plan before PR 3 (Contract) of any destructive migration is strongly recommended.
+
+| Mechanism | Plan | Retention | How to restore |
+|---|---|---|---|
+| Pre-deploy SQL dump | Free | 30 days (artifact) | Download from Actions → replay via CLI |
+| Turso PITR | Scaler+ | Continuous | Turso dashboard → restore to timestamp |
 
 
 ---
