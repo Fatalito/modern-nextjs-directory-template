@@ -11,8 +11,10 @@ get_env_var() {
 update_env_var() {
   local key="$1" value="$2" file=".env"
   if grep -q "^${key}=" "$file" 2>/dev/null; then
-    local tmp; tmp=$(mktemp)
-    sed "s|^${key}=.*|${key}=${value}|" "$file" > "$tmp" && mv "$tmp" "$file"
+    local tmp escaped_value; tmp=$(mktemp)
+    escaped_value="${value//\\/\\\\}"
+    escaped_value="${escaped_value//&/\\&}"
+    sed "s|^${key}=.*|${key}=${escaped_value}|" "$file" > "$tmp" && mv "$tmp" "$file"
   else
     echo "${key}=${value}" >> "$file"
   fi

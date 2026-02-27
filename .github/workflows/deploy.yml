@@ -80,18 +80,22 @@ jobs:
 
           HEADERS_FILE=$(mktemp)
           for i in $(seq 1 12); do
-            BODY=$(curl -sf -D "$HEADERS_FILE" "$URL" || echo '{}')
+            BODY=$(curl -sf --connect-timeout 5 --max-time 10 -D "$HEADERS_FILE" "$URL" || echo '{}')
             STATUS=$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
             if [ "$STATUS" = "ok" ]; then
               DEPLOYED=$(grep -i "^x-commit-sha:" "$HEADERS_FILE" | tr -d '\r' | awk '{print $2}')
-              # Only reject if the header is a real SHA (7 hex chars) and it mismatches
-              if [[ "$DEPLOYED" =~ ^[0-9a-f]{7}$ ]] && [ "$DEPLOYED" != "$EXPECTED" ]; then
+              if ! [[ "$DEPLOYED" =~ ^[0-9a-f]{7}$ ]]; then
+                rm -f "$HEADERS_FILE"
+                echo "::error::Missing or invalid x-commit-sha header (got: '${DEPLOYED}')"
+                exit 1
+              fi
+              if [ "$DEPLOYED" != "$EXPECTED" ]; then
                 rm -f "$HEADERS_FILE"
                 echo "::error::SHA mismatch — expected $EXPECTED, got $DEPLOYED"
                 exit 1
               fi
               rm -f "$HEADERS_FILE"
-              echo "  DB reachable, sha=${DEPLOYED:-unknown} — deployment healthy"
+              echo "  DB reachable, sha=$DEPLOYED — deployment healthy"
               exit 0
             fi
             echo "  status=${STATUS:-unreachable} — retry $i/12 in 10 s..."

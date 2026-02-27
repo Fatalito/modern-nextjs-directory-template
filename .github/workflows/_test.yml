@@ -3,7 +3,7 @@ on:
   workflow_call:
     secrets:
       sonar-token:
-        required: true
+        required: false
 
 jobs:
   test:
@@ -53,6 +53,18 @@ jobs:
         with:
           name: coverage-report
           path: coverage/coverage-summary.json
+
+      - name: Check SONAR_TOKEN is configured
+        env:
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN secret is not set."
+            echo "::error::Add it in GitHub → Settings → Secrets and variables → Actions → New repository secret."
+            echo "::error::Generate a token at https://sonarcloud.io → My Account → Security → Generate token."
+            echo "::error::Then re-run: npm run infra:sync:github"
+            exit 1
+          fi
 
       - name: Security Scan & Generate SBOM
         uses: ./.github/actions/security-scan

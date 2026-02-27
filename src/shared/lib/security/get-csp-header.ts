@@ -1,6 +1,7 @@
 import { imageHosts, STATIC_CSP_DIRECTIVES } from "@/shared/config";
 
 // Vercel injects VERCEL_ENV automatically: 'preview' | 'production' | 'development'
+const VERCEL_PREVIEW_ENV = "preview";
 const VERCEL_LIVE_HOST = "https://vercel.live";
 
 /**
@@ -15,7 +16,7 @@ export const getCspHeader = (
   vercelEnv = process.env.VERCEL_ENV,
 ): string => {
   const isDev = env === "development";
-  const isVercelPreview = vercelEnv === "preview";
+  const isVercelPreview = vercelEnv === VERCEL_PREVIEW_ENV;
 
   const secureImageSources = imageHosts
     .map((host) => `https://${host}`)

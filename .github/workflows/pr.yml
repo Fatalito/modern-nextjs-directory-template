@@ -16,8 +16,30 @@ jobs:
     secrets:
       sonar-token: ${{ secrets.SONAR_TOKEN }}
 
+  forked-pr-notice:
+    name: Deployment skipped (fork)
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain required setup
+        run: |
+          echo "Preview deployment, E2E tests, and Storybook are skipped for forked PRs"
+          echo "because they require secrets that are not available to forks."
+          echo ""
+          echo "To enable full CI on your fork, run the interactive setup:"
+          echo ""
+          echo "  npm run infra:setup"
+          echo ""
+          echo "This will configure:"
+          echo "  • Vercel — link your fork, generate VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+          echo "  • Turso  — create a database, set TURSO_API_TOKEN, TURSO_DB_NAME, DATABASE_URL, DATABASE_AUTH_TOKEN"
+          echo ""
+          echo "The script syncs all secrets to GitHub Actions automatically."
+          echo "See the README (First-time production setup) for the full walkthrough."
+
   preview:
     name: Build & Deploy Preview
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.58.2-noble
@@ -259,6 +281,7 @@ jobs:
 
   storybook:
     name: Deploy Storybook
+    if: github.event.pull_request.head.repo.full_name == github.repository
     uses: ./.github/workflows/_storybook.yml
     permissions:
       contents: write

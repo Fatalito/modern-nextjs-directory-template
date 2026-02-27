@@ -24,7 +24,11 @@ SUCCESS="\033[32mSUCCESS:\033[0m"
 SUFFIX=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --suffix) SUFFIX="$2"; shift 2 ;;
+    --suffix)
+      if [[ -z "${2-}" || "${2-}" == -* ]]; then
+        echo -e "$ERROR --suffix requires a non-empty value"; exit 1
+      fi
+      SUFFIX="$2"; shift 2 ;;
     *) echo -e "$ERROR Unknown argument: $1"; exit 1 ;;
   esac
 done

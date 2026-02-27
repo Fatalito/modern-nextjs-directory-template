@@ -46,6 +46,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 **Platforms used:** [Turso](https://turso.tech) (DB) · [Vercel](https://vercel.com) (hosting) · [SonarCloud](https://sonarcloud.io) (quality) · [Snyk](https://snyk.io) (security)
 
+> **Platform support:** The infra scripts (`scripts/infra/`) require **macOS or Linux**. Windows is not supported — use WSL2 if needed, but it is untested.
+
 ### 1. Install CLIs and copy `.env`
 
 ```bash
@@ -192,7 +194,7 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 
 ### Production Deployments
 
-`deploy.yml` triggers automatically after `Main` passes on `main`, and can also be triggered manually. It:
+`deploy.yml` triggers automatically after the **Main** workflow passes on `main`, and can also be triggered manually. It:
 1. Pushes `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from GitHub Secrets to Vercel production
 2. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
 3. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
