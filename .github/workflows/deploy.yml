@@ -72,7 +72,7 @@ jobs:
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
           DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |
-          DB_NAME="${TURSO_DB_NAME:-modern-directory}"
+          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
           SNAPSHOT_FILE="db-snapshot-${{ github.sha }}.sql"
           turso db shell "$DB_NAME" ".dump" > "$SNAPSHOT_FILE"
           if [ ! -s "$SNAPSHOT_FILE" ]; then
