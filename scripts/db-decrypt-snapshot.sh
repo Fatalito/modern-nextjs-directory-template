@@ -30,7 +30,7 @@ for arg in "$@"; do
   esac
 done
 
-if [ "${#POSITIONAL[@]}" -eq 0 ]; then
+if [ "${#POSITIONAL[@]}" -ne 1 ]; then
   echo "Usage: npm run db:decrypt-snapshot -- [--force] <path/to/db-snapshot-<sha>.sql.enc>" >&2
   exit 1
 fi
@@ -64,11 +64,17 @@ if [ -f "$OUTPUT_FILE" ] && [ "$FORCE" != "1" ]; then
   fi
 fi
 
+TMP_OUTPUT="$(mktemp "${OUTPUT_FILE}.tmp.XXXXXX")"
+trap 'rm -f "$TMP_OUTPUT"' EXIT
+
 DB_SNAPSHOT_PASSPHRASE="$PASSPHRASE" \
   openssl enc -d -aes-256-cbc -pbkdf2 \
     -in "$ENCRYPTED_FILE" \
-    -out "$OUTPUT_FILE" \
+    -out "$TMP_OUTPUT" \
     -pass env:DB_SNAPSHOT_PASSPHRASE
+
+mv "$TMP_OUTPUT" "$OUTPUT_FILE"
+trap - EXIT
 
 echo "Decrypted to $OUTPUT_FILE"
 echo "To replay: turso db shell <your-db-name> < $OUTPUT_FILE"
