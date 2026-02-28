@@ -114,7 +114,7 @@ jobs:
           exit "${PIPESTATUS[0]}"
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
@@ -148,7 +148,7 @@ jobs:
         run: node scripts/compare-lighthouse.mjs 2>&1 | tee lighthouse-report.md
 
       - name: Upload Performance Metrics
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: ${{ !cancelled() }}
         with:
           name: perf-metrics
@@ -157,7 +157,7 @@ jobs:
 
       - name: Upload Performance Summary (JSON)
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: perf-summary
           path: test-results/perf-summary.json
@@ -165,14 +165,14 @@ jobs:
 
       - name: Upload Lighthouse Scores
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: lighthouse-scores
           path: test-results/lighthouse-scores.json
           retention-days: 30
 
       - name: Upload Playwright Text Output
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: ${{ !cancelled() }}
         with:
           name: playwright-e2e
@@ -180,7 +180,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Performance Benchmark Output
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: ${{ !cancelled() }}
         with:
           name: perf-e2e
@@ -188,7 +188,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Lighthouse Report
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: ${{ !cancelled() }}
         with:
           name: lighthouse-report
