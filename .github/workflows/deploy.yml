@@ -37,6 +37,9 @@ jobs:
       - name: Setup Node.js & Install Dependencies
         uses: ./.github/actions/bootstrap
 
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+
       - name: Restore/Save Next.js build cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
@@ -61,6 +64,41 @@ jobs:
           printf '%s' "$DATABASE_AUTH_TOKEN" | \
             ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Snapshot database before migration
+        # Captures the pre-migration state as an AES-256 encrypted SQL dump.
+        # Decrypt locally with: openssl enc -d -aes-256-cbc -pbkdf2 -in <file>.enc -out restore.sql
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+          DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
+        run: |
+          SNAPSHOT_FILE="db-snapshot-${{ github.sha }}.sql"
+          turso db shell "$TURSO_DB_NAME" ".dump" > "$SNAPSHOT_FILE"
+          if [ ! -s "$SNAPSHOT_FILE" ]; then
+            echo "::error::Database snapshot is empty — aborting before migration"
+            exit 1
+          fi
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "$SNAPSHOT_FILE" \
+            -out "${SNAPSHOT_FILE}.enc" \
+            -pass env:DB_SNAPSHOT_PASSPHRASE
+          rm -f "$SNAPSHOT_FILE"
+
+      - name: Upload database snapshot
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: db-snapshot-${{ github.sha }}
+          path: db-snapshot-${{ github.sha }}.sql.enc
+          retention-days: 30
+
+      - name: Run database migrations
+        # No-op when schema is unchanged. --force skips the interactive data-loss
+        # prompt so destructive migrations (drop column/table) apply automatically.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+        run: ./node_modules/.bin/drizzle-kit push --force
+
       - name: Build project
         # Sensitive env vars are not returned by `vercel pull`, so inject them
         # explicitly here so the build can reach the database.
@@ -77,6 +115,8 @@ jobs:
 
       - name: Health check
         # Retry for up to 2 minutes — Vercel's edge propagation can take a few seconds.
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           FULL_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           EXPECTED="${FULL_SHA:0:7}"
@@ -85,7 +125,9 @@ jobs:
 
           HEADERS_FILE=$(mktemp)
           for i in $(seq 1 12); do
-            BODY=$(curl -sf --connect-timeout 5 --max-time 10 -D "$HEADERS_FILE" "$URL" || echo '{}')
+            BODY=$(curl -sf --connect-timeout 5 --max-time 10 -D "$HEADERS_FILE" \
+              -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
+              "$URL" || echo '{}')
             STATUS=$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
             if [ "$STATUS" = "ok" ]; then
               DEPLOYED=$(grep -i "^x-commit-sha:" "$HEADERS_FILE" | tr -d '\r' | awk '{print $2}')

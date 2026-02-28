@@ -26,7 +26,7 @@ ERROR="\033[31mERROR:\033[0m"
 WARN="\033[33mWARNING:\033[0m"
 STEP="\033[1;36m──────────────────────────────────────────\033[0m"
 
-# shellcheck source=lib/utils.sh
+# shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ── 0. Confirmation gate ──────────────────────────────────────────────────────
