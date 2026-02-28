@@ -72,8 +72,9 @@ jobs:
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
           DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |
+          DB_NAME="${TURSO_DB_NAME:-modern-directory}"
           SNAPSHOT_FILE="db-snapshot-${{ github.sha }}.sql"
-          turso db shell "$TURSO_DB_NAME" ".dump" > "$SNAPSHOT_FILE"
+          turso db shell "$DB_NAME" ".dump" > "$SNAPSHOT_FILE"
           if [ ! -s "$SNAPSHOT_FILE" ]; then
             echo "::error::Database snapshot is empty — aborting before migration"
             exit 1
