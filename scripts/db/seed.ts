@@ -166,8 +166,10 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const force = process.argv.includes("--force") || process.argv.includes("-f");
-  seed({ force }).catch((error) => {
+  try {
+    await seed({ force });
+  } catch (error) {
     console.error("❌ Seeding failed:", error);
     process.exit(1);
-  });
+  }
 }
