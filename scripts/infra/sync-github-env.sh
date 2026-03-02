@@ -79,10 +79,14 @@ push_variable "TURSO_REGION"  "$(get_env_var TURSO_REGION)"
 
 # ── Vercel project IDs (from .vercel/project.json) ────────────────────────────
 if [ -f ".vercel/project.json" ]; then
-  VERCEL_ORG_ID=$(jq -r '.orgId' .vercel/project.json)
-  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
-  push_secret "VERCEL_ORG_ID"     "$VERCEL_ORG_ID"
-  push_secret "VERCEL_PROJECT_ID" "$VERCEL_PROJECT_ID"
+  VERCEL_ORG_ID=$(jq -er '.orgId // empty' .vercel/project.json 2>/dev/null || true)
+  VERCEL_PROJECT_ID=$(jq -er '.projectId // empty' .vercel/project.json 2>/dev/null || true)
+  if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+    echo -e "$WARN  .vercel/project.json missing orgId/projectId — skipping Vercel ID sync."
+  else
+    push_secret "VERCEL_ORG_ID"     "$VERCEL_ORG_ID"
+    push_secret "VERCEL_PROJECT_ID" "$VERCEL_PROJECT_ID"
+  fi
 else
   echo -e "$WARN  No .vercel/project.json found — VERCEL_ORG_ID and VERCEL_PROJECT_ID not synced."
   echo "  Run: vercel link, then re-run: npm run infra:sync:github"

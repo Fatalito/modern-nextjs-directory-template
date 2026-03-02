@@ -32,7 +32,15 @@ if [ -z "$DEBUG_DB_NAME" ]; then
   echo -e "$ERROR DEBUG_DB_NAME not found in .env — was db:debug:remote:start run?" >&2
   exit 1
 fi
-
+PROD_DB_NAME="$(get_env_var TURSO_DB_NAME)"
+if [ -n "$PROD_DB_NAME" ] && [ "$DEBUG_DB_NAME" = "$PROD_DB_NAME" ]; then
+  echo -e "$ERROR Refusing to destroy production DB: $DEBUG_DB_NAME" >&2
+  exit 1
+fi
+if [[ "$DEBUG_DB_NAME" != *-debug ]]; then
+  echo -e "$ERROR Refusing to destroy non-debug DB: $DEBUG_DB_NAME" >&2
+  exit 1
+fi
 # ── Destroy fork ───────────────────────────────────────────────────────────────
 echo -e "$INFO Destroying debug DB: $DEBUG_DB_NAME..."
 if turso db show "$DEBUG_DB_NAME" &>/dev/null; then

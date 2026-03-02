@@ -323,7 +323,7 @@ if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
       -X PATCH "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/protection-bypass" \
       -H "Authorization: Bearer $VERCEL_TOKEN" \
       -H "Content-Type: application/json" \
-      -d "{\"generate\": {\"secret\": \"$BYPASS\", \"note\": \"infra:setup automation bypass\"}}")
+      -d "{\"generate\": {\"secret\": \"$BYPASS\"}}")
     if [ "$RESULT" = "200" ]; then
       echo -e "$SUCCESS Protection bypass secret registered with Vercel."
     else
@@ -350,7 +350,7 @@ if [ -n "$REPO" ]; then
 {
   "required_status_checks": {
     "strict": false,
-    "contexts": ["Test / Test, Scan & Generate SBOM", "PR / Build & Deploy Preview"]
+    "contexts": ["Test", "Build & Deploy Preview"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": null,

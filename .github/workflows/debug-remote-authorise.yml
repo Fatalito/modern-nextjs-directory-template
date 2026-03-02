@@ -20,7 +20,7 @@ on:
 
 jobs:
   authorise:
-    name: "PII access — ${{ inputs.requester }} (${{ inputs.branch }})"
+    name: "PII access — ${{ github.actor }} (${{ inputs.branch }})"
     runs-on: ubuntu-latest
     environment: pii-access
     permissions:
@@ -29,10 +29,11 @@ jobs:
       - name: Log access grant
         run: |
           echo "PII debug access GRANTED"
-          echo "  Requester : ${{ inputs.requester }}"
-          echo "  Branch    : ${{ inputs.branch }}"
-          echo "  Reason    : ${{ inputs.reason }}"
-          echo "  Approved by: ${{ github.actor }}"
-          echo "  Timestamp : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "  Triggered by (GitHub identity): ${{ github.actor }}"
+          echo "  Declared requester            : ${{ inputs.requester }}"
+          echo "  Branch                        : ${{ inputs.branch }}"
+          echo "  Reason                        : ${{ inputs.reason }}"
+          echo "  Timestamp                     : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           echo ""
-          echo "This run is the immutable audit record of the access grant."
+          echo "Approver identity is recorded in GitHub's environment deployment audit trail."
+          echo "This run log is the immutable record of the access request and grant."

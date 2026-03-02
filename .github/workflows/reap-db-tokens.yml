@@ -1,0 +1,48 @@
+name: Reap Stale DB Tokens
+# Invalidates Turso production token groups older than 12 months.
+#
+# rotate-db-token/action.yml tags every fresh token with group "prod-YYYY-MM".
+# Multiple deploys in the same calendar month share one group, so they are all
+# swept together. Tokens from the current month and the previous 11 months are
+# never touched, giving a safe 12-month window before a group is reaped.
+#
+# Non-existent groups are a no-op on Turso's side, so this is safe to run
+# even when few months have active tokens.
+#
+# Runs on the 1st of every month at 05:00 UTC (after the nightly snyk at 03:00
+# and the stale-fork reaper at 04:00).
+on:
+  schedule:
+    - cron: '0 5 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reap:
+    name: Invalidate prod token groups (12–60 months ago)
+    runs-on: ubuntu-latest
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+
+      - name: Invalidate stale prod token groups
+        run: |
+          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
+          echo "Sweeping stale prod-YYYY-MM groups on $DB_NAME..."
+
+          for MONTHS_AGO in $(seq 12 60); do
+            GROUP=$(date -u -d "$MONTHS_AGO months ago" '+prod-%Y-%m')
+            # Turso treats a non-existent group as a no-op — safe to run unconditionally.
+            turso db tokens invalidate "$DB_NAME" --group "$GROUP" 2>/dev/null || true
+            echo "  processed $GROUP"
+          done
+
+          echo "Done — checked months 12 through 60 ago."

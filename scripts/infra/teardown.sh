@@ -74,7 +74,7 @@ echo "  Step 2 of 3 — Remove Vercel project"
 echo -e "$STEP"
 
 if [ -f ".vercel/project.json" ]; then
-  PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
+  PROJECT_ID=$(jq -r '.projectId // empty' .vercel/project.json)
   VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
 
   if [ -n "$VERCEL_TOKEN" ] && [ -n "$PROJECT_ID" ]; then

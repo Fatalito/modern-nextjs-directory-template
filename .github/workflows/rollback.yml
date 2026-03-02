@@ -139,6 +139,9 @@ jobs:
           unzip -q /tmp/snapshot/artifact.zip -d /tmp/snapshot/extracted
 
       - name: Decrypt and restore DB snapshot
+        # Partial-restore risk: if the connection drops mid-pipe the DB is left
+        # in an inconsistent state. Wrapping the dump in BEGIN/COMMIT makes the
+        # replay atomic — either every statement succeeds or none are committed.
         env:
           DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |
@@ -151,7 +154,8 @@ jobs:
             -in "$ENC_FILE" \
             -out /tmp/snapshot/restore.sql \
             -pass env:DB_SNAPSHOT_PASSPHRASE
-          turso db shell "$DB_NAME" < /tmp/snapshot/restore.sql
+          { echo 'BEGIN TRANSACTION;'; cat /tmp/snapshot/restore.sql; echo 'COMMIT;'; } \
+            | turso db shell "$DB_NAME"
           rm -rf /tmp/snapshot
 
       - name: Push database credentials to Vercel production
@@ -245,14 +249,14 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.find-deployment.outputs.found }}" = "true" ]; then
-            PATH_TYPE="fast (alias — no rebuild)"
+            ROLLBACK_PATH="fast (alias — no rebuild)"
           else
-            PATH_TYPE="slow (rebuild from source)"
+            ROLLBACK_PATH="slow (rebuild from source)"
           fi
           {
             echo "### Rollback Production"
             echo "- Snapshot: \`${{ steps.parse.outputs.snapshot }}\`"
             echo "- Code: \`${{ steps.parse.outputs.sha }}\`"
             echo "- URL: ${{ steps.set-url.outputs.value }}"
-            echo "- Path: $PATH_TYPE"
+            echo "- Path: $ROLLBACK_PATH"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -54,8 +54,15 @@ jobs:
             | awk -v base="${DB_BASE_NAME}-pr-" 'NR>1 && index($1, base)==1 {print $1}' \
             | while read -r DB; do
                 PR_NUM="${DB#"${DB_BASE_NAME}-pr-"}"
-                MERGED_AT=$(gh api "repos/$REPO/pulls/$PR_NUM" \
-                  --jq '.merged_at // empty' 2>/dev/null || true)
+                PR_ERR=$(mktemp)
+                if ! MERGED_AT=$(gh api "repos/$REPO/pulls/$PR_NUM" \
+                  --jq '.merged_at // empty' 2>"$PR_ERR"); then
+                  echo "::warning::Failed to fetch PR #$PR_NUM metadata for $DB"
+                  cat "$PR_ERR"
+                  rm -f "$PR_ERR"
+                  continue
+                fi
+                rm -f "$PR_ERR"
                 [ -z "$MERGED_AT" ] && continue
                 MERGED_TS=$(date -d "$MERGED_AT" +%s 2>/dev/null || true)
                 [ -z "$MERGED_TS" ] && continue

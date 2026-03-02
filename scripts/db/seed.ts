@@ -18,8 +18,13 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
     const [result] = await db
       .select({ total: drizzleCount() })
       .from(schema.users);
-    const userCount = result.total;
-    if (userCount > 0 && process.stdin.isTTY) {
+    const userCount = Number(result.total);
+    if (userCount > 0) {
+      if (!process.stdin.isTTY) {
+        throw new Error(
+          "Refusing to overwrite populated DB in non-interactive mode. Re-run with force=true.",
+        );
+      }
       const { createInterface } = await import("node:readline");
       const rl = createInterface({
         input: process.stdin,
@@ -123,41 +128,45 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
   // PRAGMA must be set outside a transaction; the deletes are wrapped in one
   // for atomicity so a partial wipe is never left in place.
   await db.run(sql`PRAGMA foreign_keys = OFF`);
-  await db.transaction(async (tx) => {
-    await tx.delete(schema.businessServices);
-    await tx.delete(schema.businesses);
-    await tx.delete(schema.services);
-    await tx.delete(schema.users);
-    await tx.delete(schema.locations);
-  });
-  await db.run(sql`PRAGMA foreign_keys = ON`);
+  try {
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.businessServices);
+      await tx.delete(schema.businesses);
+      await tx.delete(schema.services);
+      await tx.delete(schema.users);
+      await tx.delete(schema.locations);
 
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.users).values(user);
+      await tx.insert(schema.users).values(user);
 
-    await tx.insert(schema.locations).values([france, lyon, paris, uk, london]);
+      await tx
+        .insert(schema.locations)
+        .values([france, lyon, paris, uk, london]);
 
-    await tx
-      .insert(schema.services)
-      .values([webDesign, restaurant, plumbing, consulting]);
+      await tx
+        .insert(schema.services)
+        .values([webDesign, restaurant, plumbing, consulting]);
 
-    await tx
-      .insert(schema.businesses)
-      .values([techStudio, lilakIt, namasteRestaurant]);
+      await tx
+        .insert(schema.businesses)
+        .values([techStudio, lilakIt, namasteRestaurant]);
 
-    await tx.insert(schema.businessServices).values([
-      { businessId: techStudio.id, serviceId: webDesign.id },
-      { businessId: namasteRestaurant.id, serviceId: restaurant.id },
-      { businessId: lilakIt.id, serviceId: webDesign.id },
-      { businessId: lilakIt.id, serviceId: consulting.id },
-    ]);
-  });
+      await tx.insert(schema.businessServices).values([
+        { businessId: techStudio.id, serviceId: webDesign.id },
+        { businessId: namasteRestaurant.id, serviceId: restaurant.id },
+        { businessId: lilakIt.id, serviceId: webDesign.id },
+        { businessId: lilakIt.id, serviceId: consulting.id },
+      ]);
+    });
+  } finally {
+    await db.run(sql`PRAGMA foreign_keys = ON`);
+  }
 
   console.log("✅ Database synced with seed data!");
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  seed().catch((error) => {
+  const force = process.argv.includes("--force") || process.argv.includes("-f");
+  seed({ force }).catch((error) => {
     console.error("❌ Seeding failed:", error);
     process.exit(1);
   });

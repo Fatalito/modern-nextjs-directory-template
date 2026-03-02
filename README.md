@@ -146,6 +146,27 @@ TURSO_REGION=aws-us-east-1 npm run infra:setup
 npm run infra:rotate-token
 ```
 
+### Remote debug access (PII)
+
+`npm run db:debug:remote:start` forks the production database and points your local `.env` at it. Because the fork contains real user data, access is gated behind a GitHub Environment approval:
+
+1. The script triggers `.github/workflows/debug-remote-authorise.yml` via `gh workflow run`.
+2. A configured **Security Lead** must approve the pending deployment in **GitHub → Actions → Authorise PII Debug Access** before the fork is created.
+3. On approval the fork is created and `.env` is updated. On rejection the script aborts.
+4. The GitHub Actions run is the **immutable audit record** — it captures who requested access, from which branch, the stated reason, and the timestamp. The approver's identity is recorded in GitHub's environment deployment audit trail.
+
+`npm run db:debug:remote:stop` destroys the fork and restores `.env` to local SQLite.
+
+> **For everyday debugging use `npm run db:debug:start` instead** — it works with a sanitized local copy and requires no approval.
+
+#### One-time setup (done by `infra:setup`)
+
+`infra:setup` automatically creates the `pii-access` GitHub Environment. You must then add at least one required reviewer manually:
+
+**Settings → Environments → pii-access → Required reviewers** → add yourself or a Security Lead.
+
+Enable **"Prevent self-review"** so the person requesting access cannot approve their own workflow run.
+
 ## Vercel Deployment
 
 `infra:setup` collects `VERCEL_TOKEN` interactively and generates `VERCEL_AUTOMATION_BYPASS_SECRET` automatically. CI workflows send the bypass secret as a header so E2E and perf tests can access protected preview deployments.
