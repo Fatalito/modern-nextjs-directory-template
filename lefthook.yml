@@ -12,7 +12,10 @@ pre-commit:
       glob: "scripts/**/*.sh"
       run: npx shellcheck -x {staged_files}
 pre-push:
+  parallel: true
   commands:
+    lockfile-check:
+      run: npm ci --dry-run
     dotenv-check:
       glob: ".env.example"
       run: dotenv-linter {staged_files}
