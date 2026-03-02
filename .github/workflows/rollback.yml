@@ -56,8 +56,10 @@ jobs:
             echo "::error::Invalid snapshot name '$SNAPSHOT'. Expected: db-snapshot-{40-char-sha} or 'latest'. Run: npm run db:snapshot:list"
             exit 1
           fi
-          echo "sha=${SNAPSHOT#db-snapshot-}" >> "$GITHUB_OUTPUT"
-          echo "snapshot=$SNAPSHOT" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha=${SNAPSHOT#db-snapshot-}"
+            echo "snapshot=$SNAPSHOT"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout target commit
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
