@@ -6,8 +6,8 @@ name: Reap Stale DB Tokens
 # swept together. Tokens from the current month and the previous 11 months are
 # never touched, giving a safe 12-month window before a group is reaped.
 #
-# Non-existent groups are a no-op on Turso's side, so this is safe to run
-# even when few months have active tokens.
+# Non-existent groups are treated as non-fatal (no tokens to invalidate is expected
+# for months with no deploys). Authentication and API errors are surfaced and fail the job.
 #
 # Runs on the 1st of every month at 05:00 UTC (after the nightly snyk at 03:00
 # and the stale-fork reaper at 04:00).
@@ -35,14 +35,31 @@ jobs:
 
       - name: Invalidate stale prod token groups
         run: |
-          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
+          DB_NAME="${TURSO_DB_NAME}-prod"
+          if [ -z "$TURSO_DB_NAME" ] || [ "$DB_NAME" = "-prod" ]; then
+            echo "::error::TURSO_DB_NAME is not set — cannot determine target database."
+            exit 1
+          fi
           echo "Sweeping stale prod-YYYY-MM groups on $DB_NAME..."
 
           for MONTHS_AGO in $(seq 12 60); do
             GROUP=$(date -u -d "$MONTHS_AGO months ago" '+prod-%Y-%m')
-            # Turso treats a non-existent group as a no-op — safe to run unconditionally.
-            turso db tokens invalidate "$DB_NAME" --group "$GROUP" 2>/dev/null || true
-            echo "  processed $GROUP"
+            if [ -z "$GROUP" ]; then
+              echo "::error::date failed to produce a group name for MONTHS_AGO=$MONTHS_AGO"
+              exit 1
+            fi
+            # Capture combined stdout+stderr so errors are visible in workflow logs.
+            # "not found" / "does not exist" are non-fatal — the group simply has no tokens.
+            # NOTE: verify these strings against your Turso CLI version if behaviour changes.
+            if OUTPUT=$(turso db tokens invalidate "$DB_NAME" --group "$GROUP" 2>&1); then
+              echo "  processed $GROUP"
+            elif echo "$OUTPUT" | grep -qi "not found\|does not exist"; then
+              echo "  skipped $GROUP (group not found — no tokens to invalidate)"
+            else
+              echo "::error::Failed to invalidate group '$GROUP':"
+              echo "$OUTPUT"
+              exit 1
+            fi
           done
 
           echo "Done — checked months 12 through 60 ago."

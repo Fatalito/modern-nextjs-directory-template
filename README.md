@@ -179,7 +179,7 @@ Pull requests to `main` automatically deploy a preview to Vercel and fork a Turs
 
 ### PR Cleanup
 
-When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database (immediately for non-merged PRs; merged PRs retain the fork for 24 h as a debugging window and are cleaned up by `cleanup-stale-forks.yml`), the Vercel preview a and the Storybook preview page.
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercel preview, and the Storybook preview page. The Turso DB is deleted immediately in all cases **except** merged PRs from forks, which retain the fork for 24 h as a post-merge debugging window; `cleanup-stale-forks.yml` sweeps those after the grace period.
 
 ### Environment Variable Sync
 
@@ -231,6 +231,8 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 `drizzle-kit push` is run automatically on every production deploy (step 2 above). For most changes — adding a column, adding a table — this is safe: the old code ignores the new columns while the deploy is in flight.
 
 **Destructive changes** (renaming or dropping a column/table) require the **expand-contract** pattern (also known as **Parallel Change**) across three PRs. Each step is independently rollback-safe because the previous state remains intact.
+
+> **Automated guardrail:** `pr.yml` runs `drizzle-kit generate` against the PR's schema and fails the build if any `DROP TABLE` or `DROP COLUMN` statement is detected — before Turso is provisioned. This forces the expand-contract pattern at the workflow level, not just by convention.
 
 ```text
 PR 1 — Expand

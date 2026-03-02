@@ -27,13 +27,18 @@ jobs:
       contents: none
     steps:
       - name: Log access grant
+        env:
+          ACTOR: ${{ github.actor }}
+          DECLARED_REQUESTER: ${{ inputs.requester }}
+          REQUESTED_BRANCH: ${{ inputs.branch }}
+          REQUEST_REASON: ${{ inputs.reason }}
         run: |
-          echo "PII debug access GRANTED"
-          echo "  Triggered by (GitHub identity): ${{ github.actor }}"
-          echo "  Declared requester            : ${{ inputs.requester }}"
-          echo "  Branch                        : ${{ inputs.branch }}"
-          echo "  Reason                        : ${{ inputs.reason }}"
-          echo "  Timestamp                     : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          printf '%s\n' "PII debug access GRANTED"
+          printf '  Triggered by (GitHub identity): %s\n' "$ACTOR"
+          printf '  Declared requester            : %s\n' "$DECLARED_REQUESTER"
+          printf '  Branch                        : %s\n' "$REQUESTED_BRANCH"
+          printf '  Reason                        : %s\n' "$REQUEST_REASON"
+          printf '  Timestamp                     : %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           echo ""
           echo "Approver identity is recorded in GitHub's environment deployment audit trail."
           echo "This run log is the immutable record of the access request and grant."

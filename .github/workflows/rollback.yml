@@ -44,8 +44,8 @@ jobs:
         run: |
           SNAPSHOT="${{ inputs.snapshot_name }}"
           if [ "$SNAPSHOT" = "latest" ]; then
-            SNAPSHOT=$(gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
-              --jq '[.artifacts[] | select(.name | startswith("db-snapshot-")) | select(.expired == false)] | sort_by(.created_at) | last | .name // empty')
+            SNAPSHOT=$(gh api "repos/${{ github.repository }}/actions/artifacts" --paginate \
+              | jq -rs '[.[].artifacts[] | select(.name | startswith("db-snapshot-")) | select(.expired == false)] | sort_by(.created_at) | last | .name // empty')
             if [ -z "$SNAPSHOT" ]; then
               echo "::error::No non-expired db-snapshot artifacts found. Run: npm run db:snapshot:list"
               exit 1
@@ -77,7 +77,7 @@ jobs:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
         run: |
-          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
+          DB_NAME="${TURSO_DB_NAME}-prod"
           DATABASE_URL="$(turso db show "$DB_NAME" --url)"
           # JIT token: tagged with a unique group so only this token can be
           # selectively invalidated in the Three-Finger Swap reaper step below.
@@ -128,8 +128,8 @@ jobs:
         run: |
           REPO="${{ github.repository }}"
           SNAPSHOT="${{ steps.parse.outputs.snapshot }}"
-          ARTIFACT_ID=$(gh api "repos/$REPO/actions/artifacts?per_page=100" \
-            --jq "[.artifacts[] | select(.name == \"$SNAPSHOT\")] | .[0].id // empty")
+          ARTIFACT_ID=$(gh api "repos/$REPO/actions/artifacts" --paginate \
+            | jq -rs --arg name "$SNAPSHOT" '[.[].artifacts[] | select(.name == $name)] | first | .id // empty')
           if [ -z "$ARTIFACT_ID" ]; then
             echo "::error::Artifact '$SNAPSHOT' not found (may have expired after 30 days). Run: npm run db:snapshot:list"
             exit 1

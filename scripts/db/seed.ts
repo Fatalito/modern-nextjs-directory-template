@@ -37,7 +37,7 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
         ),
       );
       rl.close();
-      if (answer.toLowerCase() !== "y") {
+      if (answer.trim().toLowerCase() !== "y") {
         console.log("  Seed cancelled.");
         return;
       }

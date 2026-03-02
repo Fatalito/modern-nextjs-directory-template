@@ -15,7 +15,7 @@ pre-push:
   parallel: true
   commands:
     lockfile-check:
-      run: npm ci --dry-run
+      run: npm ci --dry-run --ignore-scripts --no-audit --no-fund
     dotenv-check:
       glob: ".env.example"
       run: dotenv-linter {staged_files}

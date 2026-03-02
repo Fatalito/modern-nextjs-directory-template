@@ -182,11 +182,10 @@ echo "  (run 'turso db locations' for the full list)"
 read -r -p "  Database name [$DB_BASE_NAME]: " DB_NAME_INPUT
 read -r -p "  Region        [$REGION]: " REGION_INPUT
 
-if [ -n "$DB_NAME_INPUT" ] && [ "$DB_NAME_INPUT" != "$DB_BASE_NAME" ]; then
-  update_env_var "TURSO_DB_NAME" "$DB_NAME_INPUT"
-  export TURSO_DB_NAME="$DB_NAME_INPUT"
-  echo -e "$INFO Using database name: $DB_NAME_INPUT"
-fi
+DB_NAME_INPUT="${DB_NAME_INPUT:-$DB_BASE_NAME}"
+update_env_var "TURSO_DB_NAME" "$DB_NAME_INPUT"
+export TURSO_DB_NAME="$DB_NAME_INPUT"
+echo -e "$INFO Using database name: $DB_NAME_INPUT"
 
 if [ -n "$REGION_INPUT" ] && [ "$REGION_INPUT" != "$REGION" ]; then
   update_env_var "TURSO_REGION" "$REGION_INPUT"
@@ -233,6 +232,7 @@ VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
 # Collect NEXT_PUBLIC_APP_URL — required for canonical URLs, OG metadata, sitemaps
 APP_URL="$(get_env_var NEXT_PUBLIC_APP_URL)"
 if [ -z "$APP_URL" ] || [ "$APP_URL" = "http://localhost:3000" ]; then
+  APP_URL=""
   echo ""
   read -r -p "  Production URL (e.g. https://yourdomain.com): " APP_URL_INPUT
   if [ -n "$APP_URL_INPUT" ]; then

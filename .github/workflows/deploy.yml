@@ -60,7 +60,7 @@ jobs:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
           TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
         run: |
-          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
+          DB_NAME="${TURSO_DB_NAME}-prod"
           DATABASE_URL="$(turso db show "$DB_NAME" --url)"
           # JIT token: tagged with a unique group so only this token can be
           # selectively invalidated in the Three-Finger Swap reaper step below.
