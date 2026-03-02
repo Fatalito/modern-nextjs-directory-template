@@ -52,8 +52,7 @@ if ! command -v turso &>/dev/null; then
 fi
 
 if turso auth token 2>&1 | grep -qi "not logged in"; then
-  echo -e "$ERROR Not logged in. Run: turso auth login"
-  exit 1
+  turso auth login
 fi
 
 # ── Create database ───────────────────────────────────────────────────────────
@@ -105,6 +104,5 @@ echo "Next steps:"
 echo ""
 echo "  npm run db:push"
 echo "  npm run db:seed"
-echo "  npm run infra:sync:github   # push DATABASE_URL + DATABASE_AUTH_TOKEN to GitHub"
 echo ""
 echo -e "\033[33mWARNING:\033[0m The token has been written to .env — do not commit it."

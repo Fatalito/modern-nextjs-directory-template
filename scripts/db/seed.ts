@@ -1,4 +1,7 @@
 import { fileURLToPath } from "node:url";
+import { count as drizzleCount, sql } from "drizzle-orm";
+import { db } from "@/shared/api/db/db";
+import * as schema from "@/shared/api/db/schema";
 import {
   createBusinessRaw,
   createCountryCityRaw,
@@ -6,11 +9,35 @@ import {
   createServiceRaw,
   createUserRaw,
 } from "@/shared/testing";
-import { db } from "./db";
-import * as schema from "./schema";
 
-export async function seed() {
+export async function seed({ force = false }: { force?: boolean } = {}) {
   console.log("🌱 Starting Drizzle Seed...");
+
+  // Guard against accidentally wiping a populated local DB
+  if (!force) {
+    const [result] = await db
+      .select({ total: drizzleCount() })
+      .from(schema.users);
+    const userCount = result.total;
+    if (userCount > 0 && process.stdin.isTTY) {
+      const { createInterface } = await import("node:readline");
+      const rl = createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+      const answer = await new Promise<string>((resolve) =>
+        rl.question(
+          `  Found ${userCount} existing user(s). Overwrite all data? (y/N): `,
+          resolve,
+        ),
+      );
+      rl.close();
+      if (answer.toLowerCase() !== "y") {
+        console.log("  Seed cancelled.");
+        return;
+      }
+    }
+  }
 
   const user = createUserRaw({
     name: "Fatalito",
@@ -91,43 +118,43 @@ export async function seed() {
     category: "hospitality",
   });
 
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.users).values(user).onConflictDoNothing();
+  // Disable FK checks so we can wipe tables without worrying about order
+  // (locations has a self-referential parentId FK that blocks ordered deletes)
+  await db.run(sql`PRAGMA foreign_keys = OFF`);
+  await db.delete(schema.businessServices);
+  await db.delete(schema.businesses);
+  await db.delete(schema.services);
+  await db.delete(schema.users);
+  await db.delete(schema.locations);
+  await db.run(sql`PRAGMA foreign_keys = ON`);
 
-    await tx
-      .insert(schema.locations)
-      .values([france, lyon, paris, uk, london])
-      .onConflictDoNothing();
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.users).values(user);
+
+    await tx.insert(schema.locations).values([france, lyon, paris, uk, london]);
 
     await tx
       .insert(schema.services)
-      .values([webDesign, restaurant, plumbing, consulting])
-      .onConflictDoNothing();
+      .values([webDesign, restaurant, plumbing, consulting]);
 
     await tx
       .insert(schema.businesses)
-      .values([techStudio, lilakIt, namasteRestaurant])
-      .onConflictDoNothing();
+      .values([techStudio, lilakIt, namasteRestaurant]);
 
-    await tx
-      .insert(schema.businessServices)
-      .values([
-        { businessId: techStudio.id, serviceId: webDesign.id },
-        { businessId: namasteRestaurant.id, serviceId: restaurant.id },
-        { businessId: lilakIt.id, serviceId: webDesign.id },
-        { businessId: lilakIt.id, serviceId: consulting.id },
-      ])
-      .onConflictDoNothing();
+    await tx.insert(schema.businessServices).values([
+      { businessId: techStudio.id, serviceId: webDesign.id },
+      { businessId: namasteRestaurant.id, serviceId: restaurant.id },
+      { businessId: lilakIt.id, serviceId: webDesign.id },
+      { businessId: lilakIt.id, serviceId: consulting.id },
+    ]);
   });
 
   console.log("✅ Database synced with seed data!");
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  try {
-    await seed();
-  } catch (error) {
+  seed().catch((error) => {
     console.error("❌ Seeding failed:", error);
     process.exit(1);
-  }
+  });
 }

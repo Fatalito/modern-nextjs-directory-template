@@ -52,12 +52,31 @@ jobs:
       - name: Pull Vercel environment (production)
         run: ./node_modules/.bin/vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Push database credentials to Vercel production
-        # GitHub Secrets are the single source of truth for DB credentials.
-        # We push them fresh on every deploy so Vercel always has the current values.
+      - name: Resolve database credentials
+        # Derives DATABASE_URL and a fresh DATABASE_AUTH_TOKEN via the Turso API.
+        # No DB credentials need to be stored as GitHub Secrets — TURSO_API_TOKEN
+        # is the only Turso credential required.
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+        run: |
+          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
+          DATABASE_URL="$(turso db show "$DB_NAME" --url)"
+          # JIT token: tagged with a unique group so only this token can be
+          # selectively invalidated in the Three-Finger Swap reaper step below.
+          JIT_TOKEN_GROUP="deploy-${{ github.sha }}"
+          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --group "$JIT_TOKEN_GROUP" --expiration 2h)"
+          echo "::add-mask::$DATABASE_AUTH_TOKEN"
+          {
+            echo "DB_NAME=$DB_NAME"
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN"
+            echo "JIT_TOKEN_GROUP=$JIT_TOKEN_GROUP"
+          } >> "$GITHUB_ENV"
+
+      - name: Push database credentials to Vercel production
+        # Credentials are derived fresh on every deploy so Vercel always has
+        # a valid token. No DB secrets need to be stored in GitHub.
         run: |
           printf '%s' "$DATABASE_URL" | \
             ./node_modules/.bin/vercel env add DATABASE_URL production --force --token=${{ secrets.VERCEL_TOKEN }}
@@ -66,13 +85,11 @@ jobs:
 
       - name: Snapshot database before migration
         # Captures the pre-migration state as an AES-256 encrypted SQL dump.
-        # Decrypt locally with: openssl enc -d -aes-256-cbc -pbkdf2 -in <file>.enc -out restore.sql
+        # To roll back: npm run db:snapshot:list → Actions → "Rollback Production"
         env:
           TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
-          TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
           DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |
-          DB_NAME="${TURSO_DB_NAME:-modern-directory}-prod"
           SNAPSHOT_FILE="db-snapshot-${{ github.sha }}.sql"
           turso db shell "$DB_NAME" ".dump" > "$SNAPSHOT_FILE"
           if [ ! -s "$SNAPSHOT_FILE" ]; then
@@ -95,17 +112,11 @@ jobs:
       - name: Run database migrations
         # No-op when schema is unchanged. --force skips the interactive data-loss
         # prompt so destructive migrations (drop column/table) apply automatically.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
         run: ./node_modules/.bin/drizzle-kit push --force
 
       - name: Build project
         # Sensitive env vars are not returned by `vercel pull`, so inject them
         # explicitly here so the build can reach the database.
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
         run: ./node_modules/.bin/vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
@@ -152,6 +163,43 @@ jobs:
           rm -f "$HEADERS_FILE"
           echo "::error::Health check failed after 2 minutes (last response: $BODY)"
           exit 1
+
+      - name: Rotate DB token (Three-Finger Swap)
+        # Overlap, then Prune — zero-downtime token rotation:
+        #   1. Create a fresh permanent token (no group — long-lived production token)
+        #   2. Push it to Vercel while the JIT token is still valid
+        #   3. Wait for Vercel edge propagation
+        #   4. Invalidate only the JIT group (fresh token is untouched)
+        if: success()
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+        run: |
+          FRESH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration never)"
+          echo "::add-mask::$FRESH_TOKEN"
+          # Strip any scheme (libsql://, wss://) and trailing slash so the URL
+          # is safe to concatenate — avoids https://host//v2/pipeline.
+          DB_HTTP_URL="https://${DATABASE_URL#*://}"
+          DB_HTTP_URL="${DB_HTTP_URL%/}"
+          # Verify the fresh token can reach the DB before pushing it or killing
+          # the JIT token — prevents a lockout if token creation succeeded but
+          # the token is unusable (e.g. Turso API hiccup).
+          RESPONSE=$(curl -s \
+            -X POST \
+            -H "Authorization: Bearer $FRESH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"requests": [{"type": "execute", "stmt": {"sql": "SELECT 1"}}]}' \
+            "$DB_HTTP_URL/v2/pipeline")
+          if ! echo "$RESPONSE" | jq -e '.results[0].response.type == "execute"' > /dev/null 2>&1; then
+            echo "::error::Fresh token failed to execute a test query. Aborting rotation to prevent lockout."
+            exit 1
+          fi
+          printf '%s' "$FRESH_TOKEN" | \
+            ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production \
+              --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
+          echo "Waiting 60s for Vercel edge propagation..."
+          sleep 60
+          turso db tokens invalidate "$DB_NAME" --group "$JIT_TOKEN_GROUP"
+          echo "JIT group '$JIT_TOKEN_GROUP' invalidated. Fresh permanent token active."
 
       - name: Summary
         if: always()

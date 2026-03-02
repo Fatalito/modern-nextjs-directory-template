@@ -25,6 +25,8 @@ SUCCESS="\033[32mSUCCESS:\033[0m"
 ERROR="\033[31mERROR:\033[0m"
 WARN="\033[33mWARNING:\033[0m"
 STEP="\033[1;36m──────────────────────────────────────────\033[0m"
+STEP_N=0
+STEP_TOTAL=8
 
 # ── 0. Prerequisites ──────────────────────────────────────────────────────────
 echo -e "$STEP"
@@ -58,6 +60,11 @@ echo -e "$SUCCESS All prerequisites found."
 # ── Helpers ───────────────────────────────────────────────────────────────────
 # shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
+
+next_step() {
+  STEP_N=$((STEP_N + 1))
+  echo "  Step $STEP_N of $STEP_TOTAL — $1"
+}
 
 # open_browser <url> — cross-platform browser launcher
 open_browser() {
@@ -109,7 +116,7 @@ collect_token() {
 # ── 1. Authenticate ───────────────────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 1 of 7 — Authenticate"
+next_step "Authenticate"
 echo -e "$STEP"
 
 if turso auth token 2>&1 | grep -qi "not logged in"; then
@@ -162,7 +169,7 @@ fi
 # ── 2. Provision Turso production database ────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 2 of 7 — Provision Turso database"
+next_step "Provision Turso database"
 echo -e "$STEP"
 
 # shellcheck source=/dev/null
@@ -197,7 +204,7 @@ echo -e "$SUCCESS Production database initialized."
 # ── 3. Link Vercel project ────────────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 3 of 7 — Link Vercel project"
+next_step "Link Vercel project"
 echo -e "$STEP"
 
 if [ -f ".vercel/project.json" ]; then
@@ -214,16 +221,58 @@ fi
 
 echo -e "$SUCCESS Vercel project linked."
 
-# ── 4. Disable Vercel GitHub auto-deploy ─────────────────────────────────────
+# ── 4. Configure Vercel production environment ────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 4 of 7 — Disable Vercel auto-deploy"
+next_step "Configure Vercel production environment"
+echo -e "$STEP"
+
+VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
+
+# Collect NEXT_PUBLIC_APP_URL — required for canonical URLs, OG metadata, sitemaps
+APP_URL="$(get_env_var NEXT_PUBLIC_APP_URL)"
+if [ -z "$APP_URL" ] || [ "$APP_URL" = "http://localhost:3000" ]; then
+  echo ""
+  read -r -p "  Production URL (e.g. https://yourdomain.com): " APP_URL_INPUT
+  if [ -n "$APP_URL_INPUT" ]; then
+    APP_URL="$APP_URL_INPUT"
+    update_env_var "NEXT_PUBLIC_APP_URL" "$APP_URL"
+  else
+    echo -e "$WARN NEXT_PUBLIC_APP_URL not set — canonical URLs and OG metadata will be wrong in production."
+  fi
+fi
+
+if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+  vercel_env_set() {
+    local name="$1" value="$2" sensitive="${3:-}"
+    local flags="--force --token=$VERCEL_TOKEN"
+    # shellcheck disable=SC2086
+    if printf '%s' "$value" | ./node_modules/.bin/vercel env add "$name" production $flags ${sensitive:+--sensitive} > /dev/null 2>&1; then
+      echo -e "$SUCCESS Vercel env set: $name"
+    else
+      echo -e "$WARN Could not set $name — set it manually in Vercel Dashboard → Project → Settings → Environment Variables"
+    fi
+  }
+
+  [ -n "$APP_URL" ] && vercel_env_set "NEXT_PUBLIC_APP_URL" "$APP_URL"
+  vercel_env_set "ENABLE_HSTS"      "true"
+  vercel_env_set "NEXT_OUTPUT_MODE" "serverless"
+else
+  echo -e "$WARN VERCEL_TOKEN not set — skipping Vercel env configuration."
+  echo "  Set manually in Vercel Dashboard → Project → Settings → Environment Variables:"
+  echo "    NEXT_PUBLIC_APP_URL = ${APP_URL:-<your production URL>}"
+  echo "    ENABLE_HSTS         = true"
+  echo "    NEXT_OUTPUT_MODE    = serverless"
+fi
+
+# ── 5. Disable Vercel GitHub auto-deploy ─────────────────────────────────────
+echo ""
+echo -e "$STEP"
+next_step "Disable Vercel auto-deploy"
 echo -e "$STEP"
 # vercel.json already carries "ignoreCommand": "exit 1" as a code-level safety
 # net. We also set it via the API for immediate effect (before the code is
 # deployed for the first time).
-
-VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
 
 if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
   RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -240,16 +289,17 @@ else
   echo -e "$WARN VERCEL_TOKEN not set — skipping API call. vercel.json ignoreCommand still active."
 fi
 
-# ── 5. Deployment protection bypass secret ────────────────────────────────────
+# ── 6. Deployment protection bypass secret ────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 5 of 7 — Deployment protection bypass"
+next_step "Deployment protection bypass"
 echo -e "$STEP"
 
 BYPASS="$(get_env_var VERCEL_AUTOMATION_BYPASS_SECRET)"
 
 if [ -z "$BYPASS" ]; then
-  BYPASS=$(openssl rand -hex 32)
+  # Vercel's protection-bypass API requires exactly 32 alphanumeric chars.
+  BYPASS=$(openssl rand -hex 16)
   update_env_var "VERCEL_AUTOMATION_BYPASS_SECRET" "$BYPASS"
   echo -e "$INFO Generated VERCEL_AUTOMATION_BYPASS_SECRET and saved to .env."
 else
@@ -257,24 +307,31 @@ else
 fi
 
 if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
-  RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X PATCH "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID" \
-    -H "Authorization: Bearer $VERCEL_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"protection\": {\"deploymentType\": \"preview_deployments_only\", \"bypassSecret\": \"$BYPASS\"}}")
-  if [ "$RESULT" = "200" ]; then
-    echo -e "$SUCCESS Deployment protection enabled with bypass secret."
+  # Register the bypass secret so CI can access Standard Protection (enabled by default on all plans).
+  # Standard Protection keeps production public while requiring auth for preview URLs.
+  if [[ "$BYPASS" =~ ^[a-zA-Z0-9]{32}$ ]]; then
+    RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
+      -X PATCH "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/protection-bypass" \
+      -H "Authorization: Bearer $VERCEL_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{\"generate\": {\"secret\": \"$BYPASS\", \"note\": \"infra:setup automation bypass\"}}")
+    if [ "$RESULT" = "200" ]; then
+      echo -e "$SUCCESS Protection bypass secret registered with Vercel."
+    else
+      echo -e "$WARN Could not register bypass secret via API (HTTP $RESULT) — register manually:"
+      echo "  Vercel Dashboard → Project → Settings → Deployment Protection → Protection Bypass for Automation"
+      echo "  Enter the value of VERCEL_AUTOMATION_BYPASS_SECRET from your .env."
+    fi
   else
-    echo -e "$WARN Could not configure protection via API (HTTP $RESULT)."
-    echo "  Enable manually: Vercel Dashboard → Project → Settings → Deployment Protection"
-    echo "  Use the value of VERCEL_AUTOMATION_BYPASS_SECRET from your .env as the bypass secret."
+    echo -e "$WARN Existing VERCEL_AUTOMATION_BYPASS_SECRET is not 32 alphanumeric chars — skipping API registration."
+    echo "  If not yet configured, register it manually in Vercel Dashboard → Project → Settings → Deployment Protection."
   fi
 fi
 
-# ── 6. Configure GitHub repository ────────────────────────────────────────────
+# ── 7. Configure GitHub repository ────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 6 of 7 — Configure GitHub repository"
+next_step "Configure GitHub repository"
 echo -e "$STEP"
 
 if [ -n "$REPO" ]; then
@@ -341,10 +398,10 @@ else
   echo -e "$WARN Could not determine repo name — skipping GitHub repository configuration."
 fi
 
-# ── 7. Sync to GitHub + open initial-setup PR ─────────────────────────────────
+# ── 8. Sync to GitHub + open initial-setup PR ─────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 7 of 7 — Sync to GitHub and open PR"
+next_step "Sync to GitHub and open PR"
 echo -e "$STEP"
 
 # Auto-populate sonar-project.properties from the GitHub repo name
@@ -500,8 +557,8 @@ echo ""
 echo "  Next: review the PR, make sure CI passes, then merge."
 echo "  Merging triggers the first production deployment automatically."
 echo ""
-echo "  Local dev:       npm run dev"
 echo "  Apply schema:    npm run db:push && npm run db:seed"
+echo "  Local dev:       npm run dev"
 echo "  Rotate DB token: npm run infra:rotate-token"
 echo "  Re-sync GitHub:  npm run infra:sync:github"
 echo ""

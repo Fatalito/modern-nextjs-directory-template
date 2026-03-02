@@ -24,6 +24,10 @@ Both **Claude Code** and **Cursor** read it (`CLAUDE.md` is a symlink to this fi
 | DB push migrations | `npm run db:push` |
 | DB seed | `npm run db:seed` |
 | DB studio (GUI) | `npm run db:studio` |
+| DB list snapshots | `npm run db:snapshot:list` |
+| DB rollback prod (DB + code) | GitHub Actions → Rollback Production |
+| Debug: sanitized local copy of prod | `npm run db:debug:start` |
+| Debug: remote fork of prod (PII — exceptional use) | `npm run db:debug:remote:start` / `npm run db:debug:remote:stop` |
 | Storybook | `npm run storybook` |
 | Perf check | `npm run perf:check` |
 | Lighthouse only | `npm run perf:lighthouse` |

@@ -24,8 +24,7 @@ if ! command -v turso &>/dev/null; then
 fi
 
 if turso auth token 2>&1 | grep -qi "not logged in"; then
-  echo -e "$ERROR Not logged in. Run: turso auth login"
-  exit 1
+  turso auth login
 fi
 
 # ── Create new token ──────────────────────────────────────────────────────────
