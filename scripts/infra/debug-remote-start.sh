@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ⚠️  EXCEPTIONAL USE ONLY — forks production and exposes real PII.
 # For everyday debugging use the sanitized local copy instead:
-#   npm run db:debug:remote:start
+#   npm run db:debug:start
 #
 # Fork the production Turso DB and configure .env for local debugging.
 # The fork is named: {dbBaseName}-{branchName}-debug
@@ -75,6 +75,55 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD \
   | cut -c1-20)
 SUFFIX="${BRANCH}-debug"
 FORK_DB="${DB_BASE_NAME}-${SUFFIX}"
+
+# ── GitHub approval gate ───────────────────────────────────────────────────────
+# A Security Lead must approve in GitHub before the fork is created.
+# This produces an immutable audit trail in GitHub Actions UI.
+# Configure reviewers: Settings → Environments → pii-access → Required reviewers
+if command -v gh &>/dev/null && gh auth status &>/dev/null 2>&1; then
+  echo ""
+  printf "Reason for this PII access (logged to GitHub): "
+  read -r REASON
+  if [ -z "$REASON" ]; then
+    echo -e "$ERROR A reason is required for the audit trail." >&2
+    exit 1
+  fi
+
+  GH_USER=$(gh api user --jq .login 2>/dev/null || echo "unknown")
+  REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "")
+
+  if [ -n "$REPO" ]; then
+    echo ""
+    echo -e "$INFO Requesting approval from Security Lead..."
+    gh workflow run debug-remote-authorise.yml \
+      --field branch="$BRANCH" \
+      --field requester="$GH_USER" \
+      --field reason="$REASON"
+
+    sleep 5  # Give GitHub time to register the run
+
+    RUN_ID=$(gh run list \
+      --workflow=debug-remote-authorise.yml \
+      --limit=1 \
+      --json databaseId \
+      --jq '.[0].databaseId')
+
+    echo -e "$INFO Waiting for approval (a Security Lead must approve in GitHub)..."
+    echo "  Track: https://github.com/$REPO/actions/runs/$RUN_ID"
+
+    if ! gh run watch "$RUN_ID" --exit-status; then
+      echo -e "$ERROR Access denied or approval timed out — aborting fork." >&2
+      exit 1
+    fi
+    echo -e "$SUCCESS Access approved. Proceeding with fork..."
+  else
+    echo -e "$WARN Could not determine repo — skipping GitHub approval gate." >&2
+  fi
+else
+  echo -e "$WARN gh CLI not found or not authenticated — skipping GitHub approval gate." >&2
+  echo "  Install gh CLI to enable the audit trail: https://cli.github.com" >&2
+fi
+echo ""
 
 echo -e "$INFO Forking $DB_NAME → $FORK_DB..."
 bash "$SCRIPT_DIR/turso-setup.sh" --suffix "$SUFFIX"

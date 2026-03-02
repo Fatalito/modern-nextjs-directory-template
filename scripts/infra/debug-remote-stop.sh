@@ -29,7 +29,7 @@ export TURSO_API_TOKEN
 
 DEBUG_DB_NAME="$(get_env_var DEBUG_DB_NAME)"
 if [ -z "$DEBUG_DB_NAME" ]; then
-  echo -e "$ERROR DEBUG_DB_NAME not found in .env — was infra:debug:start run?" >&2
+  echo -e "$ERROR DEBUG_DB_NAME not found in .env — was db:debug:remote:start run?" >&2
   exit 1
 fi
 

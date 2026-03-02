@@ -1,0 +1,38 @@
+name: Authorise PII Debug Access
+# Gate workflow — a configured reviewer must approve this run before
+# debug-remote-start.sh is allowed to fork the production database.
+#
+# How to configure:
+#   Settings → Environments → pii-access → Required reviewers
+#   (enable "Prevent self-review" so the requester cannot approve themselves)
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Git branch requesting access
+        required: true
+      requester:
+        description: GitHub username requesting access
+        required: true
+      reason:
+        description: Reason for needing production PII access
+        required: true
+
+jobs:
+  authorise:
+    name: "PII access — ${{ inputs.requester }} (${{ inputs.branch }})"
+    runs-on: ubuntu-latest
+    environment: pii-access
+    permissions:
+      contents: none
+    steps:
+      - name: Log access grant
+        run: |
+          echo "PII debug access GRANTED"
+          echo "  Requester : ${{ inputs.requester }}"
+          echo "  Branch    : ${{ inputs.branch }}"
+          echo "  Reason    : ${{ inputs.reason }}"
+          echo "  Approved by: ${{ github.actor }}"
+          echo "  Timestamp : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo ""
+          echo "This run is the immutable audit record of the access grant."

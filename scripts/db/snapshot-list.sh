@@ -18,14 +18,14 @@ ERROR="\033[31mERROR:\033[0m"
 WARN="\033[33mWARNING:\033[0m"
 
 # ── Pre-flight ─────────────────────────────────────────────────────────────────
-for cmd in gh node; do
+for cmd in gh node jq; do
   if ! command -v "$cmd" &>/dev/null; then
     echo -e "$ERROR '$cmd' not found." >&2
     exit 1
   fi
 done
 
-if ! gh auth status &>/dev/null 2>&1; then
+if ! gh auth status &>/dev/null; then
   echo -e "$ERROR Not authenticated to GitHub CLI. Run: gh auth login" >&2
   exit 1
 fi
@@ -42,10 +42,7 @@ echo -e "$INFO Fetching snapshots from $REPO..."
 ARTIFACTS=$(gh api "repos/$REPO/actions/artifacts?per_page=100" \
   --jq '[.artifacts[] | select(.name | startswith("db-snapshot-")) | {id, name, created_at, size_in_bytes}] | sort_by(.created_at) | reverse')
 
-ARTIFACT_COUNT=$(echo "$ARTIFACTS" | node -e "
-  const a = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-  process.stdout.write(String(a.length));
-")
+ARTIFACT_COUNT=$(echo "$ARTIFACTS" | jq 'length')
 
 if [ "$ARTIFACT_COUNT" -eq 0 ]; then
   echo -e "$WARN No snapshots found. Snapshots are created before each production deployment (retained 30 days)." >&2

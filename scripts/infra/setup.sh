@@ -34,7 +34,7 @@ echo "  Checking prerequisites..."
 echo -e "$STEP"
 
 missing=0
-for cmd in turso vercel gh git node openssl; do
+for cmd in turso vercel gh git node openssl jq; do
   if ! command -v "$cmd" &>/dev/null; then
     echo -e "$ERROR '$cmd' not found."
     missing=1
@@ -47,6 +47,7 @@ if [ "$missing" -eq 1 ]; then
   echo "  Turso  → curl -sSfL https://get.tur.so/install.sh | bash"
   echo "  Vercel → npm i -g vercel"
   echo "  GitHub → https://cli.github.com"
+  echo "  jq     → brew install jq  (Linux: apt/yum install jq)"
   exit 1
 fi
 
@@ -208,7 +209,7 @@ next_step "Link Vercel project"
 echo -e "$STEP"
 
 if [ -f ".vercel/project.json" ]; then
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
   echo -e "$INFO Project already linked (id: $VERCEL_PROJECT_ID) — skipping."
 else
   echo ""
@@ -216,7 +217,7 @@ else
   PROJECT_NAME="${PROJECT_NAME:-$DB_BASE_NAME}"
 
   vercel link --yes --project "$PROJECT_NAME"
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
 fi
 
 echo -e "$SUCCESS Vercel project linked."
@@ -235,8 +236,12 @@ if [ -z "$APP_URL" ] || [ "$APP_URL" = "http://localhost:3000" ]; then
   echo ""
   read -r -p "  Production URL (e.g. https://yourdomain.com): " APP_URL_INPUT
   if [ -n "$APP_URL_INPUT" ]; then
-    APP_URL="$APP_URL_INPUT"
-    update_env_var "NEXT_PUBLIC_APP_URL" "$APP_URL"
+    if [[ "$APP_URL_INPUT" =~ ^https?://[^[:space:]]+\.[^[:space:]]+ ]]; then
+      APP_URL="$APP_URL_INPUT"
+      update_env_var "NEXT_PUBLIC_APP_URL" "$APP_URL"
+    else
+      echo -e "$WARN '$APP_URL_INPUT' is not a valid URL (must start with http:// or https://) — NEXT_PUBLIC_APP_URL not updated."
+    fi
   else
     echo -e "$WARN NEXT_PUBLIC_APP_URL not set — canonical URLs and OG metadata will be wrong in production."
   fi
@@ -247,7 +252,7 @@ if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
     local name="$1" value="$2" sensitive="${3:-}"
     local flags="--force --token=$VERCEL_TOKEN"
     # shellcheck disable=SC2086
-    if printf '%s' "$value" | ./node_modules/.bin/vercel env add "$name" production $flags ${sensitive:+--sensitive} > /dev/null 2>&1; then
+    if printf '%s' "$value" | vercel env add "$name" production $flags ${sensitive:+--sensitive} > /dev/null 2>&1; then
       echo -e "$SUCCESS Vercel env set: $name"
     else
       echo -e "$WARN Could not set $name — set it manually in Vercel Dashboard → Project → Settings → Environment Variables"
@@ -258,7 +263,11 @@ if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
   vercel_env_set "ENABLE_HSTS"      "true"
   vercel_env_set "NEXT_OUTPUT_MODE" "serverless"
 else
-  echo -e "$WARN VERCEL_TOKEN not set — skipping Vercel env configuration."
+  MISSING_VERCEL_VARS=()
+  [ -z "$VERCEL_TOKEN" ] && MISSING_VERCEL_VARS+=("VERCEL_TOKEN")
+  [ -z "${VERCEL_PROJECT_ID:-}" ] && MISSING_VERCEL_VARS+=("VERCEL_PROJECT_ID")
+  MISSING_LIST=$(IFS=", "; echo "${MISSING_VERCEL_VARS[*]}")
+  echo -e "$WARN ${MISSING_LIST} not set — skipping Vercel env configuration."
   echo "  Set manually in Vercel Dashboard → Project → Settings → Environment Variables:"
   echo "    NEXT_PUBLIC_APP_URL = ${APP_URL:-<your production URL>}"
   echo "    ENABLE_HSTS         = true"
@@ -341,7 +350,7 @@ if [ -n "$REPO" ]; then
 {
   "required_status_checks": {
     "strict": false,
-    "contexts": ["test / Test, Scan & Generate SBOM", "preview / Build & Deploy Preview"]
+    "contexts": ["Test / Test, Scan & Generate SBOM", "PR / Build & Deploy Preview"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": null,
@@ -393,6 +402,19 @@ BPEOF
   else
     echo -e "$WARN Could not configure GitHub Pages."
     echo "  Enable manually: Settings → Pages → Source → Deploy from branch → gh-pages → / (root)"
+  fi
+
+  # pii-access environment — gates npm run db:debug:remote:start
+  # prevent_self_review stops the requester from approving their own access.
+  if gh api "repos/$REPO/environments/pii-access" \
+      --method PUT \
+      --field prevent_self_review=true > /dev/null 2>&1; then
+    echo -e "$SUCCESS 'pii-access' environment created."
+    echo "  Add required reviewers: https://github.com/$REPO/settings/environments"
+    echo "  (Settings → Environments → pii-access → Required reviewers)"
+  else
+    echo -e "$WARN Could not create 'pii-access' environment — create manually."
+    echo "  Settings → Environments → New environment → pii-access → Required reviewers"
   fi
 else
   echo -e "$WARN Could not determine repo name — skipping GitHub repository configuration."

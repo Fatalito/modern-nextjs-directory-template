@@ -1,7 +1,8 @@
 name: Cleanup Stale PR Forks
-# Deletes Turso PR forks that were retained after merge (see cleanup.yml).
-# Runs daily at 04:00 UTC (after Snyk nightly at 03:00).
-# Can also be triggered manually via workflow_dispatch.
+# Deletes Turso PR databases retained after merge (see cleanup.yml).
+# Fork PRs keep their DB for 24h post-merge as a debugging window; non-fork
+# PRs are deleted immediately by cleanup.yml but this acts as a fallback if
+# that step fails. Runs daily at 04:00 UTC (after Snyk nightly at 03:00).
 on:
   schedule:
     - cron: '0 4 * * *'
@@ -33,7 +34,23 @@ jobs:
           REPO="${{ github.repository }}"
           NOW=$(date +%s)
 
-          turso db list 2>/dev/null \
+          # Capture stderr separately so auth/network failures are visible in logs
+          # while still failing the job on non-zero exit.
+          DB_LIST_ERR=$(mktemp)
+          if ! DB_LIST=$(turso db list 2>"$DB_LIST_ERR"); then
+            echo "::error::turso db list failed — check TURSO_API_TOKEN auth or network connectivity."
+            cat "$DB_LIST_ERR"
+            rm -f "$DB_LIST_ERR"
+            exit 1
+          fi
+          # Surface any benign warnings (e.g. CLI update notices) without failing.
+          if [ -s "$DB_LIST_ERR" ]; then
+            echo "turso db list warnings:"
+            cat "$DB_LIST_ERR"
+          fi
+          rm -f "$DB_LIST_ERR"
+
+          echo "$DB_LIST" \
             | awk -v base="${DB_BASE_NAME}-pr-" 'NR>1 && index($1, base)==1 {print $1}' \
             | while read -r DB; do
                 PR_NUM="${DB#"${DB_BASE_NAME}-pr-"}"

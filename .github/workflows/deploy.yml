@@ -165,41 +165,11 @@ jobs:
           exit 1
 
       - name: Rotate DB token (Three-Finger Swap)
-        # Overlap, then Prune — zero-downtime token rotation:
-        #   1. Create a fresh permanent token (no group — long-lived production token)
-        #   2. Push it to Vercel while the JIT token is still valid
-        #   3. Wait for Vercel edge propagation
-        #   4. Invalidate only the JIT group (fresh token is untouched)
         if: success()
-        env:
-          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
-        run: |
-          FRESH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration never)"
-          echo "::add-mask::$FRESH_TOKEN"
-          # Strip any scheme (libsql://, wss://) and trailing slash so the URL
-          # is safe to concatenate — avoids https://host//v2/pipeline.
-          DB_HTTP_URL="https://${DATABASE_URL#*://}"
-          DB_HTTP_URL="${DB_HTTP_URL%/}"
-          # Verify the fresh token can reach the DB before pushing it or killing
-          # the JIT token — prevents a lockout if token creation succeeded but
-          # the token is unusable (e.g. Turso API hiccup).
-          RESPONSE=$(curl -s \
-            -X POST \
-            -H "Authorization: Bearer $FRESH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"requests": [{"type": "execute", "stmt": {"sql": "SELECT 1"}}]}' \
-            "$DB_HTTP_URL/v2/pipeline")
-          if ! echo "$RESPONSE" | jq -e '.results[0].response.type == "execute"' > /dev/null 2>&1; then
-            echo "::error::Fresh token failed to execute a test query. Aborting rotation to prevent lockout."
-            exit 1
-          fi
-          printf '%s' "$FRESH_TOKEN" | \
-            ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production \
-              --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
-          echo "Waiting 60s for Vercel edge propagation..."
-          sleep 60
-          turso db tokens invalidate "$DB_NAME" --group "$JIT_TOKEN_GROUP"
-          echo "JIT group '$JIT_TOKEN_GROUP' invalidated. Fresh permanent token active."
+        uses: ./.github/actions/rotate-db-token
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          turso-api-token: ${{ secrets.TURSO_API_TOKEN }}
 
       - name: Summary
         if: always()

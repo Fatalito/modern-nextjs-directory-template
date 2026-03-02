@@ -79,8 +79,8 @@ push_variable "TURSO_REGION"  "$(get_env_var TURSO_REGION)"
 
 # ── Vercel project IDs (from .vercel/project.json) ────────────────────────────
 if [ -f ".vercel/project.json" ]; then
-  VERCEL_ORG_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').orgId)")
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  VERCEL_ORG_ID=$(jq -r '.orgId' .vercel/project.json)
+  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
   push_secret "VERCEL_ORG_ID"     "$VERCEL_ORG_ID"
   push_secret "VERCEL_PROJECT_ID" "$VERCEL_PROJECT_ID"
 else

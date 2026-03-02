@@ -119,13 +119,17 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
   });
 
   // Disable FK checks so we can wipe tables without worrying about order
-  // (locations has a self-referential parentId FK that blocks ordered deletes)
+  // (locations has a self-referential parentId FK that blocks ordered deletes).
+  // PRAGMA must be set outside a transaction; the deletes are wrapped in one
+  // for atomicity so a partial wipe is never left in place.
   await db.run(sql`PRAGMA foreign_keys = OFF`);
-  await db.delete(schema.businessServices);
-  await db.delete(schema.businesses);
-  await db.delete(schema.services);
-  await db.delete(schema.users);
-  await db.delete(schema.locations);
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.businessServices);
+    await tx.delete(schema.businesses);
+    await tx.delete(schema.services);
+    await tx.delete(schema.users);
+    await tx.delete(schema.locations);
+  });
   await db.run(sql`PRAGMA foreign_keys = ON`);
 
   await db.transaction(async (tx) => {

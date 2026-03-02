@@ -55,6 +55,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 curl -sSfL https://get.tur.so/install.sh | bash  # Turso
 npm i -g vercel                                    # Vercel
 brew install gh                                    # GitHub CLI (or https://cli.github.com)
+brew install jq                                    # jq — JSON processor (Linux: apt/yum install jq)
 
 cp .env.example .env
 ```
@@ -157,7 +158,7 @@ Pull requests to `main` automatically deploy a preview to Vercel and fork a Turs
 
 ### PR Cleanup
 
-When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercel preview and the Storybook PR page to avoid resource leaks.
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database (immediately for non-merged PRs; merged PRs retain the fork for 24 h as a debugging window and are cleaned up by `cleanup-stale-forks.yml`), the Vercel preview a and the Storybook preview page.
 
 ### Environment Variable Sync
 
