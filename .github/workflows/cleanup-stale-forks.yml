@@ -1,0 +1,52 @@
+name: Cleanup Stale PR Forks
+# Deletes Turso PR forks that were retained after merge (see cleanup.yml).
+# Runs daily at 04:00 UTC (after Snyk nightly at 03:00).
+# Can also be triggered manually via workflow_dispatch.
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Delete merged PR Turso forks (>24h old)
+    runs-on: ubuntu-latest
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+
+      - name: Delete stale forks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # shellcheck source=infra/turso.conf.sh
+          source infra/turso.conf.sh
+          REPO="${{ github.repository }}"
+          NOW=$(date +%s)
+
+          turso db list 2>/dev/null \
+            | awk -v base="${DB_BASE_NAME}-pr-" 'NR>1 && index($1, base)==1 {print $1}' \
+            | while read -r DB; do
+                PR_NUM="${DB#"${DB_BASE_NAME}-pr-"}"
+                MERGED_AT=$(gh api "repos/$REPO/pulls/$PR_NUM" \
+                  --jq '.merged_at // empty' 2>/dev/null || true)
+                [ -z "$MERGED_AT" ] && continue
+                MERGED_TS=$(date -d "$MERGED_AT" +%s 2>/dev/null || true)
+                [ -z "$MERGED_TS" ] && continue
+                AGE=$((NOW - MERGED_TS))
+                if [ "$AGE" -gt 86400 ]; then
+                  echo "Deleting $DB (merged $((AGE / 3600))h ago)..."
+                  turso db destroy "$DB" --yes
+                else
+                  echo "Keeping $DB (merged $((AGE / 3600))h ago — <24h grace period)"
+                fi
+              done
