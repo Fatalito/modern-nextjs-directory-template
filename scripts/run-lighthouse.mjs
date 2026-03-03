@@ -16,10 +16,42 @@ const SCORES_PATH = path.join(
 async function run() {
   let chrome;
 
+  const bypassHeaders = VERCEL_AUTOMATION_BYPASS_SECRET
+    ? { "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET }
+    : {};
+
   try {
-    await fetch(TARGET_URL, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(TARGET_URL, {
+      signal: AbortSignal.timeout(5000),
+      headers: bypassHeaders,
+    });
+    const html = await response.text();
+    // Vercel's protection page is itself a Next.js app (same /_next/ assets),
+    // so checking for /_next/ alone is not reliable. Check for a meaningful
+    // <title> and <html lang=...> — both are always present in our app and
+    // always absent or generic ("Authentication") on the protection wall.
+    const hasTitle = /<title[^>]*>[^<]{2,}<\/title>/i.test(html);
+    const hasLang = /<html[^>]+lang="[a-z]/i.test(html);
+    if (!hasTitle || !hasLang) {
+      console.error(
+        `❌ ${TARGET_URL} looks like Vercel's Deployment Protection page (missing <title> or <html lang=...>).`,
+      );
+      if (VERCEL_AUTOMATION_BYPASS_SECRET) {
+        console.error(
+          "   Verify that VERCEL_AUTOMATION_BYPASS_SECRET matches the secret registered at:",
+        );
+        console.error(
+          "   Vercel Dashboard → Project → Settings → Deployment Protection → Protection Bypass for Automation",
+        );
+      } else {
+        console.error(
+          "   Set VERCEL_AUTOMATION_BYPASS_SECRET to bypass Vercel Deployment Protection.",
+        );
+      }
+      process.exit(1);
+    }
   } catch {
-    console.log(
+    console.error(
       `❌ Server not reachable at ${TARGET_URL}. Ensure it is running before calling this script.`,
     );
     process.exit(1);
@@ -35,23 +67,18 @@ async function run() {
 
     const { lhr } = await lighthouse(
       TARGET_URL,
-      {
-        port: chrome.port,
-        output: "json",
-        onlyCategories: [
-          "performance",
-          "accessibility",
-          "best-practices",
-          "seo",
-        ],
-        maxWaitForLoad: 30000,
-        extraHeaders: VERCEL_AUTOMATION_BYPASS_SECRET
-          ? { "x-vercel-protection-bypass": VERCEL_AUTOMATION_BYPASS_SECRET }
-          : {},
-      },
+      { port: chrome.port, output: "json" },
       {
         extends: "lighthouse:default",
         settings: {
+          onlyCategories: [
+            "performance",
+            "accessibility",
+            "best-practices",
+            "seo",
+          ],
+          maxWaitForLoad: 30000,
+          extraHeaders: bypassHeaders,
           // Preview deployments set x-robots-tag: noindex intentionally.
           // This audit is irrelevant in a CI/dev context — skip it.
           skipAudits: ["is-crawlable"],

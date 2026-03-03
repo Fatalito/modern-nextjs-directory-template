@@ -74,7 +74,7 @@ echo "  Step 2 of 3 — Remove Vercel project"
 echo -e "$STEP"
 
 if [ -f ".vercel/project.json" ]; then
-  PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  PROJECT_ID=$(jq -r '.projectId // empty' .vercel/project.json)
   VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
 
   if [ -n "$VERCEL_TOKEN" ] && [ -n "$PROJECT_ID" ]; then
@@ -108,13 +108,15 @@ echo -e "$STEP"
 
 if [ -n "$REPO" ]; then
   PROJECT_SECRETS=(
-    DATABASE_URL
-    DATABASE_AUTH_TOKEN
     TURSO_API_TOKEN
     VERCEL_TOKEN
     VERCEL_ORG_ID
     VERCEL_PROJECT_ID
     VERCEL_AUTOMATION_BYPASS_SECRET
+    DB_SNAPSHOT_PASSPHRASE
+    # Legacy — were stored as GitHub Secrets in earlier versions; no-op if absent.
+    DATABASE_URL
+    DATABASE_AUTH_TOKEN
   )
 
   for secret in "${PROJECT_SECRETS[@]}"; do

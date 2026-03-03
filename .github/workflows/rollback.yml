@@ -1,0 +1,265 @@
+name: Rollback Production
+# Restores the database from a pre-migration snapshot and brings the matching
+# code commit back to production — keeping DB schema and application in sync.
+#
+# Fast path  (~seconds): if the old Vercel deployment still exists, it is
+#             promoted directly without a rebuild (deployment aliasing).
+# Slow path  (~minutes): if the deployment was reaped, rebuilds from source.
+#
+# How to roll back:
+#   Quick:    GitHub → Actions → "Rollback Production" → Run workflow → type "latest"
+#   Specific: npm run db:snapshot:list → copy name → paste into the input field.
+#
+# ⚠️  DESTRUCTIVE — replaces all production data and the live deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      snapshot_name:
+        description: "DB snapshot name, or 'latest' for the most recent (run: npm run db:snapshot:list to browse)"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false  # never cancel an in-flight rollback
+
+jobs:
+  rollback:
+    name: Restore DB + Promote / Redeploy Code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read      # needed to download artifacts
+      deployments: write
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Parse snapshot → git SHA
+        id: parse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SNAPSHOT="${{ inputs.snapshot_name }}"
+          if [ "$SNAPSHOT" = "latest" ]; then
+            SNAPSHOT=$(gh api "repos/${{ github.repository }}/actions/artifacts" --paginate \
+              | jq -rs '[.[].artifacts[] | select(.name | startswith("db-snapshot-")) | select(.expired == false)] | sort_by(.created_at) | last | .name // empty')
+            if [ -z "$SNAPSHOT" ]; then
+              echo "::error::No non-expired db-snapshot artifacts found. Run: npm run db:snapshot:list"
+              exit 1
+            fi
+            echo "Resolved 'latest' → $SNAPSHOT"
+          fi
+          if [[ ! "$SNAPSHOT" =~ ^db-snapshot-[a-f0-9]{40}$ ]]; then
+            echo "::error::Invalid snapshot name '$SNAPSHOT'. Expected: db-snapshot-{40-char-sha} or 'latest'. Run: npm run db:snapshot:list"
+            exit 1
+          fi
+          {
+            echo "sha=${SNAPSHOT#db-snapshot-}"
+            echo "snapshot=$SNAPSHOT"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout target commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.parse.outputs.sha }}
+
+      - name: Setup Node.js & Install Dependencies
+        uses: ./.github/actions/bootstrap
+
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+
+      - name: Resolve database credentials
+        env:
+          TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+          TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+        run: |
+          : "${TURSO_DB_NAME:?TURSO_DB_NAME repo variable is required}"
+          DB_NAME="${TURSO_DB_NAME}-prod"
+          DATABASE_URL="$(turso db show "$DB_NAME" --url)"
+          # JIT token: tagged with a unique group so only this token can be
+          # selectively invalidated in the Three-Finger Swap reaper step below.
+          JIT_TOKEN_GROUP="rollback-${{ steps.parse.outputs.sha }}"
+          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --group "$JIT_TOKEN_GROUP" --expiration 2h)"
+          echo "::add-mask::$DATABASE_AUTH_TOKEN"
+          {
+            echo "DB_NAME=$DB_NAME"
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN"
+            echo "JIT_TOKEN_GROUP=$JIT_TOKEN_GROUP"
+          } >> "$GITHUB_ENV"
+
+      - name: Find existing Vercel deployment for SHA
+        # Queries the Vercel API for a deployment built from the target commit.
+        # If found → fast path (promote, seconds). If not → slow path (rebuild, minutes).
+        id: find-deployment
+        run: |
+          TARGET_SHA="${{ steps.parse.outputs.sha }}"
+          DATA=$(curl -sf \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" || true)
+          if [ -n "$DATA" ]; then
+            FOUND=$(echo "$DATA" | jq -r --arg sha "$TARGET_SHA" \
+              '(.deployments // [])[]
+               | select(.meta.githubCommitSha? == $sha)
+               | select((.target // "") == "production")
+               | select((.readyState // "") == "READY")
+               | .uid + " https://" + .url' \
+              | head -1)
+            if [ -n "$FOUND" ]; then
+              DEPLOYMENT_UID=$(echo "$FOUND" | awk '{print $1}')
+              DEPLOYMENT_URL=$(echo "$FOUND" | awk '{print $2}')
+              {
+                echo "uid=$DEPLOYMENT_UID"
+                echo "url=$DEPLOYMENT_URL"
+                echo "found=true"
+              } >> "$GITHUB_OUTPUT"
+              echo "Found existing deployment: $DEPLOYMENT_URL — will promote (fast path)."
+            else
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              echo "No deployment found for $TARGET_SHA — will rebuild (slow path)."
+            fi
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "Could not query Vercel API — will rebuild (slow path)."
+          fi
+
+      - name: Download snapshot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO="${{ github.repository }}"
+          SNAPSHOT="${{ steps.parse.outputs.snapshot }}"
+          ARTIFACT_ID=$(gh api "repos/$REPO/actions/artifacts" --paginate \
+            | jq -rs --arg name "$SNAPSHOT" '[.[].artifacts[] | select(.name == $name)] | first | .id // empty')
+          if [ -z "$ARTIFACT_ID" ]; then
+            echo "::error::Artifact '$SNAPSHOT' not found (may have expired after 30 days). Run: npm run db:snapshot:list"
+            exit 1
+          fi
+          mkdir -p /tmp/snapshot
+          gh api "repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" --output /tmp/snapshot/artifact.zip
+          unzip -q /tmp/snapshot/artifact.zip -d /tmp/snapshot/extracted
+
+      - name: Decrypt and restore DB snapshot
+        # Restore executes the SQL dump directly. Atomicity depends on the dump's
+        # transaction boundaries generated during snapshot creation.
+        env:
+          DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
+        run: |
+          ENC_FILE=$(find /tmp/snapshot/extracted -name "*.sql.enc" | head -1)
+          if [ -z "$ENC_FILE" ]; then
+            echo "::error::No .sql.enc file found in artifact."
+            exit 1
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -in "$ENC_FILE" \
+            -out /tmp/snapshot/restore.sql \
+            -pass env:DB_SNAPSHOT_PASSPHRASE
+          turso db shell "$DB_NAME" < /tmp/snapshot/restore.sql
+          rm -rf /tmp/snapshot
+
+      - name: Push database credentials to Vercel production
+        # Push fresh credentials regardless of fast/slow path so the promoted
+        # or rebuilt deployment connects to the now-restored database.
+        run: |
+          printf '%s' "$DATABASE_URL" | \
+            ./node_modules/.bin/vercel env add DATABASE_URL production --force --token=${{ secrets.VERCEL_TOKEN }}
+          printf '%s' "$DATABASE_AUTH_TOKEN" | \
+            ./node_modules/.bin/vercel env add DATABASE_AUTH_TOKEN production --force --sensitive --token=${{ secrets.VERCEL_TOKEN }}
+
+      # ── Fast path ────────────────────────────────────────────────────────────
+      - name: Promote existing deployment (fast)
+        id: promote
+        if: steps.find-deployment.outputs.found == 'true'
+        run: |
+          ./node_modules/.bin/vercel promote "${{ steps.find-deployment.outputs.uid }}" \
+            --token="${{ secrets.VERCEL_TOKEN }}" --yes
+          echo "url=${{ steps.find-deployment.outputs.url }}" >> "$GITHUB_OUTPUT"
+
+      # ── Slow path ────────────────────────────────────────────────────────────
+      - name: Pull Vercel environment (production)
+        if: steps.find-deployment.outputs.found != 'true'
+        run: ./node_modules/.bin/vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project
+        if: steps.find-deployment.outputs.found != 'true'
+        run: ./node_modules/.bin/vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy-new
+        if: steps.find-deployment.outputs.found != 'true'
+        run: |
+          url=$(./node_modules/.bin/vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      # ── Consolidate URL (used by health check + summary) ─────────────────────
+      - name: Set deployment URL
+        id: set-url
+        run: |
+          URL="${{ steps.promote.outputs.url }}"
+          [ -z "$URL" ] && URL="${{ steps.deploy-new.outputs.url }}"
+          echo "value=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Health check
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          TARGET_SHA="${{ steps.parse.outputs.sha }}"
+          EXPECTED="${TARGET_SHA:0:7}"
+          URL="${{ steps.set-url.outputs.value }}/api/health"
+          echo "Health-checking $URL (expecting sha=$EXPECTED) ..."
+
+          HEADERS_FILE=$(mktemp)
+          for i in $(seq 1 12); do
+            BODY=$(curl -sf --connect-timeout 5 --max-time 10 -D "$HEADERS_FILE" \
+              -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET" \
+              "$URL" || echo '{}')
+            STATUS=$(echo "$BODY" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+            if [ "$STATUS" = "ok" ]; then
+              DEPLOYED=$(grep -i "^x-commit-sha:" "$HEADERS_FILE" | tr -d '\r' | awk '{print $2}')
+              if ! [[ "$DEPLOYED" =~ ^[0-9a-f]{7}$ ]]; then
+                rm -f "$HEADERS_FILE"
+                echo "::error::Missing or invalid x-commit-sha header (got: '${DEPLOYED}')"
+                exit 1
+              fi
+              if [ "$DEPLOYED" != "$EXPECTED" ]; then
+                rm -f "$HEADERS_FILE"
+                echo "::error::SHA mismatch — expected $EXPECTED, got $DEPLOYED"
+                exit 1
+              fi
+              rm -f "$HEADERS_FILE"
+              echo "  DB restored, sha=$DEPLOYED — rollback healthy"
+              exit 0
+            fi
+            echo "  status=${STATUS:-unreachable} — retry $i/12 in 10 s..."
+            sleep 10
+          done
+          rm -f "$HEADERS_FILE"
+          echo "::error::Health check failed after 2 minutes (last response: $BODY)"
+          exit 1
+
+      - name: Rotate DB token (Three-Finger Swap)
+        if: success()
+        uses: ./.github/actions/rotate-db-token
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          turso-api-token: ${{ secrets.TURSO_API_TOKEN }}
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.find-deployment.outputs.found }}" = "true" ]; then
+            ROLLBACK_PATH="fast (alias — no rebuild)"
+          else
+            ROLLBACK_PATH="slow (rebuild from source)"
+          fi
+          {
+            echo "### Rollback Production"
+            echo "- Snapshot: \`${{ steps.parse.outputs.snapshot }}\`"
+            echo "- Code: \`${{ steps.parse.outputs.sha }}\`"
+            echo "- URL: ${{ steps.set-url.outputs.value }}"
+            echo "- Path: $ROLLBACK_PATH"
+          } >> "$GITHUB_STEP_SUMMARY"

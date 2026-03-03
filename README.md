@@ -55,6 +55,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 curl -sSfL https://get.tur.so/install.sh | bash  # Turso
 npm i -g vercel                                    # Vercel
 brew install gh                                    # GitHub CLI (or https://cli.github.com)
+brew install jq                                    # jq — JSON processor (Linux: apt/yum install jq)
 
 cp .env.example .env
 ```
@@ -70,7 +71,7 @@ This single command handles everything — it will prompt for any missing inform
 - Collects all tokens interactively (`VERCEL_TOKEN`, `TURSO_API_TOKEN`, `SONAR_TOKEN`, `SNYK_TOKEN`) — skipped if already in `.env` or GitHub Secrets
 - Creates the production Turso database, applies schema, and seeds it
 - Links the Vercel project and disables GitHub auto-deploy
-- Generates `VERCEL_AUTOMATION_BYPASS_SECRET` and configures deployment protection
+- Generates `VERCEL_AUTOMATION_BYPASS_SECRET` and registers it with Vercel (Standard Protection is on by default — previews gated, production public)
 - Configures the GitHub repository: branch protection, Dependabot, auto-merge
 - Syncs all secrets and variables to GitHub Actions
 - Opens a `feature/initial-setup` PR
@@ -145,6 +146,27 @@ TURSO_REGION=aws-us-east-1 npm run infra:setup
 npm run infra:rotate-token
 ```
 
+### Remote debug access (PII)
+
+`npm run db:debug:remote:start` forks the production database and points your local `.env` at it. Because the fork contains real user data, access is gated behind a GitHub Environment approval:
+
+1. The script triggers `.github/workflows/debug-remote-authorise.yml` via `gh workflow run`.
+2. A configured **Security Lead** must approve the pending deployment in **GitHub → Actions → Authorise PII Debug Access** before the fork is created.
+3. On approval the fork is created and `.env` is updated. On rejection the script aborts.
+4. The GitHub Actions run is the **immutable audit record** — it captures who requested access, from which branch, the stated reason, and the timestamp. The approver's identity is recorded in GitHub's environment deployment audit trail.
+
+`npm run db:debug:remote:stop` destroys the fork and restores `.env` to local SQLite.
+
+> **For everyday debugging use `npm run db:debug:start` instead** — it works with a sanitized local copy and requires no approval.
+
+#### One-time setup (done by `infra:setup`)
+
+`infra:setup` automatically creates the `pii-access` GitHub Environment. You must then add at least one required reviewer manually:
+
+**Settings → Environments → pii-access → Required reviewers** → add yourself or a Security Lead.
+
+Enable **"Prevent self-review"** so the person requesting access cannot approve their own workflow run.
+
 ## Vercel Deployment
 
 `infra:setup` collects `VERCEL_TOKEN` interactively and generates `VERCEL_AUTOMATION_BYPASS_SECRET` automatically. CI workflows send the bypass secret as a header so E2E and perf tests can access protected preview deployments.
@@ -157,7 +179,7 @@ Pull requests to `main` automatically deploy a preview to Vercel and fork a Turs
 
 ### PR Cleanup
 
-When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercel preview and the Storybook PR page to avoid resource leaks.
+When a PR is closed, `.github/workflows/cleanup.yml` deletes the forked Turso database, the Vercel preview, and the Storybook preview page. The Turso DB is deleted immediately in all cases **except** merged PRs from forks, which retain the fork for 24 h as a post-merge debugging window; `cleanup-stale-forks.yml` sweeps those after the grace period.
 
 ### Environment Variable Sync
 
@@ -171,8 +193,8 @@ npm run infra:sync:github
 
 | Name | Kind | Used by |
 |------|------|---------|
-| `DATABASE_URL` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
-| `DATABASE_AUTH_TOKEN` | Secret | `deploy.yml` → pushed to Vercel production at deploy time |
+| `DATABASE_URL` | Derived at deploy-time | `deploy.yml` → resolved via Turso API, then pushed to Vercel |
+| `DATABASE_AUTH_TOKEN` | Derived at deploy-time | `deploy.yml` → JIT token minted via Turso API, pushed to Vercel, then rotated |
 | `TURSO_API_TOKEN` | Secret | `pr.yml` — forks DB per PR |
 | `VERCEL_TOKEN` | Secret | `deploy.yml`, `pr.yml`, `cleanup.yml` |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `pr.yml` — E2E + perf tests against protected deployments |
@@ -196,18 +218,21 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 ### Production Deployments
 
 `deploy.yml` triggers automatically after the **Main** workflow passes on `main`, and can also be triggered manually. It:
-1. Pushes `DATABASE_URL` and `DATABASE_AUTH_TOKEN` from GitHub Secrets to Vercel production
-2. Runs `drizzle-kit push --force` against the production database (no-op when schema is unchanged)
-3. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
-4. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
-
-See [scripts/infra/sync-github-env.sh](scripts/infra/sync-github-env.sh) for implementation.
+1. Derives `DATABASE_URL` and a short-lived JIT `DATABASE_AUTH_TOKEN` fresh via the Turso API — no DB credentials need to be stored as GitHub Secrets
+2. Pushes both to Vercel production
+3. Snapshots the database (AES-256 encrypted artifact, retained 30 days) before any schema change
+4. Runs `drizzle-kit push --force` against the production database (no-op when schema is unchanged)
+5. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
+6. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
+7. Rotates the DB token: creates a fresh permanent token, validates it against the DB, pushes it to Vercel, waits 60 s for edge propagation, then invalidates only the JIT token group (Three-Finger Swap — zero downtime)
 
 ### Schema Migrations
 
 `drizzle-kit push` is run automatically on every production deploy (step 2 above). For most changes — adding a column, adding a table — this is safe: the old code ignores the new columns while the deploy is in flight.
 
 **Destructive changes** (renaming or dropping a column/table) require the **expand-contract** pattern (also known as **Parallel Change**) across three PRs. Each step is independently rollback-safe because the previous state remains intact.
+
+> **Automated guardrail:** `pr.yml` runs `drizzle-kit generate` against the PR's schema and fails the build if any `DROP TABLE` or `DROP COLUMN` statement is detected — before Turso is provisioned. This forces the expand-contract pattern at the workflow level, not just by convention.
 
 ```text
 PR 1 — Expand
@@ -233,17 +258,15 @@ Never rename a column in a single PR — `drizzle-kit push` will drop the old co
 
 ### Backups & Point-In-Time Recovery
 
-**`deploy.yml` automatically snapshots the database before every migration** and uploads the dump as an AES-256 encrypted GitHub Actions artifact (retained 30 days, named `db-snapshot-<sha>`). The passphrase (`DB_SNAPSHOT_PASSPHRASE`) is auto-generated by `infra:setup` and synced to GitHub Secrets — no manual action required. To restore locally:
+**`deploy.yml` automatically snapshots the database before every migration** and uploads the dump as an AES-256 encrypted GitHub Actions artifact (retained 30 days, named `db-snapshot-<sha>`). The passphrase (`DB_SNAPSHOT_PASSPHRASE`) is auto-generated by `infra:setup` and synced to GitHub Secrets — no manual action required. To roll back:
 
 ```bash
-# 1. Download db-snapshot-<sha>.sql.enc from the workflow run's artifacts panel
-# 2. Decrypt using the helper script (reads DB_SNAPSHOT_PASSPHRASE from .env)
-npm run db:decrypt-snapshot -- db-snapshot-<sha>.sql.enc
-# → outputs restore.sql (prompts before overwriting an existing file; use --force to skip)
-npm run db:decrypt-snapshot -- --force db-snapshot-<sha>.sql.enc  # non-interactive
+# Quick rollback (most recent snapshot)
+#   GitHub → Actions → "Rollback Production" → Run workflow → type "latest"
 
-# 3. Replay against your database
-turso db shell <your-db-name> < restore.sql
+# Rollback to a specific commit
+npm run db:snapshot:list   # find and copy the snapshot name
+#   GitHub → Actions → "Rollback Production" → Run workflow → paste snapshot name
 ```
 
 **Turso PITR** (available on Scaler plan and above) provides continuous journaling and lets you restore to any time directly from the [Turso dashboard](https://app.turso.tech) — no action required on your part. If your project handles real user data, enabling a paid plan before PR 3 (Contract) of any destructive migration is strongly recommended.
@@ -282,7 +305,10 @@ turso db shell <your-db-name> < restore.sql
 | DB push migrations | `npm run db:push` |
 | DB seed | `npm run db:seed` |
 | DB studio (GUI) | `npm run db:studio` |
-| DB decrypt snapshot | `npm run db:decrypt-snapshot -- <file>.sql.enc` |
+| DB list snapshots | `npm run db:snapshot:list` |
+| DB rollback prod (DB + code) | GitHub Actions → Rollback Production |
+| Debug: sanitized local copy of prod | `npm run db:debug:start` |
+| Debug: remote fork of prod (PII — exceptional use) | `npm run db:debug:remote:start` / `npm run db:debug:remote:stop` |
 | First-time production setup | `npm run infra:setup` |
 | Provision DB only | `npm run infra:setup:db` |
 | Full teardown (DB + Vercel + secrets) | `npm run infra:teardown` |
@@ -380,7 +406,7 @@ cp .env.example .env
 | `NEXT_OUTPUT_MODE` | Build output format (see Deployment Configuration) | `serverless` |
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
 | `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. Also synced to GitHub as `DATABASE_URL` secret; pushed to Vercel production by `deploy.yml` at deploy time | `file:./sqlite.db` |
-| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. Also synced to GitHub as `DATABASE_AUTH_TOKEN` secret; pushed to Vercel production by `deploy.yml` at deploy time | — |
+| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. In production, `deploy.yml` derives a fresh JIT token via the Turso API on every deploy and rotates it automatically after a successful health check — this value is only needed locally | — |
 | `TURSO_API_TOKEN` | Turso API token for CI/PR DB forking and cleanup (`TURSO_API_TOKEN` secret in GitHub) | Generate at app.turso.tech |
 | `TURSO_DB_NAME` | Base name of the Turso database, without environment suffix (`TURSO_DB_NAME` variable in GitHub) | `modern-directory` |
 | `TURSO_REGION` | Turso primary location for new databases (`TURSO_REGION` variable in GitHub) | `aws-eu-west-1` |

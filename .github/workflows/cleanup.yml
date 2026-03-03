@@ -9,23 +9,24 @@ concurrency:
 
 jobs:
   cleanup:
-    name: Delete Turso DB, Vercel Preview & Storybook Preview
+    name: Delete Turso DB & Storybook Preview
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
       TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      
+
       - name: Setup Turso CLI
         uses: ./.github/actions/setup-turso
 
       - name: Delete PR database
+        # Merged fork PRs: keep the fork DB for 24h so devs can debug post-merge.
+        # Non-fork PR DBs are deleted immediately on close.
+        if: ${{ !(github.event.pull_request.merged && github.event.pull_request.head.repo.fork) }}
         run: |
           bash scripts/infra/turso-teardown.sh \
             --suffix "pr-${{ github.event.pull_request.number }}" \

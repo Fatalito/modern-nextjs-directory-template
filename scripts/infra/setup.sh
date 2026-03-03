@@ -25,6 +25,8 @@ SUCCESS="\033[32mSUCCESS:\033[0m"
 ERROR="\033[31mERROR:\033[0m"
 WARN="\033[33mWARNING:\033[0m"
 STEP="\033[1;36m──────────────────────────────────────────\033[0m"
+STEP_N=0
+STEP_TOTAL=8
 
 # ── 0. Prerequisites ──────────────────────────────────────────────────────────
 echo -e "$STEP"
@@ -32,7 +34,7 @@ echo "  Checking prerequisites..."
 echo -e "$STEP"
 
 missing=0
-for cmd in turso vercel gh git node openssl; do
+for cmd in turso vercel gh git node openssl jq; do
   if ! command -v "$cmd" &>/dev/null; then
     echo -e "$ERROR '$cmd' not found."
     missing=1
@@ -45,6 +47,7 @@ if [ "$missing" -eq 1 ]; then
   echo "  Turso  → curl -sSfL https://get.tur.so/install.sh | bash"
   echo "  Vercel → npm i -g vercel"
   echo "  GitHub → https://cli.github.com"
+  echo "  jq     → brew install jq  (Linux: apt/yum install jq)"
   exit 1
 fi
 
@@ -58,6 +61,11 @@ echo -e "$SUCCESS All prerequisites found."
 # ── Helpers ───────────────────────────────────────────────────────────────────
 # shellcheck source=scripts/infra/lib/utils.sh
 source "$SCRIPT_DIR/lib/utils.sh"
+
+next_step() {
+  STEP_N=$((STEP_N + 1))
+  echo "  Step $STEP_N of $STEP_TOTAL — $1"
+}
 
 # open_browser <url> — cross-platform browser launcher
 open_browser() {
@@ -109,7 +117,7 @@ collect_token() {
 # ── 1. Authenticate ───────────────────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 1 of 7 — Authenticate"
+next_step "Authenticate"
 echo -e "$STEP"
 
 if turso auth token 2>&1 | grep -qi "not logged in"; then
@@ -162,7 +170,7 @@ fi
 # ── 2. Provision Turso production database ────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 2 of 7 — Provision Turso database"
+next_step "Provision Turso database"
 echo -e "$STEP"
 
 # shellcheck source=/dev/null
@@ -174,11 +182,10 @@ echo "  (run 'turso db locations' for the full list)"
 read -r -p "  Database name [$DB_BASE_NAME]: " DB_NAME_INPUT
 read -r -p "  Region        [$REGION]: " REGION_INPUT
 
-if [ -n "$DB_NAME_INPUT" ] && [ "$DB_NAME_INPUT" != "$DB_BASE_NAME" ]; then
-  update_env_var "TURSO_DB_NAME" "$DB_NAME_INPUT"
-  export TURSO_DB_NAME="$DB_NAME_INPUT"
-  echo -e "$INFO Using database name: $DB_NAME_INPUT"
-fi
+DB_NAME_INPUT="${DB_NAME_INPUT:-$DB_BASE_NAME}"
+update_env_var "TURSO_DB_NAME" "$DB_NAME_INPUT"
+export TURSO_DB_NAME="$DB_NAME_INPUT"
+echo -e "$INFO Using database name: $DB_NAME_INPUT"
 
 if [ -n "$REGION_INPUT" ] && [ "$REGION_INPUT" != "$REGION" ]; then
   update_env_var "TURSO_REGION" "$REGION_INPUT"
@@ -197,11 +204,11 @@ echo -e "$SUCCESS Production database initialized."
 # ── 3. Link Vercel project ────────────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 3 of 7 — Link Vercel project"
+next_step "Link Vercel project"
 echo -e "$STEP"
 
 if [ -f ".vercel/project.json" ]; then
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
   echo -e "$INFO Project already linked (id: $VERCEL_PROJECT_ID) — skipping."
 else
   echo ""
@@ -209,21 +216,72 @@ else
   PROJECT_NAME="${PROJECT_NAME:-$DB_BASE_NAME}"
 
   vercel link --yes --project "$PROJECT_NAME"
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
+  VERCEL_PROJECT_ID=$(jq -r '.projectId' .vercel/project.json)
 fi
 
 echo -e "$SUCCESS Vercel project linked."
 
-# ── 4. Disable Vercel GitHub auto-deploy ─────────────────────────────────────
+# ── 4. Configure Vercel production environment ────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 4 of 7 — Disable Vercel auto-deploy"
+next_step "Configure Vercel production environment"
+echo -e "$STEP"
+
+VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
+
+# Collect NEXT_PUBLIC_APP_URL — required for canonical URLs, OG metadata, sitemaps
+APP_URL="$(get_env_var NEXT_PUBLIC_APP_URL)"
+if [ -z "$APP_URL" ] || [ "$APP_URL" = "http://localhost:3000" ]; then
+  APP_URL=""
+  echo ""
+  read -r -p "  Production URL (e.g. https://yourdomain.com): " APP_URL_INPUT
+  if [ -n "$APP_URL_INPUT" ]; then
+    if [[ "$APP_URL_INPUT" =~ ^https?://[^[:space:]]+\.[^[:space:]]+ ]]; then
+      APP_URL="$APP_URL_INPUT"
+      update_env_var "NEXT_PUBLIC_APP_URL" "$APP_URL"
+    else
+      echo -e "$WARN '$APP_URL_INPUT' is not a valid URL (must start with http:// or https://) — NEXT_PUBLIC_APP_URL not updated."
+    fi
+  else
+    echo -e "$WARN NEXT_PUBLIC_APP_URL not set — canonical URLs and OG metadata will be wrong in production."
+  fi
+fi
+
+if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
+  vercel_env_set() {
+    local name="$1" value="$2" sensitive="${3:-}"
+    local flags="--force --token=$VERCEL_TOKEN"
+    # shellcheck disable=SC2086
+    if printf '%s' "$value" | vercel env add "$name" production $flags ${sensitive:+--sensitive} > /dev/null 2>&1; then
+      echo -e "$SUCCESS Vercel env set: $name"
+    else
+      echo -e "$WARN Could not set $name — set it manually in Vercel Dashboard → Project → Settings → Environment Variables"
+    fi
+  }
+
+  [ -n "$APP_URL" ] && vercel_env_set "NEXT_PUBLIC_APP_URL" "$APP_URL"
+  vercel_env_set "ENABLE_HSTS"      "true"
+  vercel_env_set "NEXT_OUTPUT_MODE" "serverless"
+else
+  MISSING_VERCEL_VARS=()
+  [ -z "$VERCEL_TOKEN" ] && MISSING_VERCEL_VARS+=("VERCEL_TOKEN")
+  [ -z "${VERCEL_PROJECT_ID:-}" ] && MISSING_VERCEL_VARS+=("VERCEL_PROJECT_ID")
+  MISSING_LIST=$(IFS=", "; echo "${MISSING_VERCEL_VARS[*]}")
+  echo -e "$WARN ${MISSING_LIST} not set — skipping Vercel env configuration."
+  echo "  Set manually in Vercel Dashboard → Project → Settings → Environment Variables:"
+  echo "    NEXT_PUBLIC_APP_URL = ${APP_URL:-<your production URL>}"
+  echo "    ENABLE_HSTS         = true"
+  echo "    NEXT_OUTPUT_MODE    = serverless"
+fi
+
+# ── 5. Disable Vercel GitHub auto-deploy ─────────────────────────────────────
+echo ""
+echo -e "$STEP"
+next_step "Disable Vercel auto-deploy"
 echo -e "$STEP"
 # vercel.json already carries "ignoreCommand": "exit 1" as a code-level safety
 # net. We also set it via the API for immediate effect (before the code is
 # deployed for the first time).
-
-VERCEL_TOKEN="$(get_env_var VERCEL_TOKEN)"
 
 if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
   RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -240,16 +298,17 @@ else
   echo -e "$WARN VERCEL_TOKEN not set — skipping API call. vercel.json ignoreCommand still active."
 fi
 
-# ── 5. Deployment protection bypass secret ────────────────────────────────────
+# ── 6. Deployment protection bypass secret ────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 5 of 7 — Deployment protection bypass"
+next_step "Deployment protection bypass"
 echo -e "$STEP"
 
 BYPASS="$(get_env_var VERCEL_AUTOMATION_BYPASS_SECRET)"
 
 if [ -z "$BYPASS" ]; then
-  BYPASS=$(openssl rand -hex 32)
+  # Vercel's protection-bypass API requires exactly 32 alphanumeric chars.
+  BYPASS=$(openssl rand -hex 16)
   update_env_var "VERCEL_AUTOMATION_BYPASS_SECRET" "$BYPASS"
   echo -e "$INFO Generated VERCEL_AUTOMATION_BYPASS_SECRET and saved to .env."
 else
@@ -257,24 +316,34 @@ else
 fi
 
 if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
-  RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X PATCH "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_ID" \
-    -H "Authorization: Bearer $VERCEL_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"protection\": {\"deploymentType\": \"preview_deployments_only\", \"bypassSecret\": \"$BYPASS\"}}")
-  if [ "$RESULT" = "200" ]; then
-    echo -e "$SUCCESS Deployment protection enabled with bypass secret."
+  # Register the bypass secret so CI can access Standard Protection (enabled by default on all plans).
+  # Standard Protection keeps production public while requiring auth for preview URLs.
+  if [[ "$BYPASS" =~ ^[a-zA-Z0-9]{32}$ ]]; then
+    RESULT=$(curl -s -o /dev/null -w "%{http_code}" \
+      -X PATCH "https://api.vercel.com/v1/projects/$VERCEL_PROJECT_ID/protection-bypass" \
+      -H "Authorization: Bearer $VERCEL_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{\"generate\": {\"secret\": \"$BYPASS\"}}")
+    if [ "$RESULT" = "200" ]; then
+      echo -e "$SUCCESS Protection bypass secret registered with Vercel."
+    else
+      echo -e "$WARN Could not register bypass secret via API (HTTP $RESULT) — register manually:"
+      echo "  Vercel Dashboard → Project → Settings → Deployment Protection → Protection Bypass for Automation"
+      echo "  Enter the value of VERCEL_AUTOMATION_BYPASS_SECRET from your .env."
+    fi
   else
-    echo -e "$WARN Could not configure protection via API (HTTP $RESULT)."
-    echo "  Enable manually: Vercel Dashboard → Project → Settings → Deployment Protection"
-    echo "  Use the value of VERCEL_AUTOMATION_BYPASS_SECRET from your .env as the bypass secret."
+    echo -e "$WARN Existing VERCEL_AUTOMATION_BYPASS_SECRET is not 32 alphanumeric chars — skipping API registration."
+    echo "  If not yet configured, register it manually in Vercel Dashboard → Project → Settings → Deployment Protection."
   fi
+else
+  echo -e "$WARN VERCEL_TOKEN and/or VERCEL_PROJECT_ID not set — skipping bypass secret registration."
+  echo "  Configure manually: Vercel Dashboard → Project → Settings → Deployment Protection."
 fi
 
-# ── 6. Configure GitHub repository ────────────────────────────────────────────
+# ── 7. Configure GitHub repository ────────────────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 6 of 7 — Configure GitHub repository"
+next_step "Configure GitHub repository"
 echo -e "$STEP"
 
 if [ -n "$REPO" ]; then
@@ -337,14 +406,27 @@ BPEOF
     echo -e "$WARN Could not configure GitHub Pages."
     echo "  Enable manually: Settings → Pages → Source → Deploy from branch → gh-pages → / (root)"
   fi
+
+  # pii-access environment — gates npm run db:debug:remote:start
+  # prevent_self_review stops the requester from approving their own access.
+  if gh api "repos/$REPO/environments/pii-access" \
+      --method PUT \
+      --field prevent_self_review=true > /dev/null 2>&1; then
+    echo -e "$SUCCESS 'pii-access' environment created."
+    echo "  Add required reviewers: https://github.com/$REPO/settings/environments"
+    echo "  (Settings → Environments → pii-access → Required reviewers)"
+  else
+    echo -e "$WARN Could not create 'pii-access' environment — create manually."
+    echo "  Settings → Environments → New environment → pii-access → Required reviewers"
+  fi
 else
   echo -e "$WARN Could not determine repo name — skipping GitHub repository configuration."
 fi
 
-# ── 7. Sync to GitHub + open initial-setup PR ─────────────────────────────────
+# ── 8. Sync to GitHub + open initial-setup PR ─────────────────────────────────
 echo ""
 echo -e "$STEP"
-echo "  Step 7 of 7 — Sync to GitHub and open PR"
+next_step "Sync to GitHub and open PR"
 echo -e "$STEP"
 
 # Auto-populate sonar-project.properties from the GitHub repo name
@@ -500,8 +582,8 @@ echo ""
 echo "  Next: review the PR, make sure CI passes, then merge."
 echo "  Merging triggers the first production deployment automatically."
 echo ""
-echo "  Local dev:       npm run dev"
 echo "  Apply schema:    npm run db:push && npm run db:seed"
+echo "  Local dev:       npm run dev"
 echo "  Rotate DB token: npm run infra:rotate-token"
 echo "  Re-sync GitHub:  npm run infra:sync:github"
 echo ""

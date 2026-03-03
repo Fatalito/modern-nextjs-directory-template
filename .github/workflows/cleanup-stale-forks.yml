@@ -1,0 +1,97 @@
+name: Cleanup Stale PR Forks
+# Deletes Turso PR databases retained after merge (see cleanup.yml).
+# Fork PRs keep their DB for 24h post-merge as a debugging window; non-fork
+# PRs are deleted immediately by cleanup.yml but this acts as a fallback if
+# that step fails. Runs daily at 04:00 UTC (after Snyk nightly at 03:00).
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: cleanup-stale-forks
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Delete merged PR Turso forks (>24h old)
+    runs-on: ubuntu-latest
+    env:
+      TURSO_API_TOKEN: ${{ secrets.TURSO_API_TOKEN }}
+      TURSO_DB_NAME: ${{ vars.TURSO_DB_NAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Turso CLI
+        uses: ./.github/actions/setup-turso
+
+      - name: Delete stale forks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # shellcheck source=infra/turso.conf.sh
+          source infra/turso.conf.sh
+          if [ -z "${DB_BASE_NAME:-}" ]; then
+            echo "::error::DB_BASE_NAME is empty — check TURSO_DB_NAME and infra/turso.conf.sh."
+            exit 1
+          fi
+          REPO="${{ github.repository }}"
+          NOW=$(date +%s)
+
+          # Capture stderr separately so auth/network failures are visible in logs
+          # while still failing the job on non-zero exit.
+          DB_LIST_ERR=$(mktemp)
+          if ! DB_LIST=$(turso db list 2>"$DB_LIST_ERR"); then
+            echo "::error::turso db list failed — check TURSO_API_TOKEN auth or network connectivity."
+            cat "$DB_LIST_ERR"
+            rm -f "$DB_LIST_ERR"
+            exit 1
+          fi
+          # Surface any benign warnings (e.g. CLI update notices) without failing.
+          if [ -s "$DB_LIST_ERR" ]; then
+            echo "turso db list warnings:"
+            cat "$DB_LIST_ERR"
+          fi
+          rm -f "$DB_LIST_ERR"
+
+          GH_LOOKUP_FAILURES=0
+          while read -r DB; do
+            PR_NUM="${DB#"${DB_BASE_NAME}-pr-"}"
+            PR_ERR=$(mktemp)
+            if ! MERGED_AT=$(gh api "repos/$REPO/pulls/$PR_NUM" \
+              --jq '.merged_at // empty' 2>"$PR_ERR"); then
+              echo "::warning::Failed to fetch PR #$PR_NUM metadata for $DB"
+              cat "$PR_ERR"
+              rm -f "$PR_ERR"
+              GH_LOOKUP_FAILURES=$((GH_LOOKUP_FAILURES + 1))
+              continue
+            fi
+            rm -f "$PR_ERR"
+            [ -z "$MERGED_AT" ] && continue
+            MERGED_TS=$(date -d "$MERGED_AT" +%s 2>/dev/null || true)
+            if [ -z "$MERGED_TS" ]; then
+              echo "::warning::Skipping $DB — merged_at '$MERGED_AT' could not be parsed as a timestamp."
+              continue
+            fi
+            AGE=$((NOW - MERGED_TS))
+            if [ "$AGE" -gt 86400 ]; then
+              echo "Deleting $DB (merged $((AGE / 3600))h ago)..."
+              turso db destroy "$DB" --yes
+            else
+              echo "Keeping $DB (merged $((AGE / 3600))h ago — <24h grace period)"
+            fi
+          done < <(
+            echo "$DB_LIST" \
+              | awk -v base="${DB_BASE_NAME}-pr-" \
+                'NR>1 && index($1, base)==1 && substr($1, length(base)+1) ~ /^[0-9]+$/ {print $1}'
+          )
+
+          if [ "$GH_LOOKUP_FAILURES" -gt 0 ]; then
+            echo "::error::$GH_LOOKUP_FAILURES PR metadata lookups failed; aborting to avoid false-success cleanup."
+            exit 1
+          fi

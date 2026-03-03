@@ -23,9 +23,9 @@ if ! command -v turso &>/dev/null; then
   exit 1
 fi
 
-if turso auth token 2>&1 | grep -qi "not logged in"; then
-  echo -e "$ERROR Not logged in. Run: turso auth login"
-  exit 1
+# TURSO_API_TOKEN is read directly by the CLI in CI — skip interactive login.
+if [ -z "${TURSO_API_TOKEN:-}" ] && turso auth token 2>&1 | grep -qi "not logged in"; then
+  turso auth login
 fi
 
 # ── Create new token ──────────────────────────────────────────────────────────

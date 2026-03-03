@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # Sync all CI-required vars from .env (and .vercel/) to GitHub Actions.
-# GitHub is the single source of truth — deploy workflows push vars to Vercel
-# at deploy time rather than storing them permanently in Vercel's dashboard.
+#
 #
 # Secrets (masked in logs):
-#   DATABASE_URL, DATABASE_AUTH_TOKEN       ← pushed to Vercel at deploy time by CI
-#   TURSO_API_TOKEN                         ← for PR DB forking
+#   TURSO_API_TOKEN                         ← derives DB credentials at deploy time
 #   VERCEL_TOKEN                            ← for deployments
 #   VERCEL_AUTOMATION_BYPASS_SECRET         ← for bypassing Vercel protection in tests
 #   VERCEL_ORG_ID, VERCEL_PROJECT_ID        ← extracted from .vercel/project.json
@@ -67,11 +65,6 @@ push_variable() {
   gh variable set "$name" --body "$value"
 }
 
-# ── Database credentials (pushed to Vercel at deploy time by CI) ───────────────
-echo -e "$INFO Syncing database credentials..."
-push_secret "DATABASE_URL"        "$(get_env_var DATABASE_URL)"
-push_secret "DATABASE_AUTH_TOKEN" "$(get_env_var DATABASE_AUTH_TOKEN)"
-
 # ── Turso / Vercel / CI tokens ─────────────────────────────────────────────────
 echo -e "$INFO Syncing CI secrets..."
 push_secret "TURSO_API_TOKEN"                 "$(get_env_var TURSO_API_TOKEN)"
@@ -86,10 +79,14 @@ push_variable "TURSO_REGION"  "$(get_env_var TURSO_REGION)"
 
 # ── Vercel project IDs (from .vercel/project.json) ────────────────────────────
 if [ -f ".vercel/project.json" ]; then
-  VERCEL_ORG_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').orgId)")
-  VERCEL_PROJECT_ID=$(node -e "process.stdout.write(require('./.vercel/project.json').projectId)")
-  push_secret "VERCEL_ORG_ID"     "$VERCEL_ORG_ID"
-  push_secret "VERCEL_PROJECT_ID" "$VERCEL_PROJECT_ID"
+  VERCEL_ORG_ID=$(jq -er '.orgId // empty' .vercel/project.json 2>/dev/null || true)
+  VERCEL_PROJECT_ID=$(jq -er '.projectId // empty' .vercel/project.json 2>/dev/null || true)
+  if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+    echo -e "$WARN  .vercel/project.json missing orgId/projectId — skipping Vercel ID sync."
+  else
+    push_secret "VERCEL_ORG_ID"     "$VERCEL_ORG_ID"
+    push_secret "VERCEL_PROJECT_ID" "$VERCEL_PROJECT_ID"
+  fi
 else
   echo -e "$WARN  No .vercel/project.json found — VERCEL_ORG_ID and VERCEL_PROJECT_ID not synced."
   echo "  Run: vercel link, then re-run: npm run infra:sync:github"
