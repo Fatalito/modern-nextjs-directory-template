@@ -41,6 +41,10 @@ jobs:
             exit 1
           fi
           echo "Sweeping stale prod-YYYY-MM groups on $DB_NAME..."
+          if ! turso db show "$DB_NAME" >/dev/null 2>&1; then
+            echo "::error::Database '$DB_NAME' was not found or is not accessible."
+            exit 1
+          fi
 
           for MONTHS_AGO in $(seq 12 60); do
             GROUP=$(date -u -d "$MONTHS_AGO months ago" '+prod-%Y-%m')
@@ -51,9 +55,9 @@ jobs:
             # Capture combined stdout+stderr so errors are visible in workflow logs.
             # "not found" / "does not exist" are non-fatal — the group simply has no tokens.
             # NOTE: verify these strings against your Turso CLI version if behaviour changes.
-            if OUTPUT=$(turso db tokens invalidate "$DB_NAME" --group "$GROUP" 2>&1); then
+            if OUTPUT=$(turso db tokens invalidate "$DB_NAME" --group "$GROUP" --yes 2>&1); then
               echo "  processed $GROUP"
-            elif echo "$OUTPUT" | grep -qi "not found\|does not exist"; then
+            elif echo "$OUTPUT" | grep -qiE "group.+(not found|does not exist)"; then
               echo "  skipped $GROUP (group not found — no tokens to invalidate)"
             else
               echo "::error::Failed to invalidate group '$GROUP':"

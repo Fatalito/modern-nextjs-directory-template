@@ -193,8 +193,8 @@ npm run infra:sync:github
 
 | Name | Kind | Used by |
 |------|------|---------|
-| `DATABASE_URL` | Secret | `deploy.yml` → derived fresh via Turso API, pushed to Vercel at deploy time |
-| `DATABASE_AUTH_TOKEN` | Secret | `deploy.yml` → JIT token derived via Turso API, pushed to Vercel, rotated post-health-check |
+| `DATABASE_URL` | Derived at deploy-time | `deploy.yml` → resolved via Turso API, then pushed to Vercel |
+| `DATABASE_AUTH_TOKEN` | Derived at deploy-time | `deploy.yml` → JIT token minted via Turso API, pushed to Vercel, then rotated |
 | `TURSO_API_TOKEN` | Secret | `pr.yml` — forks DB per PR |
 | `VERCEL_TOKEN` | Secret | `deploy.yml`, `pr.yml`, `cleanup.yml` |
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `pr.yml` — E2E + perf tests against protected deployments |

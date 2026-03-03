@@ -335,6 +335,9 @@ if [ -n "$VERCEL_TOKEN" ] && [ -n "${VERCEL_PROJECT_ID:-}" ]; then
     echo -e "$WARN Existing VERCEL_AUTOMATION_BYPASS_SECRET is not 32 alphanumeric chars — skipping API registration."
     echo "  If not yet configured, register it manually in Vercel Dashboard → Project → Settings → Deployment Protection."
   fi
+else
+  echo -e "$WARN VERCEL_TOKEN and/or VERCEL_PROJECT_ID not set — skipping bypass secret registration."
+  echo "  Configure manually: Vercel Dashboard → Project → Settings → Deployment Protection."
 fi
 
 # ── 7. Configure GitHub repository ────────────────────────────────────────────
@@ -350,7 +353,7 @@ if [ -n "$REPO" ]; then
 {
   "required_status_checks": {
     "strict": false,
-    "contexts": ["Test", "Build & Deploy Preview"]
+    "contexts": ["test / Test, Scan & Generate SBOM", "preview / Build & Deploy Preview"]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": null,

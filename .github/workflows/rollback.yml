@@ -103,7 +103,11 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" || true)
           if [ -n "$DATA" ]; then
             FOUND=$(echo "$DATA" | jq -r --arg sha "$TARGET_SHA" \
-              '(.deployments // [])[] | select(.meta.githubCommitSha? == $sha) | .uid + " https://" + .url' \
+              '(.deployments // [])[]
+               | select(.meta.githubCommitSha? == $sha)
+               | select((.target // "") == "production")
+               | select((.readyState // "") == "READY")
+               | .uid + " https://" + .url' \
               | head -1)
             if [ -n "$FOUND" ]; then
               DEPLOYMENT_UID=$(echo "$FOUND" | awk '{print $1}')
@@ -155,8 +159,7 @@ jobs:
             -in "$ENC_FILE" \
             -out /tmp/snapshot/restore.sql \
             -pass env:DB_SNAPSHOT_PASSPHRASE
-          { echo 'BEGIN TRANSACTION;'; cat /tmp/snapshot/restore.sql; echo 'COMMIT;'; } \
-            | turso db shell "$DB_NAME"
+          turso db shell "$DB_NAME" < /tmp/snapshot/restore.sql
           rm -rf /tmp/snapshot
 
       - name: Push database credentials to Vercel production

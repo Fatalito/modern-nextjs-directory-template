@@ -41,4 +41,5 @@ jobs:
           printf '  Timestamp                     : %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           echo ""
           echo "Approver identity is recorded in GitHub's environment deployment audit trail."
-          echo "This run log is the immutable record of the access request and grant."
+          echo "This run log is an audit record of the access request and grant."
+          echo "Use environment deployment history and your configured retention policy for long-term evidence."
