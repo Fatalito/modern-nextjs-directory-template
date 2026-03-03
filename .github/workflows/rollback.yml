@@ -144,9 +144,8 @@ jobs:
           unzip -q /tmp/snapshot/artifact.zip -d /tmp/snapshot/extracted
 
       - name: Decrypt and restore DB snapshot
-        # Partial-restore risk: if the connection drops mid-pipe the DB is left
-        # in an inconsistent state. Wrapping the dump in BEGIN/COMMIT makes the
-        # replay atomic — either every statement succeeds or none are committed.
+        # Restore executes the SQL dump directly. Atomicity depends on the dump's
+        # transaction boundaries generated during snapshot creation.
         env:
           DB_SNAPSHOT_PASSPHRASE: ${{ secrets.DB_SNAPSHOT_PASSPHRASE }}
         run: |

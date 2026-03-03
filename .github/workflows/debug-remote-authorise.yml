@@ -20,7 +20,7 @@ on:
 
 jobs:
   authorise:
-    name: "PII access — ${{ github.actor }} (${{ inputs.branch }})"
+    name: "PII access — ${{ github.actor }} (run ref: ${{ github.ref_name }})"
     runs-on: ubuntu-latest
     environment: pii-access
     permissions:
@@ -30,13 +30,15 @@ jobs:
         env:
           ACTOR: ${{ github.actor }}
           DECLARED_REQUESTER: ${{ inputs.requester }}
+          RUN_REF: ${{ github.ref_name }}
           REQUESTED_BRANCH: ${{ inputs.branch }}
           REQUEST_REASON: ${{ inputs.reason }}
         run: |
           printf '%s\n' "PII debug access GRANTED"
           printf '  Triggered by (GitHub identity): %s\n' "$ACTOR"
           printf '  Declared requester            : %s\n' "$DECLARED_REQUESTER"
-          printf '  Branch                        : %s\n' "$REQUESTED_BRANCH"
+          printf '  Run ref (authoritative)       : %s\n' "$RUN_REF"
+          printf '  Declared requested branch     : %s\n' "$REQUESTED_BRANCH"
           printf '  Reason                        : %s\n' "$REQUEST_REASON"
           printf '  Timestamp                     : %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           echo ""

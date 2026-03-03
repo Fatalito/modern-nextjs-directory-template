@@ -15,11 +15,28 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
 
   // Guard against accidentally wiping a populated local DB
   if (!force) {
-    const [result] = await db
-      .select({ total: drizzleCount() })
-      .from(schema.users);
-    const userCount = Number(result.total);
-    if (userCount > 0) {
+    const [
+      [usersCount],
+      [locationsCount],
+      [servicesCount],
+      [businessesCount],
+      [businessServicesCount],
+    ] = await Promise.all([
+      db.select({ total: drizzleCount() }).from(schema.users),
+      db.select({ total: drizzleCount() }).from(schema.locations),
+      db.select({ total: drizzleCount() }).from(schema.services),
+      db.select({ total: drizzleCount() }).from(schema.businesses),
+      db.select({ total: drizzleCount() }).from(schema.businessServices),
+    ]);
+
+    const existingRows =
+      Number(usersCount.total) +
+      Number(locationsCount.total) +
+      Number(servicesCount.total) +
+      Number(businessesCount.total) +
+      Number(businessServicesCount.total);
+
+    if (existingRows > 0) {
       if (!process.stdin.isTTY) {
         throw new Error(
           "Refusing to overwrite populated DB in non-interactive mode. Re-run with force=true.",
@@ -32,7 +49,7 @@ export async function seed({ force = false }: { force?: boolean } = {}) {
       });
       const answer = await new Promise<string>((resolve) =>
         rl.question(
-          `  Found ${userCount} existing user(s). Overwrite all data? (y/N): `,
+          `  Found ${existingRows} existing row(s). Overwrite all data? (y/N): `,
           resolve,
         ),
       );
