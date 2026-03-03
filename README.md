@@ -408,7 +408,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_APP_URL` | Base URL of the deployment (required for SEO/OG images) | `http://localhost:3000` |
 | `NEXT_OUTPUT_MODE` | Build output format (see Deployment Configuration) | `serverless` |
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
-| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. Also synced to GitHub as `DATABASE_URL` secret; pushed to Vercel production by `deploy.yml` / `rollback.yml` at runtime | `file:./sqlite.db` |
+| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. In production, it is resolved at runtime and pushed to Vercel by `deploy.yml` / `rollback.yml` | `file:./sqlite.db` |
 | `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. In production, deploy/rollback mint short-lived JIT tokens and the shared rotate action promotes a validated 90d token (also refreshed monthly by `rotate-credentials.yml`) — this value is only needed locally | — |
 | `TURSO_API_TOKEN` | Turso API token for CI/PR DB forking and cleanup (`TURSO_API_TOKEN` secret in GitHub) | Generate at app.turso.tech |
 | `TURSO_DB_NAME` | Base name of the Turso database, without environment suffix (`TURSO_DB_NAME` variable in GitHub) | `modern-directory` |
