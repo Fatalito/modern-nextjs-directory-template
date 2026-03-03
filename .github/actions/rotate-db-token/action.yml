@@ -1,13 +1,11 @@
 name: Rotate DB Token (Three-Finger Swap)
 description: >
-  Zero-downtime Turso token rotation (Overlap, then Prune).
-  1. Create a fresh never-expiring token tagged prod-YYYY-MM.
+  Zero-downtime Turso token rotation (Overlap, then natural expiry).
+  1. Create a fresh 90-day token.
   2. Validate it can reach the DB before touching anything.
   3. Push it to Vercel while the JIT token is still valid.
-  4. Wait for Vercel edge propagation (60s).
-  5. Invalidate only the JIT group — fresh token is untouched.
-  Stale prod-YYYY-MM groups are swept by reap-db-tokens.yml (monthly).
-  DB_NAME, DATABASE_URL, and JIT_TOKEN_GROUP are inherited from the
+  4. Wait for Vercel edge propagation (60s) and let prior tokens expire naturally.
+  DB_NAME and DATABASE_URL are inherited from the
   calling job's environment (set via GITHUB_ENV by the credentials step).
 
 inputs:
@@ -27,17 +25,14 @@ runs:
         TURSO_API_TOKEN: ${{ inputs.turso-api-token }}
         VERCEL_TOKEN: ${{ inputs.vercel-token }}
       run: |
-        # Group encodes the deployment month so the monthly reaper (reap-db-tokens.yml)
-        # can sweep stale groups by generating past month strings — no state tracking needed.
-        PROD_GROUP="prod-$(date -u '+%Y-%m')"
-        FRESH_TOKEN="$(turso db tokens create "$DB_NAME" --group "$PROD_GROUP" --expiration never)"
+        FRESH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration 90d)"
         echo "::add-mask::$FRESH_TOKEN"
         # Strip any scheme (libsql://, wss://) and trailing slash so the URL
         # is safe to concatenate — avoids https://host//v2/pipeline.
         DB_HTTP_URL="https://${DATABASE_URL#*://}"
         DB_HTTP_URL="${DB_HTTP_URL%/}"
-        # Verify the fresh token can reach the DB before pushing it or killing
-        # the JIT token — prevents lockout if token creation succeeded but the
+        # Verify the fresh token can reach the DB before pushing it to Vercel —
+        # prevents lockout if token creation succeeded but the
         # token is unusable (e.g. Turso API hiccup).
         RESPONSE=$(curl -fsS --connect-timeout 10 --max-time 30 --retry 3 --retry-all-errors \
           -X POST \
@@ -54,6 +49,4 @@ runs:
             --force --sensitive --token="$VERCEL_TOKEN"
         echo "Waiting 60s for Vercel edge propagation..."
         sleep 60
-        turso db tokens invalidate "$DB_NAME" --group "$JIT_TOKEN_GROUP"
-        echo "JIT group '$JIT_TOKEN_GROUP' invalidated. Fresh never-expiring token active (group: $PROD_GROUP)."
-        echo "Stale prod-YYYY-MM groups are swept monthly by reap-db-tokens.yml."
+        echo "Fresh 90-day token active. Prior tokens will expire naturally."
