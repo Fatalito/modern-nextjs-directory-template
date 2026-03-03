@@ -193,14 +193,14 @@ npm run infra:sync:github
 
 | Name | Kind | Used by |
 |------|------|---------|
-| `DATABASE_URL` | Derived at deploy-time | `deploy.yml` → resolved via Turso API, then pushed to Vercel |
-| `DATABASE_AUTH_TOKEN` | Derived at deploy-time | `deploy.yml` → JIT token minted via Turso API, pushed to Vercel, then rotated |
-| `TURSO_API_TOKEN` | Secret | `pr.yml` — forks DB per PR |
-| `VERCEL_TOKEN` | Secret | `deploy.yml`, `pr.yml`, `cleanup.yml` |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `pr.yml` — E2E + perf tests against protected deployments |
+| `DATABASE_URL` | Derived at runtime | Resolved via Turso API in `deploy.yml` / `rollback.yml` / `rotate-credentials.yml` (pushed to Vercel by deploy/rollback) |
+| `DATABASE_AUTH_TOKEN` | Derived at runtime | `deploy.yml` / `rollback.yml` mint short-lived JIT tokens; `rotate-db-token` mints a validated 90d token and pushes it to Vercel |
+| `TURSO_API_TOKEN` | Secret | `deploy.yml`, `rollback.yml`, `rotate-credentials.yml`, `pr.yml` |
+| `VERCEL_TOKEN` | Secret | `deploy.yml`, `rollback.yml`, `rotate-credentials.yml`, `pr.yml`, `cleanup.yml` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Secret | `deploy.yml`, `rollback.yml`, `rotate-credentials.yml`, `pr.yml` |
 | `VERCEL_ORG_ID` | Secret | All Vercel CLI workflows |
 | `VERCEL_PROJECT_ID` | Secret | All Vercel CLI workflows |
-| `TURSO_DB_NAME` | Variable | `pr.yml`, `cleanup.yml` |
+| `TURSO_DB_NAME` | Variable | `deploy.yml`, `rollback.yml`, `rotate-credentials.yml`, `pr.yml`, `cleanup.yml` |
 | `TURSO_REGION` | Variable | `pr.yml` |
 
 `SONAR_TOKEN` and `SNYK_TOKEN` are collected interactively by `infra:setup` (opens the browser to the token page, prompts for input, syncs via `gh secret set`). If you skipped them, add the values to `.env` and re-run `npm run infra:sync:github`.
@@ -213,7 +213,7 @@ npm run infra:sync:github
 { "status": "ok", "db": "ok" }
 ```
 
-The response includes an `X-Commit-Sha` header with the short SHA of the deployed commit. `deploy.yml` polls this endpoint after every deployment, verifies the SHA matches the just-deployed commit, and fails the workflow immediately if there's a mismatch — catching stale-deployment or DB connectivity issues before they go unnoticed.
+The response includes an `X-Commit-Sha` header with the short SHA of the deployed commit. `deploy.yml`, `rollback.yml`, and `rotate-credentials.yml` poll this endpoint and fail fast when production is unhealthy.
 
 ### Production Deployments
 
@@ -224,7 +224,9 @@ The response includes an `X-Commit-Sha` header with the short SHA of the deploye
 4. Runs `drizzle-kit push --force` against the production database (no-op when schema is unchanged)
 5. Runs `vercel pull` + `vercel build --prod` + `vercel deploy --prebuilt --prod`
 6. Polls `/api/health` until the deployment is live and the correct SHA is confirmed
-7. Rotates the DB token: creates a fresh permanent token, validates it against the DB, pushes it to Vercel, waits 60 s for edge propagation, then invalidates only the JIT token group (Three-Finger Swap — zero downtime)
+7. Rotates the DB token: creates a fresh 90-day token, validates it against the DB, pushes it to Vercel, waits 60 s for edge propagation, and lets prior tokens expire naturally (Three-Finger Swap — zero downtime)
+
+`rotate-credentials.yml` runs monthly (and supports manual trigger) to refresh the production 90-day token even when no deploy occurs. It reuses the same rotate action and performs a production health check after rotation.
 
 ### Schema Migrations
 
@@ -313,7 +315,8 @@ npm run db:snapshot:list   # find and copy the snapshot name
 | Provision DB only | `npm run infra:setup:db` |
 | Full teardown (DB + Vercel + secrets) | `npm run infra:teardown` |
 | Teardown DB only | `npm run infra:teardown:db` |
-| Rotate DB token | `npm run infra:rotate-token` |
+| Rotate DB token (manual script) | `npm run infra:rotate-token` |
+| Rotate DB token (scheduled/manual workflow) | GitHub Actions → Rotate Production Credentials |
 | Sync CI vars to GitHub Actions | `npm run infra:sync:github` |
 | Storybook | `npm run storybook` |
 | Storybook build | `npm run storybook:build` |
@@ -405,8 +408,8 @@ cp .env.example .env
 | `NEXT_PUBLIC_APP_URL` | Base URL of the deployment (required for SEO/OG images) | `http://localhost:3000` |
 | `NEXT_OUTPUT_MODE` | Build output format (see Deployment Configuration) | `serverless` |
 | `ENABLE_HSTS` | Enable HSTS security header (requires HTTPS) | `false` |
-| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. Also synced to GitHub as `DATABASE_URL` secret; pushed to Vercel production by `deploy.yml` at deploy time | `file:./sqlite.db` |
-| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. In production, `deploy.yml` derives a fresh JIT token via the Turso API on every deploy and rotates it automatically after a successful health check — this value is only needed locally | — |
+| `DATABASE_URL` | libsql connection URL — `file:` for local SQLite, `libsql://` for Turso. In production, it is resolved at runtime and pushed to Vercel by `deploy.yml` / `rollback.yml` | `file:./sqlite.db` |
+| `DATABASE_AUTH_TOKEN` | Turso auth token — required when `DATABASE_URL` is a remote endpoint. In production, deploy/rollback mint short-lived JIT tokens and the shared rotate action promotes a validated 90d token (also refreshed monthly by `rotate-credentials.yml`) — this value is only needed locally | — |
 | `TURSO_API_TOKEN` | Turso API token for CI/PR DB forking and cleanup (`TURSO_API_TOKEN` secret in GitHub) | Generate at app.turso.tech |
 | `TURSO_DB_NAME` | Base name of the Turso database, without environment suffix (`TURSO_DB_NAME` variable in GitHub) | `modern-directory` |
 | `TURSO_REGION` | Turso primary location for new databases (`TURSO_REGION` variable in GitHub) | `aws-eu-west-1` |

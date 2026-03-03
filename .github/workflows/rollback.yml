@@ -80,16 +80,12 @@ jobs:
           : "${TURSO_DB_NAME:?TURSO_DB_NAME repo variable is required}"
           DB_NAME="${TURSO_DB_NAME}-prod"
           DATABASE_URL="$(turso db show "$DB_NAME" --url)"
-          # JIT token: tagged with a unique group so only this token can be
-          # selectively invalidated in the Three-Finger Swap reaper step below.
-          JIT_TOKEN_GROUP="rollback-${{ steps.parse.outputs.sha }}"
-          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --group "$JIT_TOKEN_GROUP" --expiration 2h)"
+          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration 3h)"
           echo "::add-mask::$DATABASE_AUTH_TOKEN"
           {
             echo "DB_NAME=$DB_NAME"
             echo "DATABASE_URL=$DATABASE_URL"
             echo "DATABASE_AUTH_TOKEN=$DATABASE_AUTH_TOKEN"
-            echo "JIT_TOKEN_GROUP=$JIT_TOKEN_GROUP"
           } >> "$GITHUB_ENV"
 
       - name: Find existing Vercel deployment for SHA
