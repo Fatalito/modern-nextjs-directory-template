@@ -80,7 +80,7 @@ jobs:
           : "${TURSO_DB_NAME:?TURSO_DB_NAME repo variable is required}"
           DB_NAME="${TURSO_DB_NAME}-prod"
           DATABASE_URL="$(turso db show "$DB_NAME" --url)"
-          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration 3h)"
+          DATABASE_AUTH_TOKEN="$(turso db tokens create "$DB_NAME" --expiration 1d)"
           echo "::add-mask::$DATABASE_AUTH_TOKEN"
           {
             echo "DB_NAME=$DB_NAME"

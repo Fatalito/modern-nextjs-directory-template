@@ -30,7 +30,7 @@ fi
 
 # ── Create new token ──────────────────────────────────────────────────────────
 echo -e "$INFO Creating new auth token for '$DB_NAME'..."
-NEW_TOKEN="$(turso db tokens create "$DB_NAME" --expiration none)"
+NEW_TOKEN="$(turso db tokens create "$DB_NAME" --expiration never)"
 echo -e "$SUCCESS New token created."
 
 # ── Update .env ───────────────────────────────────────────────────────────────
