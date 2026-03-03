@@ -12,6 +12,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: cleanup-stale-forks
+  cancel-in-progress: false
+
 jobs:
   cleanup:
     name: Delete merged PR Turso forks (>24h old)
@@ -32,6 +36,10 @@ jobs:
         run: |
           # shellcheck source=infra/turso.conf.sh
           source infra/turso.conf.sh
+          if [ -z "${DB_BASE_NAME:-}" ]; then
+            echo "::error::DB_BASE_NAME is empty — check TURSO_DB_NAME and infra/turso.conf.sh."
+            exit 1
+          fi
           REPO="${{ github.repository }}"
           NOW=$(date +%s)
 
@@ -66,7 +74,10 @@ jobs:
                 rm -f "$PR_ERR"
                 [ -z "$MERGED_AT" ] && continue
                 MERGED_TS=$(date -d "$MERGED_AT" +%s 2>/dev/null || true)
-                [ -z "$MERGED_TS" ] && continue
+                if [ -z "$MERGED_TS" ]; then
+                  echo "::warning::Skipping $DB — merged_at '$MERGED_AT' could not be parsed as a timestamp."
+                  continue
+                fi
                 AGE=$((NOW - MERGED_TS))
                 if [ "$AGE" -gt 86400 ]; then
                   echo "Deleting $DB (merged $((AGE / 3600))h ago)..."

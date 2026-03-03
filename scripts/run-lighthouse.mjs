@@ -26,14 +26,15 @@ async function run() {
       headers: bypassHeaders,
     });
     const html = await response.text();
-    // Every Next.js page references /_next/ assets. Vercel's protection wall
-    // uses /_vercel/ assets — its absence means we're auditing the wrong page.
-    if (!html.includes("/_next/")) {
+    // Vercel's protection page is itself a Next.js app (same /_next/ assets),
+    // so checking for /_next/ alone is not reliable. Check for a meaningful
+    // <title> and <html lang=...> — both are always present in our app and
+    // always absent or generic ("Authentication") on the protection wall.
+    const hasTitle = /<title[^>]*>[^<]{2,}<\/title>/i.test(html);
+    const hasLang = /<html[^>]+lang="[a-z]/i.test(html);
+    if (!hasTitle || !hasLang) {
       console.error(
-        `❌ ${TARGET_URL} does not look like a Next.js app — /_next/ assets missing.`,
-      );
-      console.error(
-        "   This usually means Lighthouse is hitting Vercel's Deployment Protection page.",
+        `❌ ${TARGET_URL} looks like Vercel's Deployment Protection page (missing <title> or <html lang=...>).`,
       );
       if (VERCEL_AUTOMATION_BYPASS_SECRET) {
         console.error(
