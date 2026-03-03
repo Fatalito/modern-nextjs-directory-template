@@ -25,4 +25,4 @@ pre-push:
         npm run test:coverage &&
         node -e "const s=JSON.parse(require('fs').readFileSync('./coverage/coverage-summary.json','utf8'));const bad=Object.entries(s).filter(([k,v])=>k!=='total'&&v.lines.pct===0&&v.lines.total>0);if(bad.length){console.error('\n\u274C Coverage gate: 0% — add tests or exclude in vitest.config.ts:\n'+bad.map(([k])=>k).join('\n'));process.exit(1);}"
     typecheck:
-      run: npm run typecheck
+      run: npm run --silent typecheck
