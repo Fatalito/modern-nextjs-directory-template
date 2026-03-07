@@ -83,7 +83,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
-    "@cyclonedx/cyclonedx-npm": "^4.1.2",
+    "@cyclonedx/cyclonedx-npm": "^4.2.0",
     "@playwright/test": "^1.58.2",
     "@storybook/addon-mcp": "^0.3.3",
     "@storybook/nextjs-vite": "^10.2.14",
